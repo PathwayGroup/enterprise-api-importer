@@ -110,6 +110,11 @@ eai_render_imports_list_page();
 function eai_render_imports_list_page() {
 $list_table = new EAI_Imports_List_Table();
 $list_table->prepare_items();
+	$ownership_counts = eai_get_import_post_ownership_counts();
+	$total_owned_posts = 0;
+	foreach ( $ownership_counts as $ownership_row ) {
+		$total_owned_posts += isset( $ownership_row['post_count'] ) ? (int) $ownership_row['post_count'] : 0;
+	}
 
 $new_url = add_query_arg(
 array(
@@ -145,8 +150,124 @@ isset( $active_state['import_id'] ) ? (int) $active_state['import_id'] : 0
 <form method="post">
 <?php $list_table->display(); ?>
 </form>
+
+<hr />
+<h2><?php esc_html_e( 'Debug: Imported Post Ownership', 'enterprise-api-importer' ); ?></h2>
+<p>
+	<?php
+	echo esc_html(
+		sprintf(
+			/* translators: %d is total number of imported posts that have _eai_import_id. */
+			__( 'Total imported posts with _eai_import_id: %d', 'enterprise-api-importer' ),
+			(int) $total_owned_posts
+		)
+	);
+	?>
+</p>
+
+<table class="widefat striped">
+	<thead>
+		<tr>
+			<th><?php esc_html_e( 'Import ID Meta Value', 'enterprise-api-importer' ); ?></th>
+			<th><?php esc_html_e( 'Matched Import Job', 'enterprise-api-importer' ); ?></th>
+			<th><?php esc_html_e( 'Imported Post Count', 'enterprise-api-importer' ); ?></th>
+		</tr>
+	</thead>
+	<tbody>
+	<?php if ( empty( $ownership_counts ) ) : ?>
+		<tr>
+			<td colspan="3"><?php esc_html_e( 'No imported posts with _eai_import_id found.', 'enterprise-api-importer' ); ?></td>
+		</tr>
+	<?php else : ?>
+		<?php foreach ( $ownership_counts as $ownership_row ) : ?>
+			<tr>
+				<td><?php echo esc_html( isset( $ownership_row['import_id_raw'] ) ? (string) $ownership_row['import_id_raw'] : '' ); ?></td>
+				<td>
+					<?php
+					echo esc_html( isset( $ownership_row['import_name'] ) ? (string) $ownership_row['import_name'] : '' );
+					if ( ! empty( $ownership_row['has_match'] ) && ! empty( $ownership_row['import_id'] ) ) {
+						echo ' ';
+						echo esc_html(
+							sprintf(
+								/* translators: %d is the matched import job ID. */
+								__( '(ID #%d)', 'enterprise-api-importer' ),
+								(int) $ownership_row['import_id']
+							)
+						);
+					}
+					?>
+				</td>
+				<td><?php echo esc_html( isset( $ownership_row['post_count'] ) ? (string) (int) $ownership_row['post_count'] : '0' ); ?></td>
+			</tr>
+		<?php endforeach; ?>
+	<?php endif; ?>
+	</tbody>
+</table>
 </div>
 <?php
+}
+
+/**
+ * Gets imported post ownership grouped by _eai_import_id.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function eai_get_import_post_ownership_counts() {
+	global $wpdb;
+
+	$postmeta_table = $wpdb->postmeta;
+	$posts_table    = $wpdb->posts;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT pm.meta_value AS import_id_raw, COUNT(p.ID) AS post_count
+			FROM %i pm
+			INNER JOIN %i p
+				ON p.ID = pm.post_id
+			WHERE pm.meta_key = %s
+				AND p.post_type = %s
+				AND p.post_status NOT IN ('trash', 'auto-draft')
+			GROUP BY pm.meta_value
+			ORDER BY post_count DESC, pm.meta_value ASC",
+			$postmeta_table,
+			$posts_table,
+			'_eai_import_id',
+			'imported_item'
+		),
+		ARRAY_A
+	);
+
+	if ( ! is_array( $rows ) ) {
+		return array();
+	}
+
+	$import_rows  = eai_db_get_import_configs();
+	$import_names = array();
+	foreach ( $import_rows as $import_row ) {
+		$import_id = isset( $import_row['id'] ) ? absint( $import_row['id'] ) : 0;
+		if ( $import_id > 0 ) {
+			$import_names[ $import_id ] = isset( $import_row['name'] ) ? (string) $import_row['name'] : '';
+		}
+	}
+
+	$ownership = array();
+	foreach ( $rows as $row ) {
+		$import_id_raw = isset( $row['import_id_raw'] ) ? trim( (string) $row['import_id_raw'] ) : '';
+		$import_id     = absint( $import_id_raw );
+		$has_match     = $import_id > 0 && isset( $import_names[ $import_id ] );
+		$import_name   = $has_match ? (string) $import_names[ $import_id ] : __( 'Unknown import job', 'enterprise-api-importer' );
+
+		$ownership[] = array(
+			'import_id_raw' => $import_id_raw,
+			'import_id'     => $import_id,
+			'import_name'   => $import_name,
+			'has_match'     => $has_match,
+			'post_count'    => isset( $row['post_count'] ) ? (int) $row['post_count'] : 0,
+		);
+	}
+
+	return $ownership;
 }
 
 /**
@@ -970,12 +1091,8 @@ array(
 )
 );
 
-$scheduled = eai_schedule_import_batch_event( null, true );
-if ( ! $scheduled ) {
-eai_clear_active_run_state();
-wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => 'import_error' ), admin_url( 'admin.php' ) ) );
-exit;
-}
+// Process one slice immediately; remaining slices will self-schedule if needed.
+eai_handle_scheduled_import_batch();
 
 wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => 'import_started' ), admin_url( 'admin.php' ) ) );
 exit;
@@ -1115,7 +1232,10 @@ if ( ! current_user_can( 'manage_options' ) ) {
 wp_die( esc_html__( 'You are not allowed to schedule imports.', 'enterprise-api-importer' ) );
 }
 
-$import_id = isset( $_POST['import_id'] ) ? absint( wp_unslash( $_POST['import_id'] ) ) : 0;
+$post_data = wp_unslash( $_POST );
+$post_data = is_array( $post_data ) ? $post_data : array();
+
+$import_id = isset( $post_data['import_id'] ) ? absint( $post_data['import_id'] ) : 0;
 if ( $import_id <= 0 ) {
 wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-schedules', 'eai_notice' => 'schedule_error' ), admin_url( 'admin.php' ) ) );
 exit;
@@ -1123,7 +1243,11 @@ exit;
 
 check_admin_referer( 'eai_schedule_run_now_' . $import_id, 'eai_schedule_run_now_nonce' );
 
-$scheduled = wp_schedule_single_event( time(), 'ncsu_api_importer_batch_hook', array( $import_id, 'run_now' ) );
+// Execute immediately so updates/deletes happen even when WP-Cron is delayed.
+eai_handle_import_batch_hook( $import_id, 'run_now' );
+
+$active_state = eai_get_active_run_state();
+$scheduled = empty( $active_state['run_id'] ) || ( isset( $active_state['import_id'] ) && (int) $active_state['import_id'] === $import_id );
 
 wp_safe_redirect(
 add_query_arg(
