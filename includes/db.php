@@ -94,7 +94,7 @@ function eai_db_get_import_configs(): array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT id, name, endpoint_url, auth_token, array_path, unique_id_path, recurrence, custom_interval_minutes, mapping_template, created_at
+			"SELECT id, name, endpoint_url, auth_token, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, mapping_template, created_at
 			FROM %i
 			ORDER BY id DESC",
 			$table
@@ -137,7 +137,7 @@ function eai_db_get_import_config( int $import_id ): ?array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT id, name, endpoint_url, auth_token, array_path, unique_id_path, recurrence, custom_interval_minutes, mapping_template, created_at
+			"SELECT id, name, endpoint_url, auth_token, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, mapping_template, created_at
 			FROM %i
 			WHERE id = %d",
 			$table,

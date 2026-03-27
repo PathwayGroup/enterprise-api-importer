@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'EAI_DB_SCHEMA_VERSION' ) ) {
-	define( 'EAI_DB_SCHEMA_VERSION', '20260327-2' );
+	define( 'EAI_DB_SCHEMA_VERSION', '20260327-3' );
 }
 
 /**
@@ -38,6 +38,7 @@ function eai_activate_plugin() {
 		unique_id_path varchar(191) NOT NULL DEFAULT 'id',
 		recurrence varchar(32) NOT NULL DEFAULT 'off',
 		custom_interval_minutes int(10) unsigned NOT NULL DEFAULT 0,
+		filter_rules longtext NULL,
 		mapping_template longtext NOT NULL,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),

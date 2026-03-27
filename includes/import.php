@@ -359,6 +359,11 @@ function eai_extract_and_stage_data( $import_id ) {
 		return $selected_array;
 	}
 
+	$filter_rules = eai_decode_filter_rules_json( isset( $import_job['filter_rules'] ) ? (string) $import_job['filter_rules'] : '' );
+	if ( ! empty( $filter_rules ) ) {
+		$selected_array = eai_apply_filter_rules_to_records( $selected_array, $filter_rules );
+	}
+
 	$serialized_selected_array = wp_json_encode( $selected_array, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
 	if ( false === $serialized_selected_array ) {
@@ -370,12 +375,183 @@ function eai_extract_and_stage_data( $import_id ) {
 		return $insert_id;
 	}
 
+	$row_count = 0;
+	if ( is_array( $selected_array ) ) {
+		if ( eai_array_is_list( $selected_array ) ) {
+			$row_count = count( $selected_array );
+		} elseif ( ! empty( $selected_array ) ) {
+			$row_count = 1;
+		}
+	}
+
 	return array(
 		'import_id'  => $import_id,
 		'insert_id'  => (int) $insert_id,
 		'used_cache' => $used_cache,
-		'row_count'  => count( $selected_array ),
+		'row_count'  => (int) $row_count,
 	);
+}
+
+/**
+ * Decodes and sanitizes filter rules JSON.
+ *
+ * @param string $filter_rules_json JSON string from import settings.
+ *
+ * @return array<int, array<string, string>>
+ */
+function eai_decode_filter_rules_json( $filter_rules_json ) {
+	$decoded = json_decode( (string) $filter_rules_json, true );
+	if ( ! is_array( $decoded ) ) {
+		return array();
+	}
+
+	$allowed_operators = array(
+		'equals',
+		'not_equals',
+		'contains',
+		'not_contains',
+		'is_empty',
+		'not_empty',
+		'greater_than',
+		'less_than',
+	);
+
+	$rules = array();
+	foreach ( $decoded as $rule ) {
+		if ( ! is_array( $rule ) ) {
+			continue;
+		}
+
+		$key      = isset( $rule['key'] ) ? trim( sanitize_text_field( (string) $rule['key'] ) ) : '';
+		$operator = isset( $rule['operator'] ) ? sanitize_key( (string) $rule['operator'] ) : '';
+		$value    = isset( $rule['value'] ) ? sanitize_text_field( (string) $rule['value'] ) : '';
+
+		if ( '' === $key || ! in_array( $operator, $allowed_operators, true ) ) {
+			continue;
+		}
+
+		$rules[] = array(
+			'key'      => $key,
+			'operator' => $operator,
+			'value'    => $value,
+		);
+	}
+
+	return $rules;
+}
+
+/**
+ * Applies all configured filter rules to selected records using AND logic.
+ *
+ * @param array<mixed>                           $selected_array Records selected from API payload.
+ * @param array<int, array<string, string>>      $filter_rules   Sanitized filter rules.
+ *
+ * @return array<mixed>
+ */
+function eai_apply_filter_rules_to_records( $selected_array, $filter_rules ) {
+	if ( ! is_array( $selected_array ) || empty( $filter_rules ) ) {
+		return is_array( $selected_array ) ? $selected_array : array();
+	}
+
+	$is_list_array = eai_array_is_list( $selected_array );
+	$records       = $is_list_array ? $selected_array : array( $selected_array );
+	$filtered      = array();
+
+	foreach ( $records as $record ) {
+		if ( ! is_array( $record ) ) {
+			continue;
+		}
+
+		$passes_all_rules = true;
+		foreach ( $filter_rules as $filter_rule ) {
+			$record_value = eai_get_item_value_by_path( $record, $filter_rule['key'] );
+			if ( ! evaluate_filter_rule( $record_value, $filter_rule['operator'], $filter_rule['value'] ) ) {
+				$passes_all_rules = false;
+				break;
+			}
+		}
+
+		if ( $passes_all_rules ) {
+			$filtered[] = $record;
+		}
+	}
+
+	if ( $is_list_array ) {
+		return array_values( $filtered );
+	}
+
+	if ( empty( $filtered ) ) {
+		return array();
+	}
+
+	return (array) $filtered[0];
+}
+
+/**
+ * Evaluates one filter rule against a single record value.
+ *
+ * @param mixed  $record_value Record value from payload.
+ * @param string $operator     Rule operator.
+ * @param string $filter_value Rule value.
+ *
+ * @return bool
+ */
+function evaluate_filter_rule( $record_value, $operator, $filter_value ) {
+	$operator = sanitize_key( (string) $operator );
+
+	$record_is_empty = null === $record_value;
+	if ( is_string( $record_value ) ) {
+		$record_is_empty = '' === trim( $record_value );
+	} elseif ( is_array( $record_value ) ) {
+		$record_is_empty = empty( $record_value );
+	}
+
+	if ( 'is_empty' === $operator ) {
+		return $record_is_empty;
+	}
+
+	if ( 'not_empty' === $operator ) {
+		return ! $record_is_empty;
+	}
+
+	$record_string = is_scalar( $record_value ) ? trim( (string) $record_value ) : '';
+	$filter_string = trim( (string) $filter_value );
+
+	if ( is_numeric( $record_string ) && is_numeric( $filter_string ) ) {
+		$record_number = (float) $record_string;
+		$filter_number = (float) $filter_string;
+
+		switch ( $operator ) {
+			case 'equals':
+				return $record_number === $filter_number;
+			case 'not_equals':
+				return $record_number !== $filter_number;
+			case 'greater_than':
+				return $record_number > $filter_number;
+			case 'less_than':
+				return $record_number < $filter_number;
+		}
+	}
+
+	$record_lower = strtolower( $record_string );
+	$filter_lower = strtolower( $filter_string );
+
+	switch ( $operator ) {
+		case 'equals':
+			return $record_lower === $filter_lower;
+		case 'not_equals':
+			return $record_lower !== $filter_lower;
+		case 'contains':
+			return '' !== $filter_lower && false !== strpos( $record_lower, $filter_lower );
+		case 'not_contains':
+			return '' === $filter_lower || false === strpos( $record_lower, $filter_lower );
+		case 'greater_than':
+			return strcmp( $record_lower, $filter_lower ) > 0;
+		case 'less_than':
+			return strcmp( $record_lower, $filter_lower ) < 0;
+		default:
+			return false;
+	}
 }
 
 /**

@@ -392,6 +392,24 @@ isset( $metric['error_count'] ) ? (int) $metric['error_count'] : 0
 }
 
 /**
+ * Returns supported data filter operators.
+ *
+ * @return array<string, string>
+ */
+function eai_get_filter_operator_options() {
+	return array(
+		'equals'       => __( 'Equals', 'enterprise-api-importer' ),
+		'not_equals'   => __( 'Not Equals', 'enterprise-api-importer' ),
+		'contains'     => __( 'Contains', 'enterprise-api-importer' ),
+		'not_contains' => __( 'Not Contains', 'enterprise-api-importer' ),
+		'is_empty'     => __( 'Is Empty', 'enterprise-api-importer' ),
+		'not_empty'    => __( 'Not Empty', 'enterprise-api-importer' ),
+		'greater_than' => __( 'Greater Than', 'enterprise-api-importer' ),
+		'less_than'    => __( 'Less Than', 'enterprise-api-importer' ),
+	);
+}
+
+/**
  * Renders create/edit import page.
  */
 function eai_render_import_edit_page() {
@@ -412,12 +430,45 @@ $defaults = array(
 		'unique_id_path'   => 'id',
 'recurrence'       => 'off',
 'custom_interval_minutes' => 30,
+'filter_rules'     => '[]',
 'mapping_template' => '',
 );
 $import = is_array( $import_row ) ? wp_parse_args( $import_row, $defaults ) : $defaults;
 $import['custom_interval_minutes'] = absint( $import['custom_interval_minutes'] );
 if ( 'custom' === (string) $import['recurrence'] && $import['custom_interval_minutes'] <= 0 ) {
 	$import['custom_interval_minutes'] = 30;
+}
+$filter_operator_options = eai_get_filter_operator_options();
+$decoded_filter_rules    = json_decode( (string) $import['filter_rules'], true );
+$filter_rules_for_ui     = array();
+if ( is_array( $decoded_filter_rules ) ) {
+	foreach ( $decoded_filter_rules as $filter_rule ) {
+		if ( ! is_array( $filter_rule ) ) {
+			continue;
+		}
+
+		$rule_key      = isset( $filter_rule['key'] ) ? sanitize_text_field( (string) $filter_rule['key'] ) : '';
+		$rule_operator = isset( $filter_rule['operator'] ) ? sanitize_key( (string) $filter_rule['operator'] ) : '';
+		$rule_value    = isset( $filter_rule['value'] ) ? sanitize_text_field( (string) $filter_rule['value'] ) : '';
+
+		if ( '' === $rule_key || ! isset( $filter_operator_options[ $rule_operator ] ) ) {
+			continue;
+		}
+
+		$filter_rules_for_ui[] = array(
+			'key'      => $rule_key,
+			'operator' => $rule_operator,
+			'value'    => $rule_value,
+		);
+	}
+}
+
+if ( empty( $filter_rules_for_ui ) ) {
+	$filter_rules_for_ui[] = array(
+		'key'      => '',
+		'operator' => 'equals',
+		'value'    => '',
+	);
 }
 $is_edit = (int) $import['id'] > 0;
 ?>
@@ -501,6 +552,98 @@ $is_edit = (int) $import['id'] > 0;
 
 	recurrenceSelect.addEventListener( 'change', toggleCustomMinutes );
 	toggleCustomMinutes();
+} )();
+</script>
+</td>
+</tr>
+<tr>
+<th scope="row"><?php esc_html_e( 'Data Filters', 'enterprise-api-importer' ); ?></th>
+<td>
+<p class="description"><?php esc_html_e( 'Only records matching every filter are staged for import (AND logic).', 'enterprise-api-importer' ); ?></p>
+<table class="widefat striped" style="max-width:900px; margin-top:8px;">
+<thead>
+<tr>
+<th><?php esc_html_e( 'Key', 'enterprise-api-importer' ); ?></th>
+<th><?php esc_html_e( 'Operator', 'enterprise-api-importer' ); ?></th>
+<th><?php esc_html_e( 'Value', 'enterprise-api-importer' ); ?></th>
+<th><?php esc_html_e( 'Actions', 'enterprise-api-importer' ); ?></th>
+</tr>
+</thead>
+<tbody id="eai-filter-rules-body">
+<?php foreach ( $filter_rules_for_ui as $filter_rule ) : ?>
+<tr>
+<td><input type="text" name="filter_rules[key][]" class="regular-text" value="<?php echo esc_attr( (string) $filter_rule['key'] ); ?>" placeholder="department" /></td>
+<td>
+<select name="filter_rules[operator][]">
+<?php foreach ( $filter_operator_options as $operator_key => $operator_label ) : ?>
+<option value="<?php echo esc_attr( $operator_key ); ?>" <?php selected( (string) $filter_rule['operator'], $operator_key ); ?>><?php echo esc_html( $operator_label ); ?></option>
+<?php endforeach; ?>
+</select>
+</td>
+<td><input type="text" name="filter_rules[value][]" class="regular-text" value="<?php echo esc_attr( (string) $filter_rule['value'] ); ?>" placeholder="Engineering" /></td>
+<td><button type="button" class="button eai-remove-filter-row"><?php esc_html_e( 'Remove', 'enterprise-api-importer' ); ?></button></td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+
+<p style="margin-top:8px;">
+<button type="button" class="button" id="eai-add-filter-row"><?php esc_html_e( 'Add Filter', 'enterprise-api-importer' ); ?></button>
+</p>
+
+<template id="eai-filter-rule-template">
+<tr>
+<td><input type="text" name="filter_rules[key][]" class="regular-text" value="" placeholder="department" /></td>
+<td>
+<select name="filter_rules[operator][]">
+<?php foreach ( $filter_operator_options as $operator_key => $operator_label ) : ?>
+<option value="<?php echo esc_attr( $operator_key ); ?>"><?php echo esc_html( $operator_label ); ?></option>
+<?php endforeach; ?>
+</select>
+</td>
+<td><input type="text" name="filter_rules[value][]" class="regular-text" value="" placeholder="Engineering" /></td>
+<td><button type="button" class="button eai-remove-filter-row"><?php esc_html_e( 'Remove', 'enterprise-api-importer' ); ?></button></td>
+</tr>
+</template>
+
+<script>
+( function() {
+	var filterBody = document.getElementById( 'eai-filter-rules-body' );
+	var addFilterButton = document.getElementById( 'eai-add-filter-row' );
+	var rowTemplate = document.getElementById( 'eai-filter-rule-template' );
+
+	if ( ! filterBody || ! addFilterButton || ! rowTemplate ) {
+		return;
+	}
+
+	addFilterButton.addEventListener( 'click', function() {
+		var templateRow = rowTemplate.content.firstElementChild.cloneNode( true );
+		filterBody.appendChild( templateRow );
+	} );
+
+	filterBody.addEventListener( 'click', function( event ) {
+		var target = event.target;
+		if ( ! target.classList.contains( 'eai-remove-filter-row' ) ) {
+			return;
+		}
+
+		var row = target.closest( 'tr' );
+		if ( ! row ) {
+			return;
+		}
+
+		if ( filterBody.children.length <= 1 ) {
+			var keyInput = row.querySelector( 'input[name="filter_rules[key][]"]' );
+			var valueInput = row.querySelector( 'input[name="filter_rules[value][]"]' );
+			var operatorSelect = row.querySelector( 'select[name="filter_rules[operator][]"]' );
+			if ( keyInput ) { keyInput.value = ''; }
+			if ( valueInput ) { valueInput.value = ''; }
+			if ( operatorSelect ) { operatorSelect.value = 'equals'; }
+			return;
+		}
+
+		row.remove();
+	} );
 } )();
 </script>
 </td>
@@ -689,6 +832,39 @@ $allowed_mapping_html = array(
 );
 $mapping_template = wp_kses( (string) $template_raw, $allowed_mapping_html );
 
+$filter_operator_options = eai_get_filter_operator_options();
+$allowed_operators       = array_keys( $filter_operator_options );
+$filter_rules            = array();
+
+if ( isset( $post_data['filter_rules'] ) && is_array( $post_data['filter_rules'] ) ) {
+	$raw_filter_rules = $post_data['filter_rules'];
+	$rule_keys        = isset( $raw_filter_rules['key'] ) && is_array( $raw_filter_rules['key'] ) ? $raw_filter_rules['key'] : array();
+	$rule_operators   = isset( $raw_filter_rules['operator'] ) && is_array( $raw_filter_rules['operator'] ) ? $raw_filter_rules['operator'] : array();
+	$rule_values      = isset( $raw_filter_rules['value'] ) && is_array( $raw_filter_rules['value'] ) ? $raw_filter_rules['value'] : array();
+
+	$rule_count = max( count( $rule_keys ), count( $rule_operators ), count( $rule_values ) );
+	for ( $index = 0; $index < $rule_count; $index++ ) {
+		$rule_key      = isset( $rule_keys[ $index ] ) ? sanitize_text_field( trim( (string) $rule_keys[ $index ] ) ) : '';
+		$rule_operator = isset( $rule_operators[ $index ] ) ? sanitize_key( (string) $rule_operators[ $index ] ) : '';
+		$rule_value    = isset( $rule_values[ $index ] ) ? sanitize_text_field( (string) $rule_values[ $index ] ) : '';
+
+		if ( '' === $rule_key || ! in_array( $rule_operator, $allowed_operators, true ) ) {
+			continue;
+		}
+
+		$filter_rules[] = array(
+			'key'      => $rule_key,
+			'operator' => $rule_operator,
+			'value'    => $rule_value,
+		);
+	}
+}
+
+$filter_rules_json = wp_json_encode( $filter_rules, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+if ( false === $filter_rules_json ) {
+	$filter_rules_json = '[]';
+}
+
 if ( '' === $name || '' === $endpoint_url || '' === $mapping_template ) {
 wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => 'import_error' ), admin_url( 'admin.php' ) ) );
 exit;
@@ -702,9 +878,10 @@ $data = array(
 		'unique_id_path'   => $unique_id_path,
 'recurrence'       => $recurrence,
 'custom_interval_minutes' => $custom_interval_minutes,
+'filter_rules'     => (string) $filter_rules_json,
 'mapping_template' => $mapping_template,
 );
-	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' );
+	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' );
 
 $persisted_import_id = eai_db_save_import_config( $import_id, $data, $formats );
 if ( is_wp_error( $persisted_import_id ) ) {
