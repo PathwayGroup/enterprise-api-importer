@@ -22,19 +22,7 @@ add_filter( 'cron_schedules', 'eai_register_custom_cron_schedules' );
  * @return array<string, array<string, mixed>>
  */
 function eai_register_custom_cron_schedules( $schedules ) {
-	global $wpdb;
-
-	$imports_table = $wpdb->prefix . 'eapi_imports';
-	$rows          = $wpdb->get_col(
-		"SELECT DISTINCT custom_interval_minutes
-		FROM {$imports_table}
-		WHERE recurrence = 'custom'
-			AND custom_interval_minutes > 0"
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return $schedules;
-	}
+	$rows = eai_db_get_custom_recurrence_minutes();
 
 	foreach ( $rows as $minutes_value ) {
 		$minutes = max( 1, absint( $minutes_value ) );
@@ -328,19 +316,8 @@ function eai_fetch_api_payload( $endpoint, $token = '', $bypass_cache = false ) 
  * @return array<string, mixed>|WP_Error
  */
 function eai_extract_and_stage_data( $import_id ) {
-	global $wpdb;
-
 	$import_id     = absint( $import_id );
-	$imports_table = $wpdb->prefix . 'eapi_imports';
-	$import_job    = $wpdb->get_row(
-		$wpdb->prepare(
-			"SELECT id, endpoint_url, auth_token, array_path
-			FROM {$imports_table}
-			WHERE id = %d",
-			$import_id
-		),
-		ARRAY_A
-	);
+	$import_job    = eai_db_get_import_config( $import_id );
 
 	if ( ! is_array( $import_job ) ) {
 		return new WP_Error( 'eai_import_not_found', __( 'Import job could not be found.', 'enterprise-api-importer' ) );
@@ -388,32 +365,14 @@ function eai_extract_and_stage_data( $import_id ) {
 		return new WP_Error( 'eai_json_encode_failed', __( 'Failed to serialize extracted array for staging.', 'enterprise-api-importer' ) );
 	}
 
-	$temp_table = $wpdb->prefix . 'custom_import_temp';
-	$inserted   = $wpdb->insert(
-		$temp_table,
-		array(
-			'import_id'    => $import_id,
-			'raw_json'     => $serialized_selected_array,
-			'is_processed' => 0,
-			'created_at'   => current_time( 'mysql', true ),
-		),
-		array( '%d', '%s', '%d', '%s' )
-	);
-
-	if ( false === $inserted ) {
-		return new WP_Error(
-			'eai_temp_insert_failed',
-			sprintf(
-				/* translators: %s is a database error string. */
-				__( 'Failed to insert extracted data into staging table: %s', 'enterprise-api-importer' ),
-				(string) $wpdb->last_error
-			)
-		);
+	$insert_id = eai_db_insert_staging_payload( $import_id, $serialized_selected_array );
+	if ( is_wp_error( $insert_id ) ) {
+		return $insert_id;
 	}
 
 	return array(
 		'import_id'  => $import_id,
-		'insert_id'  => (int) $wpdb->insert_id,
+		'insert_id'  => (int) $insert_id,
 		'used_cache' => $used_cache,
 		'row_count'  => count( $selected_array ),
 	);
@@ -541,7 +500,6 @@ function eai_transform_and_load_item( $item, $mapping_template, $unique_id_path 
 			'fields'                 => 'ids',
 			'ignore_sticky_posts'    => true,
 			'no_found_rows'          => true,
-			'suppress_filters'       => true,
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
 			'meta_query'             => array(
@@ -613,6 +571,9 @@ function eai_transform_and_load_item( $item, $mapping_template, $unique_id_path 
 			'post_id' => $existing_post_id,
 		);
 	}
+
+	// Touch sync timestamp even when content is unchanged so valid items are not treated as orphans.
+	update_post_meta( $existing_post_id, '_last_synced_timestamp', $timestamp );
 
 	return array(
 		'action'  => 'unchanged',
@@ -754,31 +715,22 @@ function eai_prepare_template_value( $value, $allow_html = false ) {
  * @return bool
  */
 function eai_write_import_log( $import_id, $import_run_id, $status, $rows_processed, $rows_created, $rows_updated, $details, $created_at ) {
-	global $wpdb;
-
-	$logs_table = $wpdb->prefix . 'custom_import_logs';
 	$details_js = wp_json_encode( $details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
 	if ( false === $details_js ) {
 		$details_js = wp_json_encode( array( 'error' => 'Failed to encode run details.' ) );
 	}
 
-	$inserted = $wpdb->insert(
-		$logs_table,
-		array(
-			'import_id'      => (int) $import_id,
-			'import_run_id'  => $import_run_id,
-			'status'         => $status,
-			'rows_processed' => $rows_processed,
-			'rows_created'   => $rows_created,
-			'rows_updated'   => $rows_updated,
-			'errors'         => (string) $details_js,
-			'created_at'     => $created_at,
-		),
-		array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
+	return eai_db_insert_import_log(
+		(int) $import_id,
+		(string) $import_run_id,
+		(string) $status,
+		(int) $rows_processed,
+		(int) $rows_created,
+		(int) $rows_updated,
+		(string) $details_js,
+		(string) $created_at
 	);
-
-	return false !== $inserted;
 }
 
 /**
@@ -789,18 +741,7 @@ function eai_write_import_log( $import_id, $import_run_id, $status, $rows_proces
  * @return bool
  */
 function eai_has_unprocessed_staging_rows( $import_id ) {
-	global $wpdb;
-
-	$temp_table = $wpdb->prefix . 'custom_import_temp';
-	$count      = (int) $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT COUNT(1)
-			FROM {$temp_table}
-			WHERE is_processed = 0
-				AND import_id = %d",
-			absint( $import_id )
-		)
-	);
+	$count = eai_db_count_unprocessed_staging_rows( absint( $import_id ) );
 
 	return $count > 0;
 }
@@ -879,22 +820,8 @@ function eai_clear_active_run_state() {
  * @return array<string, mixed>|WP_Error
  */
 function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id, $max_runtime_seconds = 45 ) {
-	global $wpdb;
-
 	$import_id    = absint( $import_id );
-	$temp_table   = $wpdb->prefix . 'custom_import_temp';
-	$imports_table = $wpdb->prefix . 'eapi_imports';
-	$staged_rows  = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT id, import_id, raw_json
-			FROM {$temp_table}
-			WHERE is_processed = 0
-				AND import_id = %d
-			ORDER BY id ASC",
-			$import_id
-		),
-		ARRAY_A
-	);
+	$staged_rows  = eai_db_get_unprocessed_staging_rows( $import_id );
 
 	if ( ! is_array( $staged_rows ) ) {
 		return new WP_Error( 'eai_staging_query_failed', __( 'Failed to query unprocessed staging rows.', 'enterprise-api-importer' ) );
@@ -930,15 +857,7 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 			continue;
 		}
 
-		$import_job = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT id, mapping_template, unique_id_path
-				FROM {$imports_table}
-				WHERE id = %d",
-				$row_import_id
-			),
-			ARRAY_A
-		);
+		$import_job = eai_db_get_import_config( $row_import_id );
 
 		if ( ! is_array( $import_job ) ) {
 			$result['errors'][] = sprintf(
@@ -1015,15 +934,9 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 		}
 
 		if ( $row_completed ) {
-			$marked_processed = $wpdb->update(
-				$temp_table,
-				array( 'is_processed' => 1 ),
-				array( 'id' => $row_id ),
-				array( '%d' ),
-				array( '%d' )
-			);
+			$marked_processed = eai_db_mark_staging_row_processed( $row_id );
 
-			if ( false === $marked_processed ) {
+			if ( ! $marked_processed ) {
 				$result['errors'][] = sprintf(
 					/* translators: %d is the staging row ID. */
 					__( 'Failed to mark staging row %d as processed.', 'enterprise-api-importer' ),
@@ -1111,13 +1024,10 @@ function eai_handle_scheduled_import_batch() {
 		return;
 	}
 
-	$orphans_trashed = 0;
-	if ( (int) $state['rows_processed'] > 0 ) {
-		$orphans_trashed = eai_trash_orphaned_imported_posts( (int) $state['start_timestamp'], $import_id );
-		if ( is_wp_error( $orphans_trashed ) ) {
-			$state['errors'][] = $orphans_trashed->get_error_message();
-			$orphans_trashed   = 0;
-		}
+	$orphans_trashed = eai_trash_orphaned_imported_posts( (int) $state['start_timestamp'], $import_id );
+	if ( is_wp_error( $orphans_trashed ) ) {
+		$state['errors'][] = $orphans_trashed->get_error_message();
+		$orphans_trashed   = 0;
 	}
 
 	$end_time = gmdate( 'Y-m-d H:i:s', time() );
@@ -1218,14 +1128,15 @@ function eai_trash_orphaned_imported_posts( $run_started_unix, $import_id ) {
 	$postmeta_table = $wpdb->postmeta;
 	$import_id      = absint( $import_id );
 
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$orphan_ids = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT DISTINCT p.ID
-			FROM {$posts_table} p
-			LEFT JOIN {$postmeta_table} pm
+			FROM %i p
+			LEFT JOIN %i pm
 				ON p.ID = pm.post_id
 				AND pm.meta_key = %s
-			INNER JOIN {$postmeta_table} pim
+			INNER JOIN %i pim
 				ON p.ID = pim.post_id
 				AND pim.meta_key = %s
 				AND CAST(pim.meta_value AS UNSIGNED) = %d
@@ -1235,6 +1146,9 @@ function eai_trash_orphaned_imported_posts( $run_started_unix, $import_id ) {
 					pm.meta_value IS NULL
 					OR CAST(pm.meta_value AS UNSIGNED) < %d
 				)",
+			$posts_table,
+			$postmeta_table,
+			$postmeta_table,
 			'_last_synced_timestamp',
 			'_eai_import_id',
 			$import_id,

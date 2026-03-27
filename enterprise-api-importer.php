@@ -6,6 +6,7 @@
  * Version:     0.1.0
  * Author:      tporret
  * License:     GPL-2.0-or-later
+ * Tested up to: 6.9
  * Text Domain: enterprise-api-importer
  */
 
@@ -15,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Load plugin modules in dependency order.
 require_once __DIR__ . '/includes/core.php';
+require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/class-eapi-imports-list-table.php';
 require_once __DIR__ . '/includes/content.php';
 require_once __DIR__ . '/includes/import.php';

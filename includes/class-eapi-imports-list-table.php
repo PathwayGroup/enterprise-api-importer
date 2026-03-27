@@ -73,26 +73,13 @@ class EAI_Imports_List_Table extends WP_List_Table {
 	 * @return void
 	 */
 	public function prepare_items() {
-		global $wpdb;
-
-		$imports_table = $wpdb->prefix . 'eapi_imports';
 		$per_page      = 20;
 		$current_page  = $this->get_pagenum();
 		$offset        = ( $current_page - 1 ) * $per_page;
+		$all_configs   = eai_db_get_import_configs();
+		$total_items   = count( $all_configs );
 
-		$total_items = (int) $wpdb->get_var( "SELECT COUNT(1) FROM {$imports_table}" );
-
-		$this->items = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT id, name, endpoint_url, created_at
-				FROM {$imports_table}
-				ORDER BY id DESC
-				LIMIT %d OFFSET %d",
-				$per_page,
-				$offset
-			),
-			ARRAY_A
-		);
+		$this->items = array_slice( $all_configs, $offset, $per_page );
 
 		$this->_column_headers = array( $this->get_columns(), array(), array() );
 

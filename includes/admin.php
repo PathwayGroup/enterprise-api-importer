@@ -59,6 +59,7 @@ add_action( 'admin_init', 'eai_register_admin_post_handlers' );
  * Renders admin notices for this plugin.
  */
 function eai_render_admin_notices() {
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice code for admin UI messaging.
 $notice_code = isset( $_GET['eai_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['eai_notice'] ) ) : '';
 if ( '' === $notice_code ) {
 return;
@@ -92,6 +93,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
 return;
 }
 
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page routing state for admin screen rendering.
 $action = isset( $_GET['action'] ) ? sanitize_key( (string) wp_unslash( $_GET['action'] ) ) : '';
 
 if ( 'edit' === $action ) {
@@ -153,40 +155,9 @@ isset( $active_state['import_id'] ) ? (int) $active_state['import_id'] : 0
  * @return array<int, array<string, mixed>>
  */
 function eai_get_dashboard_metrics() {
-global $wpdb;
-
-$imports_table = $wpdb->prefix . 'eapi_imports';
-$logs_table    = $wpdb->prefix . 'custom_import_logs';
-$temp_table    = $wpdb->prefix . 'custom_import_temp';
-
-$rows = $wpdb->get_results(
-"SELECT i.id, i.name, i.endpoint_url, i.recurrence, i.custom_interval_minutes,
-ll.status AS last_status,
-ll.rows_processed,
-ll.rows_created,
-ll.rows_updated,
-ll.errors,
-ll.created_at AS last_run_at
-FROM {$imports_table} i
-LEFT JOIN (
-SELECT l.import_id, l.status, l.rows_processed, l.rows_created, l.rows_updated, l.errors, l.created_at
-FROM {$logs_table} l
-INNER JOIN (
-SELECT import_id, MAX(id) AS max_id
-FROM {$logs_table}
-GROUP BY import_id
-) latest
-ON l.import_id = latest.import_id
-AND l.id = latest.max_id
-) ll
-ON i.id = ll.import_id
-ORDER BY i.name ASC, i.id ASC",
-ARRAY_A
-);
-
-if ( ! is_array( $rows ) ) {
-return array();
-}
+	$rows          = eai_db_get_import_configs();
+	$latest_logs   = eai_db_get_latest_logs_indexed_by_import_id();
+	$pending_index = eai_db_get_pending_counts_by_import_id();
 
 $metrics = array();
 $active_state = eai_get_active_run_state();
@@ -197,15 +168,7 @@ if ( $import_id <= 0 ) {
 continue;
 }
 
-$pending_count = (int) $wpdb->get_var(
-$wpdb->prepare(
-"SELECT COUNT(id)
-FROM {$temp_table}
-WHERE import_id = %d
-AND is_processed = 0",
-$import_id
-)
-);
+$pending_count = isset( $pending_index[ $import_id ] ) ? (int) $pending_index[ $import_id ] : 0;
 
 $next_scheduled = wp_next_scheduled( 'eai_recurring_import_trigger', array( $import_id, 'recurring' ) );
 if ( false === $next_scheduled ) {
@@ -215,15 +178,15 @@ $next_scheduled = wp_next_scheduled( 'eai_recurring_import_trigger', array( $imp
 $status = 'idle';
 if ( $pending_count > 0 ) {
 $status = 'processing';
-} elseif ( ! empty( $row['last_status'] ) ) {
-$status = strtolower( (string) $row['last_status'] );
+} elseif ( ! empty( $latest_logs[ $import_id ]['status'] ) ) {
+$status = strtolower( (string) $latest_logs[ $import_id ]['status'] );
 }
 
 $error_count = 0;
 $details_summary = '';
 $trigger_source = 'unknown';
-if ( ! empty( $row['errors'] ) ) {
-$decoded_errors = json_decode( (string) $row['errors'], true );
+if ( ! empty( $latest_logs[ $import_id ]['errors'] ) ) {
+$decoded_errors = json_decode( (string) $latest_logs[ $import_id ]['errors'], true );
 if ( is_array( $decoded_errors ) && isset( $decoded_errors['processing_errors'] ) && is_array( $decoded_errors['processing_errors'] ) ) {
 $error_count = count( $decoded_errors['processing_errors'] );
 	if ( ! empty( $decoded_errors['processing_errors'][0] ) ) {
@@ -240,7 +203,7 @@ $details_summary = sanitize_text_field( (string) $decoded_errors['error'] );
 	}
 } else {
 $error_count = 1;
-	$details_summary = sanitize_text_field( (string) $row['errors'] );
+	$details_summary = sanitize_text_field( (string) $latest_logs[ $import_id ]['errors'] );
 }
 }
 
@@ -251,11 +214,11 @@ $trigger_source = sanitize_key( (string) $active_state['trigger_source'] );
 if ( '' === $details_summary ) {
 	if ( 'processing' === $status ) {
 		$details_summary = __( 'Import has staged rows waiting for worker processing.', 'enterprise-api-importer' );
-	} elseif ( ! empty( $row['last_status'] ) ) {
+	} elseif ( ! empty( $latest_logs[ $import_id ]['status'] ) ) {
 		$details_summary = sprintf(
 			/* translators: %s is the latest log status. */
 			__( 'Last status: %s', 'enterprise-api-importer' ),
-			sanitize_text_field( (string) $row['last_status'] )
+			sanitize_text_field( (string) $latest_logs[ $import_id ]['status'] )
 		);
 	} else {
 		$details_summary = __( 'No execution details available yet.', 'enterprise-api-importer' );
@@ -267,11 +230,11 @@ $metrics[] = array(
 'name'              => isset( $row['name'] ) ? (string) $row['name'] : '',
 'endpoint_url'      => isset( $row['endpoint_url'] ) ? (string) $row['endpoint_url'] : '',
 'status'            => $status,
-'last_status'       => isset( $row['last_status'] ) ? (string) $row['last_status'] : '',
-'last_run_at'       => isset( $row['last_run_at'] ) ? (string) $row['last_run_at'] : '',
-'rows_processed'    => isset( $row['rows_processed'] ) ? (int) $row['rows_processed'] : 0,
-'rows_created'      => isset( $row['rows_created'] ) ? (int) $row['rows_created'] : 0,
-'rows_updated'      => isset( $row['rows_updated'] ) ? (int) $row['rows_updated'] : 0,
+'last_status'       => isset( $latest_logs[ $import_id ]['status'] ) ? (string) $latest_logs[ $import_id ]['status'] : '',
+'last_run_at'       => isset( $latest_logs[ $import_id ]['last_run_at'] ) ? (string) $latest_logs[ $import_id ]['last_run_at'] : '',
+'rows_processed'    => isset( $latest_logs[ $import_id ]['rows_processed'] ) ? (int) $latest_logs[ $import_id ]['rows_processed'] : 0,
+'rows_created'      => isset( $latest_logs[ $import_id ]['rows_created'] ) ? (int) $latest_logs[ $import_id ]['rows_created'] : 0,
+'rows_updated'      => isset( $latest_logs[ $import_id ]['rows_updated'] ) ? (int) $latest_logs[ $import_id ]['rows_updated'] : 0,
 'error_count'       => $error_count,
 'trigger_source'    => $trigger_source,
 'details_summary'   => $details_summary,
@@ -388,7 +351,10 @@ font-weight: 600;
 <tr>
 <td>
 <strong><?php echo esc_html( isset( $metric['name'] ) ? (string) $metric['name'] : '' ); ?></strong><br />
-<span><?php echo esc_html( sprintf( __( 'ID: %d', 'enterprise-api-importer' ), isset( $metric['id'] ) ? (int) $metric['id'] : 0 ) ); ?></span>
+<span><?php
+/* translators: %d is the import job ID. */
+echo esc_html( sprintf( __( 'ID: %d', 'enterprise-api-importer' ), isset( $metric['id'] ) ? (int) $metric['id'] : 0 ) );
+?></span>
 </td>
 <td class="column-status"><span class="<?php echo esc_attr( $badge['class'] ); ?>"><?php echo esc_html( $badge['label'] ); ?></span></td>
 <td><?php echo esc_html( eai_get_trigger_source_label( isset( $metric['trigger_source'] ) ? (string) $metric['trigger_source'] : 'unknown' ) ); ?></td>
@@ -429,22 +395,12 @@ isset( $metric['error_count'] ) ? (int) $metric['error_count'] : 0
  * Renders create/edit import page.
  */
 function eai_render_import_edit_page() {
-global $wpdb;
-
-$imports_table = $wpdb->prefix . 'eapi_imports';
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only import ID for loading edit form data.
 $import_id     = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
 $import_row    = null;
 
 if ( $import_id > 0 ) {
-$import_row = $wpdb->get_row(
-$wpdb->prepare(
-			"SELECT id, name, endpoint_url, auth_token, array_path, unique_id_path, recurrence, custom_interval_minutes, mapping_template, created_at
-FROM {$imports_table}
-WHERE id = %d",
-$import_id
-),
-ARRAY_A
-);
+	$import_row = eai_db_get_import_config( $import_id );
 }
 
 $defaults = array(
@@ -455,10 +411,14 @@ $defaults = array(
 'array_path'       => '',
 		'unique_id_path'   => 'id',
 'recurrence'       => 'off',
-'custom_interval_minutes' => 60,
+'custom_interval_minutes' => 30,
 'mapping_template' => '',
 );
 $import = is_array( $import_row ) ? wp_parse_args( $import_row, $defaults ) : $defaults;
+$import['custom_interval_minutes'] = absint( $import['custom_interval_minutes'] );
+if ( 'custom' === (string) $import['recurrence'] && $import['custom_interval_minutes'] <= 0 ) {
+	$import['custom_interval_minutes'] = 30;
+}
 $is_edit = (int) $import['id'] > 0;
 ?>
 <div class="wrap">
@@ -511,9 +471,38 @@ $is_edit = (int) $import['id'] > 0;
 <option value="daily" <?php selected( (string) $import['recurrence'], 'daily' ); ?>><?php esc_html_e( 'Daily', 'enterprise-api-importer' ); ?></option>
 <option value="custom" <?php selected( (string) $import['recurrence'], 'custom' ); ?>><?php esc_html_e( 'Custom', 'enterprise-api-importer' ); ?></option>
 </select>
-<label for="eai_import_custom_interval_minutes" style="margin-left:10px;"><?php esc_html_e( 'Custom minutes', 'enterprise-api-importer' ); ?></label>
+<span id="eai_custom_interval_wrapper" style="margin-left:10px;">
+<label for="eai_import_custom_interval_minutes"><?php esc_html_e( 'Custom minutes', 'enterprise-api-importer' ); ?></label>
 <input name="custom_interval_minutes" type="number" id="eai_import_custom_interval_minutes" min="1" step="1" class="small-text" value="<?php echo esc_attr( (string) $import['custom_interval_minutes'] ); ?>" />
+</span>
 <p class="description"><?php esc_html_e( 'When set to Custom, the import runs every N minutes. Use Off to disable recurring automation.', 'enterprise-api-importer' ); ?></p>
+<script>
+( function() {
+	var recurrenceSelect = document.getElementById( 'eai_import_recurrence' );
+	var customWrapper = document.getElementById( 'eai_custom_interval_wrapper' );
+	var customInput = document.getElementById( 'eai_import_custom_interval_minutes' );
+
+	if ( ! recurrenceSelect || ! customWrapper || ! customInput ) {
+		return;
+	}
+
+	var toggleCustomMinutes = function() {
+		var isCustom = recurrenceSelect.value === 'custom';
+
+		customWrapper.style.display = isCustom ? 'inline-flex' : 'none';
+		customWrapper.style.alignItems = isCustom ? 'center' : '';
+		customWrapper.style.gap = isCustom ? '6px' : '';
+		customInput.disabled = ! isCustom;
+
+		if ( isCustom && parseInt( customInput.value, 10 ) <= 0 ) {
+			customInput.value = '30';
+		}
+	};
+
+	recurrenceSelect.addEventListener( 'change', toggleCustomMinutes );
+	toggleCustomMinutes();
+} )();
+</script>
 </td>
 </tr>
 <tr>
@@ -618,7 +607,10 @@ delete_transient( $test_result_key );
 <?php if ( ! empty( $test_result['normalized_preview'] ) && is_array( $test_result['normalized_preview'] ) ) : ?>
 <?php foreach ( $test_result['normalized_preview'] as $preview_row ) : ?>
 <div class="eai-record">
-<h4><?php echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $preview_row['record_number'] ) ? (int) $preview_row['record_number'] : 0 ) ); ?></h4>
+<h4><?php
+/* translators: %d is the preview record sequence number. */
+echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $preview_row['record_number'] ) ? (int) $preview_row['record_number'] : 0 ) );
+?></h4>
 <?php if ( ! empty( $preview_row['mapping_error'] ) ) : ?>
 <p><strong><?php esc_html_e( 'Mapping Error:', 'enterprise-api-importer' ); ?></strong> <?php echo esc_html( (string) $preview_row['mapping_error'] ); ?></p>
 <?php else : ?>
@@ -642,25 +634,26 @@ delete_transient( $test_result_key );
  * Handles create/update import form submits.
  */
 function eai_handle_save_import() {
-global $wpdb;
-
 if ( ! current_user_can( 'manage_options' ) ) {
 wp_die( esc_html__( 'You are not allowed to manage imports.', 'enterprise-api-importer' ) );
 }
 
 check_admin_referer( 'eai_save_import', 'eai_save_import_nonce' );
 
-$imports_table = $wpdb->prefix . 'eapi_imports';
-$import_id     = isset( $_POST['import_id'] ) ? absint( wp_unslash( $_POST['import_id'] ) ) : 0;
+$post_data = wp_unslash( $_POST );
+$post_data = is_array( $post_data ) ? $post_data : array();
 
-$name         = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
-$endpoint_url = isset( $_POST['endpoint_url'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['endpoint_url'] ) ) ) : '';
-$auth_token   = isset( $_POST['auth_token'] ) ? sanitize_text_field( wp_unslash( $_POST['auth_token'] ) ) : '';
-$array_path   = isset( $_POST['array_path'] ) ? sanitize_text_field( wp_unslash( $_POST['array_path'] ) ) : '';
-	$unique_id_path = isset( $_POST['unique_id_path'] ) ? sanitize_text_field( wp_unslash( $_POST['unique_id_path'] ) ) : 'id';
-$recurrence   = isset( $_POST['recurrence'] ) ? sanitize_key( (string) wp_unslash( $_POST['recurrence'] ) ) : 'off';
-$custom_interval_minutes = isset( $_POST['custom_interval_minutes'] ) ? absint( wp_unslash( $_POST['custom_interval_minutes'] ) ) : 0;
-$template_raw = isset( $_POST['mapping_template'] ) ? wp_unslash( $_POST['mapping_template'] ) : '';
+$import_id     = isset( $post_data['import_id'] ) ? absint( $post_data['import_id'] ) : 0;
+
+
+$name         = isset( $post_data['name'] ) ? sanitize_text_field( (string) $post_data['name'] ) : '';
+$endpoint_url = isset( $post_data['endpoint_url'] ) ? esc_url_raw( trim( (string) $post_data['endpoint_url'] ) ) : '';
+$auth_token   = isset( $post_data['auth_token'] ) ? sanitize_text_field( (string) $post_data['auth_token'] ) : '';
+$array_path   = isset( $post_data['array_path'] ) ? sanitize_text_field( (string) $post_data['array_path'] ) : '';
+	$unique_id_path = isset( $post_data['unique_id_path'] ) ? sanitize_text_field( (string) $post_data['unique_id_path'] ) : 'id';
+$recurrence   = isset( $post_data['recurrence'] ) ? sanitize_key( (string) $post_data['recurrence'] ) : 'off';
+$custom_interval_minutes = isset( $post_data['custom_interval_minutes'] ) ? absint( $post_data['custom_interval_minutes'] ) : 0;
+$template_raw = isset( $post_data['mapping_template'] ) ? (string) $post_data['mapping_template'] : '';
 	$unique_id_path = trim( (string) $unique_id_path );
 
 $allowed_recurrence = array( 'off', 'hourly', 'twicedaily', 'daily', 'custom' );
@@ -669,7 +662,7 @@ $recurrence = 'off';
 }
 
 if ( 'custom' === $recurrence ) {
-$custom_interval_minutes = max( 1, $custom_interval_minutes );
+	$custom_interval_minutes = $custom_interval_minutes > 0 ? $custom_interval_minutes : 30;
 } else {
 $custom_interval_minutes = 0;
 }
@@ -713,20 +706,13 @@ $data = array(
 );
 	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' );
 
-if ( $import_id > 0 ) {
-$updated = $wpdb->update( $imports_table, $data, array( 'id' => $import_id ), $formats, array( '%d' ) );
-if ( false === $updated ) {
-wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => 'import_error' ), admin_url( 'admin.php' ) ) );
-exit;
+$persisted_import_id = eai_db_save_import_config( $import_id, $data, $formats );
+if ( is_wp_error( $persisted_import_id ) ) {
+	wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => 'import_error' ), admin_url( 'admin.php' ) ) );
+	exit;
 }
-} else {
-$inserted = $wpdb->insert( $imports_table, array_merge( $data, array( 'created_at' => current_time( 'mysql', true ) ) ), array_merge( $formats, array( '%s' ) ) );
-if ( false === $inserted ) {
-wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'eai_notice' => 'import_error' ), admin_url( 'admin.php' ) ) );
-exit;
-}
-$import_id = (int) $wpdb->insert_id;
-}
+
+$import_id = (int) $persisted_import_id;
 
 $schedule_synced = eai_sync_import_recurrence_schedule( $import_id, $recurrence, $custom_interval_minutes );
 if ( ! $schedule_synced ) {
@@ -742,8 +728,6 @@ exit;
  * Handles delete import action.
  */
 function eai_handle_delete_import() {
-global $wpdb;
-
 if ( ! current_user_can( 'manage_options' ) ) {
 wp_die( esc_html__( 'You are not allowed to manage imports.', 'enterprise-api-importer' ) );
 }
@@ -758,8 +742,7 @@ check_admin_referer( 'eai_delete_import_' . $import_id, 'eai_delete_nonce' );
 
 eai_clear_import_scheduled_hooks( $import_id );
 
-$imports_table = $wpdb->prefix . 'eapi_imports';
-$deleted       = $wpdb->delete( $imports_table, array( 'id' => $import_id ), array( '%d' ) );
+$deleted = eai_db_delete_import_config( $import_id );
 
 wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'eai_notice' => false === $deleted ? 'import_error' : 'import_deleted' ), admin_url( 'admin.php' ) ) );
 exit;
@@ -825,8 +808,6 @@ exit;
  * Handles endpoint test and payload preview for a specific import job.
  */
 function eai_handle_test_import_endpoint() {
-global $wpdb;
-
 if ( ! current_user_can( 'manage_options' ) ) {
 wp_die( esc_html__( 'You are not allowed to test endpoints.', 'enterprise-api-importer' ) );
 }
@@ -844,16 +825,7 @@ if ( 'mapping' !== $preview_mode ) {
 $preview_mode = 'structure';
 }
 
-$imports_table = $wpdb->prefix . 'eapi_imports';
-$import_job = $wpdb->get_row(
-$wpdb->prepare(
-"SELECT id, endpoint_url, auth_token, array_path, mapping_template
-FROM {$imports_table}
-WHERE id = %d",
-$import_id
-),
-ARRAY_A
-);
+$import_job = eai_db_get_import_config( $import_id );
 
 $result_key = 'eai_endpoint_test_result_' . $import_id;
 $preview_result = array(
@@ -893,6 +865,7 @@ exit;
 
 $decoded_json = json_decode( (string) $response['body'], true );
 if ( JSON_ERROR_NONE !== json_last_error() ) {
+/* translators: %s is the JSON parser error message. */
 $preview_result['message'] = sprintf( __( 'Endpoint responded but JSON decode failed: %s', 'enterprise-api-importer' ), json_last_error_msg() );
 set_transient( $result_key, $preview_result, 5 * MINUTE_IN_SECONDS );
 wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id ), admin_url( 'admin.php' ) ) );
