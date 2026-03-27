@@ -8,6 +8,7 @@ It supports multiple import connections, staged processing, job health visibilit
 - Creates and manages multiple import jobs from wp-admin.
 - Pulls JSON data from external endpoints (Bearer token optional).
 - Resolves array payloads via configurable JSON path.
+- Filters records before staging using configurable rule-based conditions.
 - Maps records into `imported_item` posts using HTML template placeholders.
 - Supports configurable unique ID path per import (defaults to `id`).
 - Processes records in batches through a queue worker for safer long runs.
@@ -40,6 +41,7 @@ On activation, the plugin creates/migrates required tables.
    - Bearer Token (if needed)
    - JSON Array Path (optional)
    - Unique ID Path (for example `CourseIDFull`; defaults to `id`)
+  - Data Filters (optional): Key, Operator, Value rows using AND logic
    - Recurrence (Off/Hourly/Twice Daily/Daily/Custom)
    - Custom minutes (only for Custom recurrence)
    - Mapping Template
@@ -109,6 +111,7 @@ Primary tables used by the plugin:
    - Fetch endpoint payload.
    - Validate HTTP response and JSON decoding.
    - Resolve `array_path` target.
+  - Apply configured Data Filters (AND logic) to records before staging.
 2. **Stage**
    - Store serialized selected payload in temp table with `import_id`.
 3. **Transform**

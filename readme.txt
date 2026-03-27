@@ -16,6 +16,7 @@ Enterprise API Importer runs structured API-to-WordPress ETL jobs.
 It supports:
 - Multiple import connections
 - JSON array-path extraction
+- Rule-based data filtering (Key/Operator/Value, AND logic) before staging
 - Template-based mapping into imported_item posts
 - Per-import recurrence (off, hourly, twicedaily, daily, custom minutes)
 - Queue-based processing for safer long runs
