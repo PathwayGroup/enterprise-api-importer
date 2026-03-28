@@ -9,7 +9,7 @@ It supports multiple import connections, staged processing, job health visibilit
 - Pulls JSON data from external endpoints (Bearer token optional).
 - Resolves array payloads via configurable JSON path.
 - Filters records before staging using configurable rule-based conditions.
-- Maps records into `imported_item` posts using HTML template placeholders.
+- Maps records into `imported_item` posts using Twig templates (loops, conditionals, nested data).
 - Supports configurable unique ID path per import (defaults to `id`).
 - Processes records in batches through a queue worker for safer long runs.
 - Supports per-import recurrence:
@@ -26,8 +26,10 @@ It supports multiple import connections, staged processing, job health visibilit
 ### 1. Install and activate
 
 1. Place this plugin folder in `wp-content/plugins/`.
-2. In WordPress admin, go to Plugins.
-3. Activate Enterprise API Importer.
+2. Install Composer dependency in the plugin root:
+  - `composer require twig/twig`
+3. In WordPress admin, go to Plugins.
+4. Activate Enterprise API Importer.
 
 On activation, the plugin creates/migrates required tables.
 
@@ -68,22 +70,30 @@ On activation, the plugin creates/migrates required tables.
    - Details
    - Next scheduled run
 
-## Mapping template basics
+## Mapping template basics (Twig)
 
-The mapping template accepts placeholders wrapped in braces.
+Mapping templates are rendered with Twig.
 
 Examples:
 
-- `{title}`
-- `{CourseIDFull}`
-- `{description|html}`
-- `{data.course.name}`
+- `{{ record.title }}`
+- `{{ record.CourseIDFull }}`
+- `{{ record.course.name }}`
+- `{% if record.isActive %}<p>Active</p>{% endif %}`
+- `{% for module in record.modules %}<li>{{ module.name }}</li>{% endfor %}`
 
 Notes:
 
-- Dot notation is supported for nested fields.
-- `|html` allows safe HTML rendering for that placeholder.
-- Missing fields render as empty strings.
+- Nested traversal is supported using Twig dot access (for example `record.course.name`).
+- The transform context exposes the same payload as `record`, `item`, and `data`.
+- Auto-escaping is disabled so intended HTML is preserved in `post_content`.
+- Malformed Twig templates are caught safely and logged under status `Template Syntax Error`; processing skips that record instead of crashing the batch.
+
+Built-in Twig helpers:
+
+- Test `numeric`: `{% if record.Price is numeric %}...{% endif %}`
+- Filter `format_us_currency`: `{{ record.Price|format_us_currency }}`
+- Filter `format_date_mdy`: `{{ record.BeginDate|format_date_mdy }}` (outputs `MM/DD/YYYY` when parsable)
 
 ## Detailed functional spec
 
@@ -117,7 +127,7 @@ Primary tables used by the plugin:
 3. **Transform**
    - Normalize staged items.
    - Resolve external ID from configurable `unique_id_path`.
-   - Render mapping template placeholders.
+  - Render database-stored Twig templates from strings.
 4. **Load**
    - Upsert into `imported_item` by:
      - `_my_custom_api_id`

@@ -1,0 +1,80 @@
+{{ record.WorkingTitlePlain|default('') }}
+{{ record.CourseIDFull|default('') }}
+
+{% set instances_raw = record.Instances.item_2|default([]) %}
+{% set instances = instances_raw is iterable ? instances_raw : [instances_raw] %}
+
+{% for instance in instances %}
+{% if instance.Visible|default('') == 'Publish_to_Public_Course_Catalog' %}
+Format: {{ instance.Format|default('') }}
+Dates: {{ instance.StartDateDisplay|default('') }} - {{ instance.EndDateDisplay|default('') }}
+
+{% set schedule_blocks_raw = instance.ScheduleBlocks.item_4|default([]) %}
+{% set schedule_blocks = schedule_blocks_raw is iterable ? schedule_blocks_raw : [schedule_blocks_raw] %}
+{% set has_schedule = false %}
+{% for schedule in schedule_blocks %}
+{% if schedule %}
+{% set has_schedule = true %}
+{% endif %}
+{% endfor %}
+{% if has_schedule %}
+Times:
+{% for schedule in schedule_blocks %}
+{% if schedule %}
+{{ schedule.StartTime|default('') }} to {{ schedule.EndTime|default('') }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% set pricing_rows_raw = instance.FinancialData.item_4|default([]) %}
+{% set pricing_rows = pricing_rows_raw is iterable ? pricing_rows_raw : [pricing_rows_raw] %}
+{% for pricing in pricing_rows %}
+{% if pricing %}
+{% set amount = pricing.Amount|default('') %}
+Price: {% if amount is numeric %}{{ amount|format_us_currency }}{% else %}{{ amount }}{% endif %}{% if pricing.DefaultPricing|default('') != '1' %} - Promotion Dates: {{ pricing.BeginDate|default('')|format_date_mdy }} to {{ pricing.EndDate|default('')|format_date_mdy }}{% endif %}
+{% endif %}
+{% endfor %}
+
+Registration Closes: {{ instance.RegistrationEndDate|default('') }}
+
+{% set instructor_name = instance.InstructorDetailss.item_4.Account.Name_2.FullName|default('') %}
+{% if instructor_name != '' %}
+Instructor: {{ instructor_name }}
+{% endif %}
+
+Register in REPORTER
+{% endif %}
+{% endfor %}
+
+{% set first_instance = instances|first %}
+{% if first_instance.ContactName|default('') != '' %}
+Contact
+{{ first_instance.ContactName|default('') }}
+{{ first_instance.ContactPhone|default('') }}
+{{ first_instance.ContactEmail|default('') }}
+{% endif %}
+
+Description
+
+{{ record.CourseDescriptionHTML|default('') }}
+
+Course Notes
+
+{{ record.CourseNotes|default('') }}
+
+Subject Areas
+
+{% set sub_categories_raw = record.SubCategorys.item_2|default([]) %}
+{% set sub_categories = sub_categories_raw is iterable ? sub_categories_raw : [sub_categories_raw] %}
+{% set subject_labels = [] %}
+{% for sub in sub_categories %}
+{% set label = sub.SubCategory|default('') %}
+{% if label != '' %}
+{% set subject_labels = subject_labels|merge([label]) %}
+{% endif %}
+{% endfor %}
+{{ subject_labels|join(', ') }}
+
+Training Category
+
+{{ record.Category.Category|default('') }}

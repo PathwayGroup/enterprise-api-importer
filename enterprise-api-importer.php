@@ -14,6 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+$eai_composer_autoload = __DIR__ . '/vendor/autoload.php';
+if ( file_exists( $eai_composer_autoload ) ) {
+	require_once $eai_composer_autoload;
+}
+
 // Load plugin modules in dependency order.
 require_once __DIR__ . '/includes/core.php';
 require_once __DIR__ . '/includes/db.php';

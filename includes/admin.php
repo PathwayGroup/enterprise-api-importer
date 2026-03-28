@@ -69,6 +69,7 @@ $messages = array(
 'import_saved'   => array( 'success', __( 'Import job saved.', 'enterprise-api-importer' ) ),
 'import_deleted' => array( 'success', __( 'Import job deleted.', 'enterprise-api-importer' ) ),
 'import_started' => array( 'success', __( 'Import queued successfully.', 'enterprise-api-importer' ) ),
+'template_sync_started' => array( 'success', __( 'Template sync started. Existing imported items will be re-rendered for this import job.', 'enterprise-api-importer' ) ),
 'schedule_now'   => array( 'success', __( 'Import scheduled to run now.', 'enterprise-api-importer' ) ),
 'import_error'   => array( 'error', __( 'The import request failed. Please review your inputs and try again.', 'enterprise-api-importer' ) ),
 'schedule_error' => array( 'error', __( 'Unable to schedule this import right now.', 'enterprise-api-importer' ) ),
@@ -786,6 +787,17 @@ $is_edit = (int) $import['id'] > 0;
 </form>
 
 <?php if ( $is_edit ) : ?>
+<p><?php esc_html_e( 'Template changed? Use this to re-render existing imported items for this import job.', 'enterprise-api-importer' ); ?></p>
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+<input type="hidden" name="action" value="eai_run_import" />
+<input type="hidden" name="import_id" value="<?php echo esc_attr( (string) $import['id'] ); ?>" />
+<input type="hidden" name="eai_template_sync" value="1" />
+<?php wp_nonce_field( 'eai_manual_run', 'eai_manual_run_nonce' ); ?>
+<?php submit_button( __( 'Update Existing Imported Items From Template', 'enterprise-api-importer' ), 'secondary', 'submit', false ); ?>
+</form>
+<?php endif; ?>
+
+<?php if ( $is_edit ) : ?>
 <hr />
 <h2><?php esc_html_e( 'Run This Import', 'enterprise-api-importer' ); ?></h2>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -1100,7 +1112,12 @@ array(
 // Process one slice immediately; remaining slices will self-schedule if needed.
 eai_handle_scheduled_import_batch();
 
-wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => 'import_started' ), admin_url( 'admin.php' ) ) );
+$notice_code = 'import_started';
+if ( isset( $_POST['eai_template_sync'] ) && '1' === (string) wp_unslash( $_POST['eai_template_sync'] ) ) {
+	$notice_code = 'template_sync_started';
+}
+
+wp_safe_redirect( add_query_arg( array( 'page' => 'eapi-manage', 'action' => 'edit', 'id' => $import_id, 'eai_notice' => $notice_code ), admin_url( 'admin.php' ) ) );
 exit;
 }
 

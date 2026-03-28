@@ -659,6 +659,28 @@ function eai_transform_and_load_item( $item, $mapping_template, $unique_id_path 
 	$post_content = eai_render_mapping_template_for_item( $item, $mapping_template );
 
 	if ( is_wp_error( $post_content ) ) {
+		if ( 'eai_template_syntax_error' === $post_content->get_error_code() ) {
+			$now = gmdate( 'Y-m-d H:i:s', time() );
+
+			eai_write_import_log(
+				$import_id,
+				wp_generate_uuid4(),
+				'Template Syntax Error',
+				0,
+				0,
+				0,
+				array(
+					'start_time'         => $now,
+					'end_time'           => $now,
+					'template_error'     => true,
+					'import_id'          => $import_id,
+					'external_id'        => $external_id,
+					'processing_errors'  => array( $post_content->get_error_message() ),
+				),
+				$now
+			);
+		}
+
 		return $post_content;
 	}
 
@@ -793,9 +815,85 @@ function eai_get_item_value_by_path( $item, $path ) {
 }
 
 /**
- * Renders mapping template content for a single item.
+ * Initializes the Twig templating environment for import transforms.
  *
- * Supports placeholders like {KeyName} and {KeyName|html}.
+ * Uses ArrayLoader because templates are saved in the database and rendered from strings.
+ * Auto-escaping is disabled so mapped HTML remains intact in post_content.
+ *
+ * @return Twig\Environment|WP_Error
+ */
+function eai_get_twig_environment() {
+	static $twig = null;
+
+	if ( $twig instanceof \Twig\Environment ) {
+		return $twig;
+	}
+
+	if ( ! class_exists( '\\Twig\\Environment' ) || ! class_exists( '\\Twig\\Loader\\ArrayLoader' ) ) {
+		return new WP_Error(
+			'eai_twig_missing_dependency',
+			__( 'Twig is not installed. Run Composer install for twig/twig.', 'enterprise-api-importer' )
+		);
+	}
+
+	$loader = new \Twig\Loader\ArrayLoader( array() );
+	$twig   = new \Twig\Environment(
+		$loader,
+		array(
+			'autoescape'       => false,
+			'strict_variables' => false,
+			'cache'            => false,
+		)
+	);
+
+	// Add custom Twig tests here (for example, domain-specific validation checks).
+	$twig->addTest(
+		new \Twig\TwigTest(
+			'numeric',
+			static function ( $value ) {
+				return is_numeric( $value );
+			}
+		)
+	);
+
+	// Add custom Twig filters here (for example, formatting helpers used by mapping templates).
+	$twig->addFilter(
+		new \Twig\TwigFilter(
+			'format_us_currency',
+			static function ( $value ) {
+				if ( ! is_numeric( $value ) ) {
+					return (string) $value;
+				}
+
+				return '$' . number_format( (float) $value, 2, '.', ',' );
+			}
+		)
+	);
+
+	$twig->addFilter(
+		new \Twig\TwigFilter(
+			'format_date_mdy',
+			static function ( $value ) {
+				$date_value = trim( (string) $value );
+				if ( '' === $date_value ) {
+					return '';
+				}
+
+				$timestamp = strtotime( $date_value );
+				if ( false === $timestamp ) {
+					return $date_value;
+				}
+
+				return gmdate( 'm/d/Y', (int) $timestamp );
+			}
+		)
+	);
+
+	return $twig;
+}
+
+/**
+ * Renders mapping template content for a single item using Twig.
  *
  * @param array<string, mixed> $item             Item payload.
  * @param string|null          $mapping_template Optional template override.
@@ -813,41 +911,39 @@ function eai_render_mapping_template_for_item( $item, $mapping_template = null )
 		return new WP_Error( 'eai_missing_mapping_template', __( 'Mapping Template is not configured.', 'enterprise-api-importer' ) );
 	}
 
-	$post_content = preg_replace_callback(
-		'/\{([^{}]+)\}/',
-		static function ( $matches ) use ( $item ) {
-			$placeholder = isset( $matches[1] ) ? trim( (string) $matches[1] ) : '';
-			$key_path    = $placeholder;
-			$allow_html  = false;
+	$twig = eai_get_twig_environment();
 
-			if ( false !== strpos( $placeholder, '|' ) ) {
-				$parts      = explode( '|', $placeholder, 2 );
-				$key_path   = trim( (string) $parts[0] );
-				$mode       = strtolower( trim( (string) $parts[1] ) );
-				$allow_html = 'html' === $mode;
-			}
+	if ( is_wp_error( $twig ) ) {
+		return $twig;
+	}
 
-			if ( '' === $key_path ) {
-				return '';
-			}
+	$loader = $twig->getLoader();
 
-			$value = eai_get_item_value_by_path( $item, $key_path );
+	if ( ! $loader instanceof \Twig\Loader\ArrayLoader ) {
+		return new WP_Error( 'eai_twig_loader_invalid', __( 'Twig loader is not configured for string templates.', 'enterprise-api-importer' ) );
+	}
 
-			if ( null === $value ) {
-				return '';
-			}
+	try {
+		$template_name = 'eai_import_template';
+		$loader->setTemplate( $template_name, (string) $mapping_template );
 
-			if ( is_bool( $value ) ) {
-				return $value ? '1' : '0';
-			}
-
-			return eai_prepare_template_value( $value, $allow_html );
-		},
-		(string) $mapping_template
-	);
-
-	if ( null === $post_content ) {
-		return new WP_Error( 'eai_template_transform_failed', __( 'Failed to transform mapping template.', 'enterprise-api-importer' ) );
+		$post_content = $twig->render(
+			$template_name,
+			array(
+				'record' => $item,
+				'item'   => $item,
+				'data'   => $item,
+			)
+		);
+	} catch ( \Twig\Error\Error $error ) {
+		return new WP_Error(
+			'eai_template_syntax_error',
+			sprintf(
+				/* translators: %s is the Twig exception message. */
+				__( 'Twig template syntax error: %s', 'enterprise-api-importer' ),
+				sanitize_text_field( $error->getMessage() )
+			)
+		);
 	}
 
 	return (string) $post_content;
