@@ -124,6 +124,106 @@ class EAI_Import_Processor {
 	}
 
 	/**
+	 * Parses rendered HTML, sideloads external images, and rewrites image sources to local URLs.
+	 *
+	 * @param mixed $html_content Rendered HTML content that may contain IMG tags.
+	 * @param mixed $post_id      Target post ID used as the parent for sideloaded attachments.
+	 *
+	 * @return string Updated HTML content with rewritten IMG src attributes where sideloading succeeds.
+	 */
+	public static function parse_and_sideload_content_images( $html_content, $post_id ) {
+		$html_content = is_string( $html_content ) ? $html_content : '';
+		$post_id      = absint( $post_id );
+
+		if ( '' === $html_content || $post_id <= 0 || ! class_exists( 'DOMDocument' ) ) {
+			return $html_content;
+		}
+
+		$dom               = new DOMDocument();
+		$previous_internal = libxml_use_internal_errors( true );
+		$wrapped_html      = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html_content . '</body></html>';
+
+		$loaded = $dom->loadHTML( $wrapped_html, LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED );
+
+		if ( false === $loaded ) {
+			libxml_clear_errors();
+			libxml_use_internal_errors( $previous_internal );
+
+			return $html_content;
+		}
+
+		$site_host = wp_parse_url( site_url(), PHP_URL_HOST );
+		$site_host = is_string( $site_host ) ? strtolower( $site_host ) : '';
+
+		$images = $dom->getElementsByTagName( 'img' );
+
+		foreach ( $images as $image_node ) {
+			if ( ! $image_node instanceof DOMElement ) {
+				continue;
+			}
+
+			$src = trim( (string) $image_node->getAttribute( 'src' ) );
+
+			if ( '' === $src ) {
+				continue;
+			}
+
+			$src_host = wp_parse_url( $src, PHP_URL_HOST );	
+			$src_host = is_string( $src_host ) ? strtolower( $src_host ) : '';
+
+			if ( '' === $src_host || ( '' !== $site_host && $src_host === $site_host ) ) {
+				continue;
+			}
+
+			$attachment_id = self::sideload_image( $src, $post_id );
+
+			if ( false === $attachment_id ) {
+				continue;
+			}
+
+			$attachment_id = absint( $attachment_id );
+			$new_src       = wp_get_attachment_url( $attachment_id );
+
+			if ( ! is_string( $new_src ) || '' === $new_src ) {
+				continue;
+			}
+
+			$image_node->setAttribute( 'src', esc_url_raw( $new_src ) );
+
+			$class_attr = trim( (string) $image_node->getAttribute( 'class' ) );
+			$classes    = '' === $class_attr ? array() : preg_split( '/\s+/', $class_attr );
+
+			if ( ! is_array( $classes ) ) {
+				$classes = array();
+			}
+
+			$classes = array_filter( $classes, 'is_string' );
+			$wp_class = 'wp-image-' . $attachment_id;
+
+			if ( ! in_array( $wp_class, $classes, true ) ) {
+				$classes[] = $wp_class;
+			}
+
+			$image_node->setAttribute( 'class', implode( ' ', $classes ) );
+		}
+
+		$rewritten_html = $dom->saveHTML();
+		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
+
+		$rewritten_html = preg_replace( '/\A\s*<!DOCTYPE[^>]*>\s*/i', '', $rewritten_html );
+		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
+		$rewritten_html = preg_replace( '/\A\s*<html[^>]*>\s*<head>.*?<\/head>\s*<body[^>]*>/is', '', $rewritten_html );
+		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
+		$rewritten_html = preg_replace( '/<\/body>\s*<\/html>\s*\z/is', '', $rewritten_html );
+		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
+
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous_internal );
+
+		return $rewritten_html;
+	}
+
+	/**
 	 * Writes a media-processing error row to the import logs table.
 	 *
 	 * @param string $status    Log status label.
@@ -924,6 +1024,11 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 
 	$timestamp = time();
 
+	if ( ! empty( $existing_posts ) ) {
+		$existing_post_id = (int) $existing_posts[0];
+		$post_content     = EAI_Import_Processor::parse_and_sideload_content_images( $post_content, $existing_post_id );
+	}
+
 	if ( empty( $existing_posts ) ) {
 		$insert_post_id = wp_insert_post(
 			array(
@@ -937,6 +1042,22 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 
 		if ( is_wp_error( $insert_post_id ) ) {
 			return $insert_post_id;
+		}
+
+		$post_content = EAI_Import_Processor::parse_and_sideload_content_images( $post_content, $insert_post_id );
+
+		if ( (string) $post_content !== (string) get_post_field( 'post_content', $insert_post_id ) ) {
+			$updated_insert_post_id = wp_update_post(
+				array(
+					'ID'           => $insert_post_id,
+					'post_content' => $post_content,
+				),
+				true
+			);
+
+			if ( is_wp_error( $updated_insert_post_id ) ) {
+				return $updated_insert_post_id;
+			}
 		}
 
 		update_post_meta( $insert_post_id, '_my_custom_api_id', $external_id );
