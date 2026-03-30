@@ -122,5 +122,6 @@ function eai_get_default_settings() {
 	return array(
 		'cron_initial_delay_seconds'   => '5',
 		'cron_batch_delay_seconds'     => '15',
+		'allow_internal_endpoints'     => '0',
 	);
 }

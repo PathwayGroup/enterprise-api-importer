@@ -91,31 +91,21 @@ function eai_rest_dry_run_template_preview( WP_REST_Request $request ) {
 	$body_template  = isset( $params['body_template'] ) ? (string) $params['body_template'] : '';
 	$auth_token     = isset( $params['auth_token'] ) ? trim( (string) $params['auth_token'] ) : '';
 
-	if ( '' === $api_url || ! wp_http_validate_url( $api_url ) ) {
+	$validated_endpoint = eai_validate_remote_endpoint_url( $api_url );
+
+	if ( is_wp_error( $validated_endpoint ) ) {
 		return new WP_REST_Response(
 			array(
-				'code'    => 'eai_invalid_api_url',
-				'message' => __( 'A valid API URL is required for dry run.', 'enterprise-api-importer' ),
+				'code'    => $validated_endpoint->get_error_code(),
+				'message' => $validated_endpoint->get_error_message(),
 			),
 			400
 		);
 	}
 
-	$headers = array(
-		'Accept' => 'application/json',
-	);
-
-	if ( '' !== $auth_token ) {
-		$headers['Authorization'] = 'Bearer ' . $auth_token;
-	}
-
 	$response = wp_remote_get(
 		$api_url,
-		array(
-			'timeout'     => 30,
-			'redirection' => 3,
-			'headers'     => $headers,
-		)
+		eai_get_remote_request_args( $auth_token, 30 )
 	);
 
 	if ( is_wp_error( $response ) ) {

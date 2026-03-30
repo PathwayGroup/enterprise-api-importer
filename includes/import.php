@@ -579,6 +579,163 @@ function eai_handle_import_batch_hook( $import_id, $trigger_source = 'run_now' )
 }
 
 /**
+ * Returns true when an IP address is private/reserved and should be blocked by default.
+ *
+ * @param string $ip_address IP address to evaluate.
+ *
+ * @return bool
+ */
+function eai_is_private_or_reserved_ip( $ip_address ) {
+	$ip_address = is_string( $ip_address ) ? trim( $ip_address ) : '';
+
+	if ( '' === $ip_address || false === filter_var( $ip_address, FILTER_VALIDATE_IP ) ) {
+		return true;
+	}
+
+	return false === filter_var( $ip_address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
+}
+
+/**
+ * Returns true when a host resolves to local/private/reserved networks.
+ *
+ * @param string $host Hostname or IP.
+ *
+ * @return bool
+ */
+function eai_is_disallowed_remote_host( $host ) {
+	$host = is_string( $host ) ? strtolower( trim( $host ) ) : '';
+
+	if ( '' === $host ) {
+		return true;
+	}
+
+	if ( in_array( $host, array( 'localhost', 'localhost.localdomain' ), true ) ) {
+		return true;
+	}
+
+	if ( false !== filter_var( $host, FILTER_VALIDATE_IP ) ) {
+		return eai_is_private_or_reserved_ip( $host );
+	}
+
+	if ( 0 === substr_count( $host, '.' ) || str_ends_with( $host, '.local' ) ) {
+		return true;
+	}
+
+	$resolved_ips = array();
+
+	if ( function_exists( 'dns_get_record' ) ) {
+		$ipv4_records = dns_get_record( $host, DNS_A );
+		$ipv4_records = is_array( $ipv4_records ) ? $ipv4_records : array();
+
+		foreach ( $ipv4_records as $ipv4_record ) {
+			if ( isset( $ipv4_record['ip'] ) && is_string( $ipv4_record['ip'] ) ) {
+				$resolved_ips[] = $ipv4_record['ip'];
+			}
+		}
+
+		if ( defined( 'DNS_AAAA' ) ) {
+			$ipv6_records = dns_get_record( $host, DNS_AAAA );
+			$ipv6_records = is_array( $ipv6_records ) ? $ipv6_records : array();
+
+			foreach ( $ipv6_records as $ipv6_record ) {
+				if ( isset( $ipv6_record['ipv6'] ) && is_string( $ipv6_record['ipv6'] ) ) {
+					$resolved_ips[] = $ipv6_record['ipv6'];
+				}
+			}
+		}
+	}
+
+	if ( empty( $resolved_ips ) && function_exists( 'gethostbynamel' ) ) {
+		$ipv4_fallback = gethostbynamel( $host );
+		if ( is_array( $ipv4_fallback ) ) {
+			$resolved_ips = array_merge( $resolved_ips, $ipv4_fallback );
+		}
+	}
+
+	$resolved_ips = array_unique( array_filter( $resolved_ips, 'is_string' ) );
+
+	foreach ( $resolved_ips as $resolved_ip ) {
+		if ( eai_is_private_or_reserved_ip( $resolved_ip ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Validates a configured endpoint URL against plugin security policy.
+ *
+ * @param string $endpoint Endpoint URL.
+ *
+ * @return true|WP_Error
+ */
+function eai_validate_remote_endpoint_url( $endpoint ) {
+	$endpoint = is_string( $endpoint ) ? trim( $endpoint ) : '';
+
+	if ( '' === $endpoint || ! wp_http_validate_url( $endpoint ) ) {
+		return new WP_Error( 'eai_invalid_endpoint_url', __( 'A valid endpoint URL is required.', 'enterprise-api-importer' ) );
+	}
+
+	$settings = wp_parse_args( get_option( 'eai_settings', array() ), eai_get_default_settings() );
+
+	$allow_internal_endpoints = ! empty( $settings['allow_internal_endpoints'] ) && '0' !== (string) $settings['allow_internal_endpoints'];
+	$allow_internal_endpoints = (bool) apply_filters( 'eai_allow_internal_endpoints', $allow_internal_endpoints, $endpoint );
+
+	$require_https = (bool) apply_filters( 'eai_require_https_endpoints', true, $endpoint );
+	$scheme        = wp_parse_url( $endpoint, PHP_URL_SCHEME );
+	$scheme        = is_string( $scheme ) ? strtolower( $scheme ) : '';
+
+	if ( $require_https && 'https' !== $scheme ) {
+		return new WP_Error(
+			'eai_endpoint_requires_https',
+			__( 'Only HTTPS endpoint URLs are allowed.', 'enterprise-api-importer' )
+		);
+	}
+
+	if ( ! $allow_internal_endpoints ) {
+		$host = wp_parse_url( $endpoint, PHP_URL_HOST );
+		$host = is_string( $host ) ? $host : '';
+
+		if ( eai_is_disallowed_remote_host( $host ) ) {
+			return new WP_Error(
+				'eai_endpoint_disallowed_host',
+				__( 'This endpoint host is blocked by security policy. Use a trusted public host or explicitly allow internal endpoints.', 'enterprise-api-importer' )
+			);
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Builds hardened default arguments for remote endpoint requests.
+ *
+ * @param string $token   Optional bearer token.
+ * @param int    $timeout Request timeout seconds.
+ *
+ * @return array<string, mixed>
+ */
+function eai_get_remote_request_args( $token = '', $timeout = 30 ) {
+	$headers = array(
+		'Accept' => 'application/json',
+	);
+
+	if ( '' !== $token ) {
+		$headers['Authorization'] = 'Bearer ' . $token;
+	}
+
+	$args = array(
+		'timeout'            => max( 1, (int) $timeout ),
+		'redirection'        => 3,
+		'headers'            => $headers,
+		'reject_unsafe_urls' => true,
+	);
+
+	return apply_filters( 'eai_remote_request_args', $args, $token );
+}
+
+/**
  * Fetches API payload with optional transient caching.
  *
  * @param string $endpoint     Endpoint URL.
@@ -588,6 +745,11 @@ function eai_handle_import_batch_hook( $import_id, $trigger_source = 'run_now' )
  * @return array<string, mixed>|WP_Error
  */
 function eai_fetch_api_payload( $endpoint, $token = '', $bypass_cache = false ) {
+	$validated_endpoint = eai_validate_remote_endpoint_url( $endpoint );
+	if ( is_wp_error( $validated_endpoint ) ) {
+		return $validated_endpoint;
+	}
+
 	$cache_key      = 'api_importer_cache_' . md5( $endpoint );
 	$cached_payload = false;
 	$used_cache     = false;
@@ -597,21 +759,9 @@ function eai_fetch_api_payload( $endpoint, $token = '', $bypass_cache = false ) 
 	}
 
 	if ( false === $cached_payload ) {
-		$headers = array(
-			'Accept' => 'application/json',
-		);
-
-		if ( '' !== $token ) {
-			$headers['Authorization'] = 'Bearer ' . $token;
-		}
-
 		$response = wp_remote_get(
 			$endpoint,
-			array(
-				'timeout'     => 30,
-				'redirection' => 3,
-				'headers'     => $headers,
-			)
+			eai_get_remote_request_args( $token, 30 )
 		);
 
 		if ( is_wp_error( $response ) ) {

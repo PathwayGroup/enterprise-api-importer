@@ -66,13 +66,18 @@ This plugin connects to external APIs that you configure in each import job.
 - When data is sent: During endpoint tests, dry-run template previews, and scheduled/manual import runs.
 - Why data is sent: To fetch remote JSON payloads for preview, transform, and import workflows.
 
+Security policy notes:
+
+- Configure only trusted API endpoints that you control or explicitly trust.
+- Internal/private network hosts are blocked by default and can be enabled only through advanced plugin configuration/filtering for controlled environments.
+- HTTPS endpoints are required by default.
+
 The plugin does not hardcode any third-party API vendor. Data destination, terms, and privacy practices depend on the endpoint(s) you configure.
 
 == Screenshots ==
 1. The Twig Mapping Interface for transforming JSON data.
 2. The Schedules and Logs Health Dashboard.
 3. API Connection and Data Filtering rules.
-4. Post Title Template and Target Post Type controls on the Edit Import screen.
 
 == Changelog ==
 = 1.0.0 =
