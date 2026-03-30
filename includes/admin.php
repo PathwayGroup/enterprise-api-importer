@@ -1265,7 +1265,19 @@ echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $pr
 
 <script>
 ( function() {
-	var config = <?php echo wp_json_encode( array( 'restUrl' => esc_url_raw( rest_url( 'eapi/v1/dry-run' ) ), 'nonce' => wp_create_nonce( 'wp_rest' ) ) ); ?>;
+	var config = <?php echo wp_json_encode(
+		array(
+			'restUrl' => esc_url_raw( rest_url( 'eapi/v1/dry-run' ) ),
+			'nonce'   => wp_create_nonce( 'wp_rest' ),
+			'i18n'    => array(
+				'buttonIdle'       => __( 'Test Template (Dry Run)', 'enterprise-api-importer' ),
+				'buttonLoading'    => __( 'Fetching...', 'enterprise-api-importer' ),
+				'requestFailed'    => __( 'Dry run request failed.', 'enterprise-api-importer' ),
+				'retryMessage'     => __( 'Dry run request failed. Please try again.', 'enterprise-api-importer' ),
+				'twigErrorPrefix'  => __( 'Twig syntax error on line %d: ', 'enterprise-api-importer' ),
+			),
+		)
+	); ?>;
 	var trigger = document.getElementById( 'eai-dry-run-trigger' );
 	var errorNotice = document.getElementById( 'eai-dry-run-error' );
 	var modal = document.getElementById( 'eai-dry-run-modal' );
@@ -1282,7 +1294,7 @@ echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $pr
 
 	var setLoading = function( isLoading ) {
 		trigger.disabled = isLoading;
-		trigger.textContent = isLoading ? 'Fetching...' : 'Test Template (Dry Run)';
+		trigger.textContent = isLoading ? config.i18n.buttonLoading : config.i18n.buttonIdle;
 	};
 
 	var showError = function( message ) {
@@ -1394,11 +1406,11 @@ echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $pr
 			} )
 			.then( function( result ) {
 				if ( ! result.ok ) {
-					var message = result.data && result.data.message ? result.data.message : 'Dry run request failed.';
+					var message = result.data && result.data.message ? result.data.message : config.i18n.requestFailed;
 					if ( result.data && result.data.code === 'eai_twig_render_error' ) {
 						var lineNumber = parseInt( result.data.line_number || 0, 10 );
 						if ( lineNumber > 0 ) {
-							message = 'Twig syntax error on line ' + lineNumber + ': ' + message;
+							message = config.i18n.twigErrorPrefix.replace( '%d', lineNumber ) + message;
 						}
 					}
 					showError( message );
@@ -1412,7 +1424,7 @@ echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $pr
 				openModal();
 			} )
 			.catch( function() {
-				showError( 'Dry run request failed. Please try again.' );
+				showError( config.i18n.retryMessage );
 			} )
 			.finally( function() {
 				setLoading( false );

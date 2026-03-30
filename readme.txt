@@ -1,7 +1,7 @@
 === Enterprise API Importer ===
 Contributors: tporret
 Tags: api, import, etl, json, cron, twig
-Requires at least: 6.0
+Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 1.0.0
@@ -56,6 +56,16 @@ Yes. Select any public post type from Target Post Type. If the selected post typ
 
 = Does this import media attachments automatically from URL fields? =
 The plugin includes a secure media sideload helper foundation with source URL deduplication. Full field-level media mapping workflows can be added on top of this helper.
+
+== External services ==
+This plugin connects to external APIs that you configure in each import job.
+
+- What service is used: Your configured API endpoint URL.
+- What data is sent: Request headers (including optional Bearer token) and normal HTTP request metadata.
+- When data is sent: During endpoint tests, dry-run template previews, and scheduled/manual import runs.
+- Why data is sent: To fetch remote JSON payloads for preview, transform, and import workflows.
+
+The plugin does not hardcode any third-party API vendor. Data destination, terms, and privacy practices depend on the endpoint(s) you configure.
 
 == Screenshots ==
 1. The Twig Mapping Interface for transforming JSON data.
