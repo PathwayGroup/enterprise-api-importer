@@ -21,6 +21,8 @@ composer.phar
 dist/
 build/
 coverage/
+*.zip
+*.tar.gz
 
 # Logs and temp files
 *.log
