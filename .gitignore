@@ -28,6 +28,7 @@ coverage/
 *.log
 *.tmp
 *.cache
+localhost-ZAP-Report-localhost.html
 
 # WordPress local/runtime artifacts
 debug.log
