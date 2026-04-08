@@ -134,6 +134,29 @@
 	max-width: 440px;
 }
 
+/* Post settings row alignment (status/author/comment/ping) */
+.eapi-ij-post-settings {
+	align-items: flex-start !important;
+	gap: 16px !important;
+}
+
+.eapi-ij-post-settings .components-flex__item {
+	display: flex;
+	align-items: stretch;
+	min-width: 240px;
+}
+
+.eapi-ij-post-settings .components-base-control {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+}
+
+.eapi-ij-post-settings .components-base-control__help {
+	min-height: 3.2em;
+}
+
 .eapi-ij-template-editor {
 	display: flex;
 	border: 1px solid #8c8f94;

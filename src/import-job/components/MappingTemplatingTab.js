@@ -111,20 +111,61 @@ export default function MappingTemplatingTab( {
 				help={ __( 'Select which public WordPress post type receives imported records.', 'enterprise-api-importer' ) }
 			/>
 
-			<SelectControl
-				label={ __( 'Author', 'enterprise-api-importer' ) }
-				value={ String( job.post_author || 0 ) }
-				options={ authorOptions }
-				onChange={ ( val ) => updateField( 'post_author', parseInt( val, 10 ) ) }
-				help={ __( 'Assign imported posts to this author. If unset, the user triggering the import will be used (which may be empty for scheduled runs).', 'enterprise-api-importer' ) }
-			/>
-
 			<CheckboxControl
 				label={ __( 'Lock editing of imported posts', 'enterprise-api-importer' ) }
 				checked={ !! job.lock_editing }
 				onChange={ ( val ) => updateField( 'lock_editing', val ? 1 : 0 ) }
 				help={ __( 'When enabled, posts created by this import cannot be edited or deleted in wp-admin. Disable to allow manual editing.', 'enterprise-api-importer' ) }
 			/>
+
+			<Flex className="eapi-ij-post-settings" gap={ 4 } wrap>
+				<FlexBlock>
+					<SelectControl
+						label={ __( 'Default Post Status', 'enterprise-api-importer' ) }
+						value={ job.post_status || 'draft' }
+						options={ [
+							{ label: __( 'Draft', 'enterprise-api-importer' ), value: 'draft' },
+							{ label: __( 'Published', 'enterprise-api-importer' ), value: 'publish' },
+							{ label: __( 'Pending Review', 'enterprise-api-importer' ), value: 'pending' },
+						] }
+						onChange={ ( val ) => updateField( 'post_status', val ) }
+						help={ __( 'Status assigned to newly imported posts.', 'enterprise-api-importer' ) }
+					/>
+				</FlexBlock>
+				<FlexBlock>
+					<SelectControl
+						label={ __( 'Author', 'enterprise-api-importer' ) }
+						value={ String( job.post_author || 0 ) }
+						options={ authorOptions }
+						onChange={ ( val ) => updateField( 'post_author', parseInt( val, 10 ) ) }
+						help={ __( 'Assign imported posts to this author. If unset, the user triggering the import will be used.', 'enterprise-api-importer' ) }
+					/>
+				</FlexBlock>
+				<FlexBlock>
+					<SelectControl
+						label={ __( 'Comment Status', 'enterprise-api-importer' ) }
+						value={ job.comment_status || 'closed' }
+						options={ [
+							{ label: __( 'Open', 'enterprise-api-importer' ), value: 'open' },
+							{ label: __( 'Closed', 'enterprise-api-importer' ), value: 'closed' },
+						] }
+						onChange={ ( val ) => updateField( 'comment_status', val ) }
+						help={ __( 'Whether comments are open on imported posts.', 'enterprise-api-importer' ) }
+					/>
+				</FlexBlock>
+				<FlexBlock>
+					<SelectControl
+						label={ __( 'Pingback/Trackback Status', 'enterprise-api-importer' ) }
+						value={ job.ping_status || 'closed' }
+						options={ [
+							{ label: __( 'Open', 'enterprise-api-importer' ), value: 'open' },
+							{ label: __( 'Closed', 'enterprise-api-importer' ), value: 'closed' },
+						] }
+						onChange={ ( val ) => updateField( 'ping_status', val ) }
+						help={ __( 'Whether pingbacks and trackbacks are accepted on imported posts.', 'enterprise-api-importer' ) }
+					/>
+				</FlexBlock>
+			</Flex>
 
 			<Flex className="eapi-ij-split" align="stretch">
 				<FlexBlock className="eapi-ij-split-editor">

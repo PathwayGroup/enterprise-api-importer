@@ -24,6 +24,7 @@ Use Enterprise API Importer to run clean, repeatable import workflows without sa
 - Optional templates for new jobs (start with connection setup, add templates later)
 - Multiple API auth modes: none, bearer token, custom API-key header, and basic auth
 - Per-import Target Post Type selection (posts, pages, and public custom post types)
+- Per-import Default Target Settings (post status, post author, comment status, pingback/trackback status)
 - Per-import editing lock toggle for imported posts (allow editing or enforce read-only)
 - Time-aware batch processing via WP-Cron to reduce timeout and memory-risk scenarios
 - **[New v1.2] Tableau-Style Reporting Dashboard:** Real-time metrics on environment health, security posture, and API performance with interactive charts, status indicators, and audit activity feed
@@ -42,6 +43,7 @@ Built for real-world production workflows:
 - Title templates are rendered via Twig and sanitized before save
 - Target post type safely falls back to post if invalid or unavailable
 - Attachment is excluded by default from target post type selection
+- Default target post settings are validated and applied at load time for consistent publishing/discussion behavior
 - Imports are staged and processed in queue batches for safer long-running jobs
 - Imported items are cryptographically linked to their origin import (read-only)
 - Template configuration changes are audit-logged with full actor context
@@ -130,6 +132,10 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 * **Updated: Per-import editing lock control**
   - Added "Lock editing of imported posts" toggle in Mapping & Templating.
   - Edit/delete restrictions now apply by import configuration and can be disabled per job.
+* **Updated: Default target post settings**
+  - Added per-import defaults for Post Status, Post Author, Comment Status, and Pingback/Trackback Status in Mapping & Templating.
+  - Added REST sanitization and persistence for these fields in import job create/update handlers.
+  - Import load now applies these defaults during `wp_insert_post()` and sync updates discussion settings during `wp_update_post()`.
 * **New: Enterprise Reporting Dashboard (Tableau-Style)**
   - Real-time operations command center with global health status badge and force-refresh controls.
   - Nine enterprise-grade metrics across three pillars:

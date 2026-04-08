@@ -1348,10 +1348,13 @@ function eai_resolve_json_array_path( $decoded_json, $path ) {
  * @param int    $import_id                 Import job ID.
  * @param string $featured_image_source_path Dot-notation item path for featured image URL.
  * @param int    $post_author               WordPress user ID to assign as post author. 0 = default.
+ * @param string $post_status               WordPress post status for new items. Default 'draft'.
+ * @param string $comment_status            Comment status for new items. Default 'closed'.
+ * @param string $ping_status               Ping status for new items. Default 'closed'.
  *
  * @return array<string, mixed>|WP_Error
  */
-function eai_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0 ) {
+function eai_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0, $post_status = 'draft', $comment_status = 'closed', $ping_status = 'closed' ) {
 	if ( ! is_array( $item ) ) {
 		return new WP_Error( 'eai_invalid_item', __( 'Transform input must be an array.', 'enterprise-api-importer' ) );
 	}
@@ -1363,6 +1366,11 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	$import_id        = absint( $import_id );
 	$featured_image_source_path = trim( (string) $featured_image_source_path );
 	$post_author      = absint( $post_author );
+
+	$allowed_post_statuses = array( 'draft', 'publish', 'pending' );
+	$post_status           = in_array( (string) $post_status, $allowed_post_statuses, true ) ? (string) $post_status : 'draft';
+	$comment_status        = in_array( (string) $comment_status, array( 'open', 'closed' ), true ) ? (string) $comment_status : 'closed';
+	$ping_status           = in_array( (string) $ping_status, array( 'open', 'closed' ), true ) ? (string) $ping_status : 'closed';
 
 	if ( '' === $target_post_type || 'attachment' === $target_post_type || ! post_type_exists( $target_post_type ) ) {
 		$target_post_type = 'post';
@@ -1517,10 +1525,12 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 
 	if ( empty( $existing_posts ) ) {
 		$insert_args = array(
-			'post_type'    => $target_post_type,
-			'post_status'  => 'publish',
-			'post_title'   => $post_title,
-			'post_content' => $post_content,
+			'post_type'      => $target_post_type,
+			'post_status'    => $post_status,
+			'post_title'     => $post_title,
+			'post_content'   => $post_content,
+			'comment_status' => $comment_status,
+			'ping_status'    => $ping_status,
 		);
 		if ( $post_author > 0 ) {
 			$insert_args['post_author'] = $post_author;
@@ -1573,9 +1583,11 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	if ( (string) $existing_post->post_content !== (string) $post_content ) {
 		$updated_post_id = wp_update_post(
 			array(
-				'ID'           => $existing_post_id,
-				'post_title'   => $post_title,
-				'post_content' => $post_content,
+				'ID'             => $existing_post_id,
+				'post_title'     => $post_title,
+				'post_content'   => $post_content,
+				'comment_status' => $comment_status,
+				'ping_status'    => $ping_status,
 			),
 			true
 		);
@@ -1596,8 +1608,10 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	if ( (string) $existing_post->post_title !== (string) $post_title ) {
 		$updated_title_post_id = wp_update_post(
 			array(
-				'ID'         => $existing_post_id,
-				'post_title' => $post_title,
+				'ID'             => $existing_post_id,
+				'post_title'     => $post_title,
+				'comment_status' => $comment_status,
+				'ping_status'    => $ping_status,
 			),
 			true
 		);
@@ -2421,6 +2435,9 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 		$unique_id_path   = isset( $import_job['unique_id_path'] ) ? trim( (string) $import_job['unique_id_path'] ) : 'id';
 		$featured_image_source_path = isset( $import_job['featured_image_source_path'] ) ? trim( (string) $import_job['featured_image_source_path'] ) : 'image.url';
 		$post_author      = isset( $import_job['post_author'] ) ? absint( $import_job['post_author'] ) : 0;
+		$post_status      = isset( $import_job['post_status'] ) ? (string) $import_job['post_status'] : 'draft';
+		$comment_status   = isset( $import_job['comment_status'] ) ? (string) $import_job['comment_status'] : 'closed';
+		$ping_status      = isset( $import_job['ping_status'] ) ? (string) $import_job['ping_status'] : 'closed';
 		$chunks           = array_chunk( $items, 50 );
 		$row_completed    = true;
 
@@ -2443,7 +2460,7 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 
 				++$result['rows_processed'];
 
-				$item_result = eai_transform_and_load_item( $item, $mapping_template, $title_template, $target_post_type, $unique_id_path, $row_import_id, $featured_image_source_path, $post_author );
+				$item_result = eai_transform_and_load_item( $item, $mapping_template, $title_template, $target_post_type, $unique_id_path, $row_import_id, $featured_image_source_path, $post_author, $post_status, $comment_status, $ping_status );
 
 				if ( is_wp_error( $item_result ) ) {
 					$result['errors'][] = sprintf(

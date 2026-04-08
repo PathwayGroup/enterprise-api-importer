@@ -685,6 +685,10 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 	$post_author      = isset( $params['post_author'] ) ? absint( $params['post_author'] ) : 0;
 	$template_raw     = isset( $params['mapping_template'] ) ? (string) $params['mapping_template'] : '';
 
+	$post_status      = isset( $params['post_status'] ) ? sanitize_key( (string) $params['post_status'] ) : 'draft';
+	$comment_status   = isset( $params['comment_status'] ) ? sanitize_key( (string) $params['comment_status'] ) : 'closed';
+	$ping_status      = isset( $params['ping_status'] ) ? sanitize_key( (string) $params['ping_status'] ) : 'closed';
+
 	if ( '' === $name || '' === $endpoint_url ) {
 		return new WP_REST_Response(
 			array( 'code' => 'missing_fields', 'message' => __( 'Name and Endpoint URL are required.', 'enterprise-api-importer' ) ),
@@ -731,6 +735,19 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 	}
 
 	$title_template = mb_substr( trim( $title_template ), 0, 255 );
+
+	$allowed_post_statuses = array( 'draft', 'publish', 'pending' );
+	if ( ! in_array( $post_status, $allowed_post_statuses, true ) ) {
+		$post_status = 'draft';
+	}
+
+	$allowed_comment_ping = array( 'open', 'closed' );
+	if ( ! in_array( $comment_status, $allowed_comment_ping, true ) ) {
+		$comment_status = 'closed';
+	}
+	if ( ! in_array( $ping_status, $allowed_comment_ping, true ) ) {
+		$ping_status = 'closed';
+	}
 
 	if ( $post_author > 0 && false === get_userdata( $post_author ) ) {
 		$post_author = 0;
@@ -815,8 +832,11 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 		'mapping_template'        => $mapping_template,
 		'post_author'             => $post_author,
 		'lock_editing'            => isset( $params['lock_editing'] ) ? absint( (bool) $params['lock_editing'] ) : 1,
+		'post_status'             => $post_status,
+		'comment_status'          => $comment_status,
+		'ping_status'             => $ping_status,
 	);
-	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d' );
+	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
 
 	return array( 'data' => $data, 'formats' => $formats );
 }

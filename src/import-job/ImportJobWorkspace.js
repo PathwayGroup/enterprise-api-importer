@@ -27,6 +27,9 @@ const DEFAULT_JOB = {
 	post_author: 0,
 	title_template: '',
 	mapping_template: '',
+	post_status: 'draft',
+	comment_status: 'closed',
+	ping_status: 'closed',
 };
 
 const TABS = [

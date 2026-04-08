@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'EAI_DB_SCHEMA_VERSION' ) ) {
-	define( 'EAI_DB_SCHEMA_VERSION', '20260408-1' );
+	define( 'EAI_DB_SCHEMA_VERSION', '20260408-2' );
 }
 
 /**
@@ -62,6 +62,9 @@ function eai_activate_plugin() {
 		mapping_template longtext NOT NULL,
 		post_author bigint(20) unsigned NOT NULL DEFAULT 0,
 		lock_editing tinyint(1) unsigned NOT NULL DEFAULT 1,
+		post_status varchar(20) NOT NULL DEFAULT 'draft',
+		comment_status varchar(20) NOT NULL DEFAULT 'closed',
+		ping_status varchar(20) NOT NULL DEFAULT 'closed',
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),
 		KEY name (name)
@@ -101,6 +104,7 @@ function eai_activate_plugin() {
 	dbDelta( $sql_temp );
 	eai_ensure_imports_auth_columns();
 	eai_ensure_imports_featured_image_column();
+	eai_ensure_imports_post_status_columns();
 
 	eai_sync_template_management_capabilities();
 
@@ -198,6 +202,32 @@ function eai_ensure_imports_featured_image_column() {
 }
 
 /**
+ * Ensures post_status, comment_status, and ping_status columns exist on the imports table.
+ *
+ * @return void
+ */
+function eai_ensure_imports_post_status_columns() {
+	global $wpdb;
+
+	$table = $wpdb->prefix . 'eapi_imports';
+
+	$columns = array(
+		'post_status'    => "varchar(20) NOT NULL DEFAULT 'draft'",
+		'comment_status' => "varchar(20) NOT NULL DEFAULT 'closed'",
+		'ping_status'    => "varchar(20) NOT NULL DEFAULT 'closed'",
+	);
+
+	foreach ( $columns as $col_name => $col_def ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $col_name ) );
+		if ( null === $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN `{$col_name}` {$col_def} AFTER lock_editing", $table ) );
+		}
+	}
+}
+
+/**
  * Runs on plugin deactivation.
  *
  * Clears plugin-owned scheduled cron events.
@@ -217,6 +247,7 @@ function eai_maybe_upgrade_schema() {
 	eai_sync_template_management_capabilities();
 	eai_ensure_imports_auth_columns();
 	eai_ensure_imports_featured_image_column();
+	eai_ensure_imports_post_status_columns();
 
 	$installed_version = (string) get_option( 'eai_db_schema_version', '' );
 

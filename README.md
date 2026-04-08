@@ -28,6 +28,7 @@ It gives you:
 - Twig-based post title templates with safe sanitization.
 - Optional templates for new jobs (save connection first, map later).
 - Configurable target post type per import job.
+- Configurable default target post settings per import job (status, author, comment status, ping status).
 - React-powered tabbed Import Job Workspace for add/edit flows.
 - Queue-based batch processor to avoid timeout-heavy monolithic runs.
 - Per-import recurrence schedules (`off`, `hourly`, `twicedaily`, `daily`, custom N-minute intervals).
@@ -58,7 +59,22 @@ You can now choose the destination post type per import job.
   - if unregistered on the site, fallback to `post`
 - `attachment` is intentionally blocked by default for safety.
 
-### 3) Secure Media Sideload Helper (Foundation)
+### 3) Default Target Post Settings (Status, Author, Comment, Ping)
+
+Each import job can now define default publishing and discussion behavior for imported posts.
+
+- Default Post Status: `draft`, `publish`, or `pending`.
+- Post Author: selected from available WordPress users in the import workspace.
+- Comment Status: `open` or `closed`.
+- Pingback/Trackback Status: `open` or `closed`.
+
+Implementation details:
+
+- Values are validated and persisted with import-job REST create/update sanitization.
+- Import load now maps these settings into `wp_insert_post()` payloads.
+- Existing imported posts also receive discussion-setting updates through `wp_update_post()` during sync.
+
+### 4) Secure Media Sideload Helper (Foundation)
 
 A new static helper is available in the processing layer:
 
@@ -73,7 +89,7 @@ Design goals:
 
 Note: this helper is now implemented and available for integration into your field mapping/media ingestion strategy.
 
-### 4) Enterprise Reporting Engine & Dashboard (Tableau-Style)
+### 5) Enterprise Reporting Engine & Dashboard (Tableau-Style)
 
 A pluggable, high-performance reporting aggregator with real-time operational metrics and a React-based UI.
 
@@ -199,7 +215,7 @@ eai_flush_reporting_transients(); // Clears all 9 reporter transients + history
 
 **Monitoring via WP-Cron:** All metrics are calculated on-demand and cached, so no background jobs required. Transient eviction is natural.
 
-### 5) Enhanced Security Hardening (5-Layer Defense)
+### 6) Enhanced Security Hardening (5-Layer Defense)
 
 #### ✅ Dedicated Template Management Capability
 
