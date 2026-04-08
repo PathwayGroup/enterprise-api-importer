@@ -40,8 +40,8 @@ class EAI_Imports_List_Table extends WP_List_Table {
 			'id'       => __( 'ID', 'enterprise-api-importer' ),
 			'name'     => __( 'Name', 'enterprise-api-importer' ),
 			'status'   => __( 'Status', 'enterprise-api-importer' ),
-			'health'   => __( 'Endpoint Health', 'enterprise-api-importer' ),
-			'endpoint' => __( 'Endpoint', 'enterprise-api-importer' ),
+			'health'   => __( 'Endpoint', 'enterprise-api-importer' ),
+			'endpoint' => __( 'API URL', 'enterprise-api-importer' ),
 			'trend'    => __( 'Trend (Blue = Created, Teal = Updated)', 'enterprise-api-importer' ),
 			'actions'  => __( 'Actions', 'enterprise-api-importer' ),
 		);

@@ -1235,7 +1235,7 @@ function eai_render_imports_list_page() {
 				border-color: #15803d;
 				color: #ffffff;
 				padding: 4px 10px;
-				font-size: 12px;
+				font-size: 16px;
 				font-weight: 700;
 			}
 			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-edit:hover {
@@ -1253,6 +1253,20 @@ function eai_render_imports_list_page() {
 			.eapi-manage-card .wp-list-table td.column-id {
 				font-family: Menlo, Consolas, Monaco, "Liberation Mono", monospace;
 				font-size: 12px;
+			}
+			.eapi-manage-card .wp-list-table th.column-id,
+			.eapi-manage-card .wp-list-table td.column-id {
+				width: 56px;
+			}
+			.eapi-manage-card .wp-list-table th.column-status,
+			.eapi-manage-card .wp-list-table td.column-status {
+				width: 112px;
+				white-space: nowrap;
+			}
+			.eapi-manage-card .wp-list-table th.column-health,
+			.eapi-manage-card .wp-list-table td.column-health {
+				width: 108px;
+				white-space: nowrap;
 			}
 			.eapi-manage-card .tablenav.top,
 			.eapi-manage-card .tablenav.bottom {
