@@ -1,0 +1,81 @@
+env:
+  contexts:
+    - name: eapi-localhost
+      urls:
+        - https://localhost
+      includePaths:
+        - ^https://localhost/wp-login\.php(?:\?.*)?$
+        - ^https://localhost/wp-admin/admin\.php\?.*\bpage=eapi-manage\b.*$
+        - ^https://localhost/wp-admin/admin\.php\?.*\bpage=eapi-schedules\b.*$
+        - ^https://localhost/wp-admin/admin\.php\?.*\bpage=eapi-dashboard\b.*$
+        - ^https://localhost/wp-admin/admin\.php\?.*\bpage=eapi-settings\b.*$
+        - ^https://localhost/wp-json/eapi/v1/.*$
+      excludePaths:
+        - ^https://localhost/wp-admin/admin-post\.php(?:\?.*)?$
+        - ^https://localhost/wp-admin/admin-ajax\.php(?:\?.*)?$
+        - ^https://localhost/wp-cron\.php(?:\?.*)?$
+        - ^https://localhost/xmlrpc\.php(?:\?.*)?$
+        - ^https://localhost/wp-json/eapi/v1/dry-run/?$
+        - ^https://localhost/wp-json/eapi/v1/import-jobs/?$
+        - ^https://localhost/wp-json/eapi/v1/import-jobs/\d+/?$
+        - ^https://localhost/wp-json/eapi/v1/import-jobs/\d+/run/?$
+        - ^https://localhost/wp-json/eapi/v1/import-jobs/\d+/template-sync/?$
+        - ^https://localhost/wp-json/eapi/v1/dashboard\?refresh=1.*$
+      authentication:
+        method: form
+        parameters:
+          loginPageUrl: https://localhost/wp-login.php
+          loginRequestUrl: https://localhost/wp-login.php
+          loginRequestBody: log={%username%}&pwd={%password%}&wp-submit=Log+In&redirect_to=https%3A%2F%2Flocalhost%2Fwp-admin%2F&testcookie=1
+      sessionManagement:
+        method: cookie
+      users:
+        - name: wp-admin-test
+          credentials:
+            username: admin@example.com
+            password: DawDyl#3
+
+jobs:
+  - type: spider
+    parameters:
+      context: eapi-localhost
+      user: wp-admin-test
+      maxDuration: 10
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 10
+
+  - type: activeScan
+    parameters:
+      context: eapi-localhost
+      user: wp-admin-test
+      policy: Default Policy
+    inputVectors:
+      urlQueryStringAndDataDrivenNodes:
+        enabled: true
+      postData:
+        enabled: true
+      httpHeaders:
+        enabled: false
+      cookieData:
+        enabled: false
+    tests:
+      - name: Safe plugin surfaces only
+        url: https://localhost/wp-admin/admin.php?page=eapi-manage
+      - name: Safe plugin surfaces only
+        url: https://localhost/wp-admin/admin.php?page=eapi-schedules
+      - name: Safe plugin surfaces only
+        url: https://localhost/wp-admin/admin.php?page=eapi-dashboard
+      - name: Safe plugin surfaces only
+        url: https://localhost/wp-admin/admin.php?page=eapi-settings
+      - name: Safe plugin surfaces only
+        url: https://localhost/wp-json/eapi/v1/dashboard
+      - name: Safe plugin surfaces only
+        url: https://localhost/wp-json/eapi/v1/dashboard/history
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: .
+      reportFile: zap-eapi-localhost-report.html
