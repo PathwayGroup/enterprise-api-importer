@@ -486,6 +486,70 @@ function eai_db_get_latest_logs_indexed_by_import_id(): array {
 }
 
 /**
+ * Gets recent created/updated metrics grouped by import ID.
+ *
+ * Used for compact trend sparklines in admin tables.
+ *
+ * @param int $points_per_import Number of recent points to keep per import.
+ *
+ * @return array<int, array<int, array<string, int>>>
+ */
+function eai_db_get_recent_import_log_trends( int $points_per_import = 12 ): array {
+	global $wpdb;
+
+	$logs_table         = eai_db_logs_table();
+	$points_per_import  = max( 3, min( 30, absint( $points_per_import ) ) );
+	$global_sample_size = max( 150, $points_per_import * 250 );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT import_id, rows_created, rows_updated
+			FROM %i
+			WHERE import_id > 0
+				AND status NOT IN ('template_audit')
+			ORDER BY id DESC
+			LIMIT %d",
+			$logs_table,
+			$global_sample_size
+		),
+		ARRAY_A
+	);
+
+	if ( ! is_array( $rows ) ) {
+		return array();
+	}
+
+	$trends = array();
+
+	foreach ( $rows as $row ) {
+		$import_id = isset( $row['import_id'] ) ? absint( $row['import_id'] ) : 0;
+		if ( $import_id <= 0 ) {
+			continue;
+		}
+
+		if ( ! isset( $trends[ $import_id ] ) ) {
+			$trends[ $import_id ] = array();
+		}
+
+		if ( count( $trends[ $import_id ] ) >= $points_per_import ) {
+			continue;
+		}
+
+		$trends[ $import_id ][] = array(
+			'created' => isset( $row['rows_created'] ) ? (int) $row['rows_created'] : 0,
+			'updated' => isset( $row['rows_updated'] ) ? (int) $row['rows_updated'] : 0,
+		);
+	}
+
+	foreach ( $trends as $import_id => $points ) {
+		$trends[ $import_id ] = array_reverse( $points );
+	}
+
+	return $trends;
+}
+
+/**
  * Gets pending queue counts keyed by import_id (real-time, uncached).
  *
  * @return array<int, int>

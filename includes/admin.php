@@ -1083,103 +1083,271 @@ function eai_render_manage_imports_page() {
  * Renders list view using WP_List_Table.
  */
 function eai_render_imports_list_page() {
-$list_table = new EAI_Imports_List_Table();
-$list_table->prepare_items();
+	$list_table = new EAI_Imports_List_Table();
+	$list_table->prepare_items();
+	$total_imports = count( eai_db_get_import_configs() );
 	$ownership_counts = eai_get_import_post_ownership_counts();
 	$total_owned_posts = 0;
 	foreach ( $ownership_counts as $ownership_row ) {
 		$total_owned_posts += isset( $ownership_row['post_count'] ) ? (int) $ownership_row['post_count'] : 0;
 	}
 
-$new_url = add_query_arg(
-array(
-'page'   => 'eapi-manage',
-'action' => 'edit',
-),
-admin_url( 'admin.php' )
-);
-
-$active_state   = eai_get_active_run_state();
-?>
-<div class="wrap">
-<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Imports', 'enterprise-api-importer' ); ?></h1>
-<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'enterprise-api-importer' ); ?></a>
-<hr class="wp-header-end" />
-<?php eai_render_admin_notices(); ?>
-
-<?php if ( ! empty( $active_state['run_id'] ) ) : ?>
-<div class="notice notice-info"><p>
-<?php
-echo esc_html(
-sprintf(
-/* translators: 1: run ID, 2: import ID. */
-__( 'Active queue run %1$s for import #%2$d.', 'enterprise-api-importer' ),
-(string) $active_state['run_id'],
-isset( $active_state['import_id'] ) ? (int) $active_state['import_id'] : 0
-)
-);
-?>
-</p></div>
-<?php endif; ?>
-
-<form method="post">
-<?php $list_table->display(); ?>
-</form>
-
-<hr />
-<h2><?php esc_html_e( 'Debug: Imported Post Ownership', 'enterprise-api-importer' ); ?></h2>
-<p>
-	<?php
-	echo esc_html(
-		sprintf(
-			/* translators: %d is total number of imported posts linked to any import job via _eai_import_id meta. */
-			__( 'Total imported posts linked to import jobs (_eai_import_id): %d', 'enterprise-api-importer' ),
-			(int) $total_owned_posts
-		)
+	$new_url = add_query_arg(
+		array(
+			'page'   => 'eapi-manage',
+			'action' => 'edit',
+		),
+		admin_url( 'admin.php' )
 	);
-	?>
-</p>
 
-<table class="widefat striped">
-	<thead>
-		<tr>
-			<th><?php esc_html_e( 'Import ID Meta Value', 'enterprise-api-importer' ); ?></th>
-			<th><?php esc_html_e( 'Matched Import Job', 'enterprise-api-importer' ); ?></th>
-			<th><?php esc_html_e( 'Imported Post Count', 'enterprise-api-importer' ); ?></th>
-		</tr>
-	</thead>
-	<tbody>
-	<?php if ( empty( $ownership_counts ) ) : ?>
-		<tr>
-			<td colspan="3"><?php esc_html_e( 'No imported posts with _eai_import_id found.', 'enterprise-api-importer' ); ?></td>
-		</tr>
-	<?php else : ?>
-		<?php foreach ( $ownership_counts as $ownership_row ) : ?>
-			<tr>
-				<td><?php echo esc_html( isset( $ownership_row['import_id_raw'] ) ? (string) $ownership_row['import_id_raw'] : '' ); ?></td>
-				<td>
+	$active_state = eai_get_active_run_state();
+	?>
+	<div class="wrap eapi-manage-shell">
+		<?php eai_render_shared_tableau_admin_styles(); ?>
+		<style>
+			.eapi-manage-shell {
+				max-width: 1320px;
+			}
+			.eapi-manage-topbar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+				margin-bottom: 16px;
+			}
+			.eapi-manage-topbar h1 {
+				margin: 0;
+			}
+			.eapi-manage-kpis {
+				display: grid;
+				grid-template-columns: repeat( auto-fit, minmax( 220px, 1fr ) );
+				gap: 12px;
+				margin: 16px 0 18px;
+			}
+			.eapi-manage-kpi {
+				background: #fff;
+				border: 1px solid #e2e8f0;
+				border-radius: 12px;
+				padding: 14px;
+				box-shadow: 0 1px 2px rgba( 15, 23, 42, 0.05 );
+			}
+			.eapi-manage-kpi-label {
+				font-size: 11px;
+				line-height: 1.4;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: #64748b;
+				margin-bottom: 6px;
+			}
+			.eapi-manage-kpi-value {
+				font-size: 25px;
+				line-height: 1.15;
+				font-weight: 700;
+				color: #0f172a;
+			}
+			.eapi-manage-running {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 10px;
+				border-radius: 999px;
+				background: #dbeafe;
+				color: #1e40af;
+				font-size: 12px;
+				font-weight: 600;
+			}
+			.eapi-manage-running::before {
+				content: '';
+				width: 8px;
+				height: 8px;
+				border-radius: 999px;
+				background: #3b82f6;
+			}
+			.eapi-manage-card {
+				background: #fff;
+				border: 1px solid #e2e8f0;
+				border-radius: 14px;
+				box-shadow: 0 2px 4px rgba( 15, 23, 42, 0.04 );
+				padding: 0;
+				overflow: visible;
+				margin-bottom: 18px;
+			}
+			.eapi-manage-card-header {
+				padding: 14px 16px;
+				border-bottom: 1px solid #e2e8f0;
+				background: linear-gradient( 180deg, #ffffff 0%, #f8fafc 100% );
+			}
+			.eapi-manage-card-title {
+				margin: 0;
+				font-size: 14px;
+				font-weight: 600;
+				color: #334155;
+				letter-spacing: 0.03em;
+				text-transform: uppercase;
+			}
+			.eapi-manage-card-body {
+				padding: 12px 16px 16px;
+			}
+			.eapi-manage-card .wp-list-table,
+			.eapi-ownership-table {
+				border: 1px solid #e2e8f0;
+				border-radius: 10px;
+				overflow: visible;
+			}
+			.eapi-manage-card .wp-list-table thead th,
+			.eapi-ownership-table thead th {
+				background: #f8fafc;
+				color: #64748b;
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				border-bottom: 1px solid #e2e8f0;
+				position: static;
+			}
+			.eapi-manage-card .wp-list-table tbody tr:hover,
+			.eapi-ownership-table tbody tr:hover {
+				background: #f8fafc;
+			}
+			.eapi-manage-card .wp-list-table td,
+			.eapi-ownership-table td {
+				border-bottom: 1px solid #f1f5f9;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a {
+				display: inline-block;
+				padding: 3px 8px;
+				border-radius: 999px;
+				text-decoration: none;
+				border: 1px solid #dbe4ef;
+				background: #fff;
+				color: #1e40af;
+				font-size: 12px;
+				font-weight: 600;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a:hover {
+				background: #eff6ff;
+			}
+			.eapi-manage-card .wp-list-table td.column-endpoint,
+			.eapi-manage-card .wp-list-table td.column-id {
+				font-family: Menlo, Consolas, Monaco, "Liberation Mono", monospace;
+				font-size: 12px;
+			}
+			.eapi-manage-card .tablenav.top,
+			.eapi-manage-card .tablenav.bottom {
+				padding: 10px 0;
+			}
+		</style>
+
+		<div class="eapi-manage-topbar">
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Imports', 'enterprise-api-importer' ); ?></h1>
+			<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'enterprise-api-importer' ); ?></a>
+		</div>
+
+		<hr class="wp-header-end" />
+		<?php eai_render_admin_notices(); ?>
+
+		<div class="eapi-manage-kpis">
+			<div class="eapi-manage-kpi">
+				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Import Jobs', 'enterprise-api-importer' ); ?></div>
+				<div class="eapi-manage-kpi-value"><?php echo esc_html( (string) (int) $total_imports ); ?></div>
+			</div>
+			<div class="eapi-manage-kpi">
+				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Imported Posts Linked', 'enterprise-api-importer' ); ?></div>
+				<div class="eapi-manage-kpi-value"><?php echo esc_html( (string) (int) $total_owned_posts ); ?></div>
+			</div>
+			<div class="eapi-manage-kpi">
+				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Queue State', 'enterprise-api-importer' ); ?></div>
+				<div class="eapi-manage-kpi-value">
+					<?php if ( ! empty( $active_state['run_id'] ) ) : ?>
+						<span class="eapi-manage-running">
+							<?php
+							echo esc_html(
+								sprintf(
+									/* translators: %d is the active import job ID. */
+									__( 'Running #%d', 'enterprise-api-importer' ),
+									isset( $active_state['import_id'] ) ? (int) $active_state['import_id'] : 0
+								)
+							);
+							?>
+						</span>
+					<?php else : ?>
+						<?php esc_html_e( 'Idle', 'enterprise-api-importer' ); ?>
+					<?php endif; ?>
+				</div>
+			</div>
+		</div>
+
+		<div class="eapi-manage-card">
+			<div class="eapi-manage-card-header">
+				<h2 class="eapi-manage-card-title"><?php esc_html_e( 'Import Jobs Table', 'enterprise-api-importer' ); ?></h2>
+			</div>
+			<div class="eapi-manage-card-body">
+				<form method="post">
+					<?php $list_table->display(); ?>
+				</form>
+			</div>
+		</div>
+
+		<div class="eapi-manage-card">
+			<div class="eapi-manage-card-header">
+				<h2 class="eapi-manage-card-title"><?php esc_html_e( 'Debug: Imported Post Ownership', 'enterprise-api-importer' ); ?></h2>
+			</div>
+			<div class="eapi-manage-card-body">
+				<p>
 					<?php
-					echo esc_html( isset( $ownership_row['import_name'] ) ? (string) $ownership_row['import_name'] : '' );
-					if ( ! empty( $ownership_row['has_match'] ) && ! empty( $ownership_row['import_id'] ) ) {
-						echo ' ';
-						echo esc_html(
-							sprintf(
-								/* translators: %d is the matched import job ID. */
-								__( '(ID #%d)', 'enterprise-api-importer' ),
-								(int) $ownership_row['import_id']
-							)
-						);
-					}
+					echo esc_html(
+						sprintf(
+							/* translators: %d is total number of imported posts linked to any import job via _eai_import_id meta. */
+							__( 'Total imported posts linked to import jobs (_eai_import_id): %d', 'enterprise-api-importer' ),
+							(int) $total_owned_posts
+						)
+					);
 					?>
-				</td>
-				<td><?php echo esc_html( isset( $ownership_row['post_count'] ) ? (string) (int) $ownership_row['post_count'] : '0' ); ?></td>
-			</tr>
-		<?php endforeach; ?>
-	<?php endif; ?>
-	</tbody>
-</table>
-</div>
-<?php
+				</p>
+
+				<table class="widefat striped eapi-admin-table eapi-ownership-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Import ID Meta Value', 'enterprise-api-importer' ); ?></th>
+							<th><?php esc_html_e( 'Matched Import Job', 'enterprise-api-importer' ); ?></th>
+							<th><?php esc_html_e( 'Imported Post Count', 'enterprise-api-importer' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+					<?php if ( empty( $ownership_counts ) ) : ?>
+						<tr>
+							<td colspan="3"><?php esc_html_e( 'No imported posts with _eai_import_id found.', 'enterprise-api-importer' ); ?></td>
+						</tr>
+					<?php else : ?>
+						<?php foreach ( $ownership_counts as $ownership_row ) : ?>
+							<tr>
+								<td><?php echo esc_html( isset( $ownership_row['import_id_raw'] ) ? (string) $ownership_row['import_id_raw'] : '' ); ?></td>
+								<td>
+									<?php
+									echo esc_html( isset( $ownership_row['import_name'] ) ? (string) $ownership_row['import_name'] : '' );
+									if ( ! empty( $ownership_row['has_match'] ) && ! empty( $ownership_row['import_id'] ) ) {
+										echo ' ';
+										echo esc_html(
+											sprintf(
+												/* translators: %d is the matched import job ID. */
+												__( '(ID #%d)', 'enterprise-api-importer' ),
+												(int) $ownership_row['import_id']
+											)
+										);
+									}
+									?>
+								</td>
+								<td><?php echo esc_html( isset( $ownership_row['post_count'] ) ? (string) (int) $ownership_row['post_count'] : '0' ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					<?php endif; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<?php
 }
 
 /**
@@ -1399,6 +1567,132 @@ return __( 'Unknown', 'enterprise-api-importer' );
 }
 
 /**
+ * Renders shared Tableau-style admin UI CSS for EAPI tables.
+ *
+ * @return void
+ */
+function eai_render_shared_tableau_admin_styles() {
+	static $printed = false;
+
+	if ( $printed ) {
+		return;
+	}
+
+	$printed = true;
+	?>
+	<style>
+		:root {
+			--eapi-border: #e2e8f0;
+			--eapi-slate-50: #f8fafc;
+			--eapi-slate-300: #cbd5e1;
+			--eapi-slate-500: #64748b;
+			--eapi-slate-900: #0f172a;
+		}
+
+		.eapi-admin-table {
+			border: 1px solid var(--eapi-border);
+			border-radius: 10px;
+			overflow: visible;
+		}
+
+		.eapi-admin-table thead th {
+			background: var(--eapi-slate-50);
+			color: var(--eapi-slate-500);
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			border-bottom: 1px solid var(--eapi-border);
+			position: static;
+		}
+
+		.eapi-admin-table tbody tr:hover {
+			background: var(--eapi-slate-50);
+		}
+
+		.eapi-admin-table td {
+			border-bottom: 1px solid #f1f5f9;
+		}
+
+		.eai-badge {
+			display: inline-block;
+			padding: 4px 10px;
+			border-radius: 999px;
+			font-size: 12px;
+			font-weight: 600;
+		}
+
+		.eai-badge.is-success { background: #dcfce7; color: #166534; }
+		.eai-badge.is-failed { background: #fee2e2; color: #991b1b; }
+		.eai-badge.is-processing { background: #dbeafe; color: #1e40af; }
+		.eai-badge.is-idle { background: #e5e7eb; color: #374151; }
+
+		.eapi-health-chip {
+			display: inline-block;
+			padding: 3px 9px;
+			border-radius: 999px;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.02em;
+			border: 1px solid transparent;
+		}
+
+		.eapi-health-chip.is-good {
+			background: #ecfdf5;
+			color: #166534;
+			border-color: #bbf7d0;
+		}
+
+		.eapi-health-chip.is-warn {
+			background: #fffbeb;
+			color: #92400e;
+			border-color: #fde68a;
+		}
+
+		.eapi-health-chip.is-bad {
+			background: #fef2f2;
+			color: #991b1b;
+			border-color: #fecaca;
+		}
+
+		.eapi-sparkline {
+			display: inline-flex;
+			align-items: flex-end;
+			gap: 2px;
+			height: 24px;
+			padding: 1px 0;
+		}
+
+		.eapi-spark-pair {
+			display: inline-flex;
+			align-items: flex-end;
+			gap: 1px;
+			height: 24px;
+		}
+
+		.eapi-mini-bar {
+			display: inline-block;
+			width: 3px;
+			border-radius: 2px;
+		}
+
+		.eapi-mini-bar.is-created {
+			background: #2563eb;
+		}
+
+		.eapi-mini-bar.is-updated {
+			background: #0d9488;
+		}
+
+		.eapi-trend-empty {
+			color: var(--eapi-slate-500);
+			font-size: 12px;
+		}
+	</style>
+	<?php
+}
+
+/**
  * Returns validated dashboard sorting arguments from request.
  *
  * @return array{orderby:string,order:string}
@@ -1532,26 +1826,16 @@ $metrics = eai_sort_dashboard_metrics( $metrics, $sorting['orderby'], $sorting['
 <div class="wrap">
 <h1><?php esc_html_e( 'Schedules & Health Dashboard', 'enterprise-api-importer' ); ?></h1>
 <?php eai_render_admin_notices(); ?>
+<?php eai_render_shared_tableau_admin_styles(); ?>
 
 <style>
 .eai-schedules-table .column-status,
 .eai-schedules-table .column-actions {
 white-space: nowrap;
 }
-.eai-badge {
-display: inline-block;
-padding: 4px 10px;
-border-radius: 999px;
-font-size: 12px;
-font-weight: 600;
-}
-.eai-badge.is-success { background: #dcfce7; color: #166534; }
-.eai-badge.is-failed { background: #fee2e2; color: #991b1b; }
-.eai-badge.is-processing { background: #dbeafe; color: #1e40af; }
-.eai-badge.is-idle { background: #e5e7eb; color: #374151; }
 </style>
 
-<table class="widefat striped eai-schedules-table">
+<table class="widefat striped eapi-admin-table eai-schedules-table">
 <thead>
 <tr>
 <th><?php eai_render_dashboard_sortable_header( __( 'Import Name & ID', 'enterprise-api-importer' ), 'name', $sorting['orderby'], $sorting['order'] ); ?></th>
