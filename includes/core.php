@@ -60,6 +60,7 @@ function eai_activate_plugin() {
 		featured_image_source_path varchar(191) NOT NULL DEFAULT 'image.url',
 		title_template varchar(255) NOT NULL DEFAULT '',
 		mapping_template longtext NOT NULL,
+		post_author bigint(20) unsigned NOT NULL DEFAULT 0,
 		lock_editing tinyint(1) unsigned NOT NULL DEFAULT 1,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),

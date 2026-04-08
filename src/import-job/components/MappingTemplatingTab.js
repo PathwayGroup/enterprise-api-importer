@@ -20,6 +20,7 @@ export default function MappingTemplatingTab( {
 	updateField,
 	previewData,
 	postTypes,
+	authors,
 	setNotice,
 } ) {
 	const [ dryRunning, setDryRunning ] = useState( false );
@@ -31,6 +32,14 @@ export default function MappingTemplatingTab( {
 		label: pt.label,
 		value: pt.value,
 	} ) );
+
+	const authorOptions = [
+		{ label: __( '— Default (current user) —', 'enterprise-api-importer' ), value: '0' },
+		...( authors || [] ).map( ( a ) => ( {
+			label: a.label,
+			value: String( a.value ),
+		} ) ),
+	];
 
 	const handleDryRun = useCallback( async () => {
 		setDryRunning( true );
@@ -100,6 +109,14 @@ export default function MappingTemplatingTab( {
 				options={ postTypeOptions }
 				onChange={ ( val ) => updateField( 'target_post_type', val ) }
 				help={ __( 'Select which public WordPress post type receives imported records.', 'enterprise-api-importer' ) }
+			/>
+
+			<SelectControl
+				label={ __( 'Author', 'enterprise-api-importer' ) }
+				value={ String( job.post_author || 0 ) }
+				options={ authorOptions }
+				onChange={ ( val ) => updateField( 'post_author', parseInt( val, 10 ) ) }
+				help={ __( 'Assign imported posts to this author. If unset, the user triggering the import will be used (which may be empty for scheduled runs).', 'enterprise-api-importer' ) }
 			/>
 
 			<CheckboxControl

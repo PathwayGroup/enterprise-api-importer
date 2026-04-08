@@ -24,6 +24,7 @@ const DEFAULT_JOB = {
 	target_post_type: 'post',
 	featured_image_source_path: 'image.url',
 	lock_editing: 1,
+	post_author: 0,
 	title_template: '',
 	mapping_template: '',
 };
@@ -39,6 +40,7 @@ export default function ImportJobWorkspace() {
 	const config = window.eapiImportJob || {};
 	const importId = config.importId || 0;
 	const postTypes = config.postTypes || [];
+	const authors = config.authors || [];
 	const isEdit = importId > 0;
 
 	const [ job, setJob ] = useState( { ...DEFAULT_JOB } );
@@ -213,6 +215,7 @@ export default function ImportJobWorkspace() {
 									updateField={ updateField }
 									previewData={ previewData }
 									postTypes={ postTypes }
+									authors={ authors }
 									setNotice={ setNotice }
 								/>
 							);

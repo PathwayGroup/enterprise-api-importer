@@ -1347,10 +1347,11 @@ function eai_resolve_json_array_path( $decoded_json, $path ) {
  * @param string $unique_id_path            Unique identifier path. Defaults to id.
  * @param int    $import_id                 Import job ID.
  * @param string $featured_image_source_path Dot-notation item path for featured image URL.
+ * @param int    $post_author               WordPress user ID to assign as post author. 0 = default.
  *
  * @return array<string, mixed>|WP_Error
  */
-function eai_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url' ) {
+function eai_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0 ) {
 	if ( ! is_array( $item ) ) {
 		return new WP_Error( 'eai_invalid_item', __( 'Transform input must be an array.', 'enterprise-api-importer' ) );
 	}
@@ -1361,6 +1362,7 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	$unique_id_path   = trim( (string) $unique_id_path );
 	$import_id        = absint( $import_id );
 	$featured_image_source_path = trim( (string) $featured_image_source_path );
+	$post_author      = absint( $post_author );
 
 	if ( '' === $target_post_type || 'attachment' === $target_post_type || ! post_type_exists( $target_post_type ) ) {
 		$target_post_type = 'post';
@@ -1514,15 +1516,17 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	}
 
 	if ( empty( $existing_posts ) ) {
-		$insert_post_id = wp_insert_post(
-			array(
-				'post_type'    => $target_post_type,
-				'post_status'  => 'publish',
-				'post_title'   => $post_title,
-				'post_content' => $post_content,
-			),
-			true
+		$insert_args = array(
+			'post_type'    => $target_post_type,
+			'post_status'  => 'publish',
+			'post_title'   => $post_title,
+			'post_content' => $post_content,
 		);
+		if ( $post_author > 0 ) {
+			$insert_args['post_author'] = $post_author;
+		}
+
+		$insert_post_id = wp_insert_post( $insert_args, true );
 
 		if ( is_wp_error( $insert_post_id ) ) {
 			return $insert_post_id;
@@ -2416,6 +2420,7 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 		$target_post_type = isset( $import_job['target_post_type'] ) ? (string) $import_job['target_post_type'] : 'post';
 		$unique_id_path   = isset( $import_job['unique_id_path'] ) ? trim( (string) $import_job['unique_id_path'] ) : 'id';
 		$featured_image_source_path = isset( $import_job['featured_image_source_path'] ) ? trim( (string) $import_job['featured_image_source_path'] ) : 'image.url';
+		$post_author      = isset( $import_job['post_author'] ) ? absint( $import_job['post_author'] ) : 0;
 		$chunks           = array_chunk( $items, 50 );
 		$row_completed    = true;
 
@@ -2438,7 +2443,7 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 
 				++$result['rows_processed'];
 
-				$item_result = eai_transform_and_load_item( $item, $mapping_template, $title_template, $target_post_type, $unique_id_path, $row_import_id, $featured_image_source_path );
+				$item_result = eai_transform_and_load_item( $item, $mapping_template, $title_template, $target_post_type, $unique_id_path, $row_import_id, $featured_image_source_path, $post_author );
 
 				if ( is_wp_error( $item_result ) ) {
 					$result['errors'][] = sprintf(

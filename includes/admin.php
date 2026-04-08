@@ -682,6 +682,7 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 	$target_post_type = isset( $params['target_post_type'] ) ? sanitize_key( (string) $params['target_post_type'] ) : 'post';
 	$featured_image_source_path = isset( $params['featured_image_source_path'] ) ? sanitize_text_field( (string) $params['featured_image_source_path'] ) : 'image.url';
 	$title_template   = isset( $params['title_template'] ) ? sanitize_text_field( (string) $params['title_template'] ) : '';
+	$post_author      = isset( $params['post_author'] ) ? absint( $params['post_author'] ) : 0;
 	$template_raw     = isset( $params['mapping_template'] ) ? (string) $params['mapping_template'] : '';
 
 	if ( '' === $name || '' === $endpoint_url ) {
@@ -730,6 +731,10 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 	}
 
 	$title_template = mb_substr( trim( $title_template ), 0, 255 );
+
+	if ( $post_author > 0 && false === get_userdata( $post_author ) ) {
+		$post_author = 0;
+	}
 
 	if ( '' !== $title_template ) {
 		$title_check = eai_validate_twig_template_security( $title_template, 'title' );
@@ -808,9 +813,10 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 		'featured_image_source_path' => $featured_image_source_path,
 		'title_template'          => $title_template,
 		'mapping_template'        => $mapping_template,
+		'post_author'             => $post_author,
 		'lock_editing'            => isset( $params['lock_editing'] ) ? absint( (bool) $params['lock_editing'] ) : 1,
 	);
-	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d' );
+	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d' );
 
 	return array( 'data' => $data, 'formats' => $formats );
 }
@@ -3590,12 +3596,26 @@ function eai_enqueue_import_job_assets( string $hook_suffix ): void {
 		);
 	}
 
+	$authors = array();
+	$author_query = get_users( array(
+		'capability' => array( 'edit_posts' ),
+		'fields'     => array( 'ID', 'display_name' ),
+		'orderby'    => 'display_name',
+	) );
+	foreach ( $author_query as $author ) {
+		$authors[] = array(
+			'label' => $author->display_name,
+			'value' => (int) $author->ID,
+		);
+	}
+
 	wp_localize_script(
 		'eapi-import-job',
 		'eapiImportJob',
 		array(
 			'importId'  => $import_id,
 			'postTypes' => $post_types,
+			'authors'   => $authors,
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 		)
 	);
