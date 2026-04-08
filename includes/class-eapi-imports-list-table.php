@@ -45,6 +45,19 @@ class EAI_Imports_List_Table extends WP_List_Table {
 	}
 
 	/**
+	 * Returns sortable columns.
+	 *
+	 * @return array<string, array<int, string|bool>>
+	 */
+	protected function get_sortable_columns() {
+		return array(
+			'id'       => array( 'id', true ),
+			'name'     => array( 'name', false ),
+			'endpoint' => array( 'endpoint', false ),
+		);
+	}
+
+	/**
 	 * Default column renderer.
 	 *
 	 * @param array<string, mixed> $item        Row data.
@@ -77,11 +90,50 @@ class EAI_Imports_List_Table extends WP_List_Table {
 		$current_page  = $this->get_pagenum();
 		$offset        = ( $current_page - 1 ) * $per_page;
 		$all_configs   = eai_db_get_import_configs();
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sorting parameters.
+		$orderby = isset( $_GET['orderby'] ) ? sanitize_key( (string) wp_unslash( $_GET['orderby'] ) ) : 'id';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sorting parameters.
+		$order = isset( $_GET['order'] ) ? strtolower( sanitize_key( (string) wp_unslash( $_GET['order'] ) ) ) : 'desc';
+
+		$allowed_orderby = array( 'id', 'name', 'endpoint' );
+		if ( ! in_array( $orderby, $allowed_orderby, true ) ) {
+			$orderby = 'id';
+		}
+
+		if ( ! in_array( $order, array( 'asc', 'desc' ), true ) ) {
+			$order = 'desc';
+		}
+
+		usort(
+			$all_configs,
+			static function ( $left, $right ) use ( $orderby, $order ) {
+				$left_value  = '';
+				$right_value = '';
+
+				if ( 'id' === $orderby ) {
+					$left_value  = isset( $left['id'] ) ? (int) $left['id'] : 0;
+					$right_value = isset( $right['id'] ) ? (int) $right['id'] : 0;
+					$comparison  = $left_value <=> $right_value;
+				} elseif ( 'endpoint' === $orderby ) {
+					$left_value  = isset( $left['endpoint_url'] ) ? (string) $left['endpoint_url'] : '';
+					$right_value = isset( $right['endpoint_url'] ) ? (string) $right['endpoint_url'] : '';
+					$comparison  = strcasecmp( $left_value, $right_value );
+				} else {
+					$left_value  = isset( $left['name'] ) ? (string) $left['name'] : '';
+					$right_value = isset( $right['name'] ) ? (string) $right['name'] : '';
+					$comparison  = strcasecmp( $left_value, $right_value );
+				}
+
+				return 'asc' === $order ? $comparison : -1 * $comparison;
+			}
+		);
+
 		$total_items   = count( $all_configs );
 
 		$this->items = array_slice( $all_configs, $offset, $per_page );
 
-		$this->_column_headers = array( $this->get_columns(), array(), array() );
+		$this->_column_headers = array( $this->get_columns(), array(), $this->get_sortable_columns() );
 
 		$this->set_pagination_args(
 			array(

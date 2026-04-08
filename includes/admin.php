@@ -1399,6 +1399,125 @@ return __( 'Unknown', 'enterprise-api-importer' );
 }
 
 /**
+ * Returns validated dashboard sorting arguments from request.
+ *
+ * @return array{orderby:string,order:string}
+ */
+function eai_get_dashboard_sorting_args() {
+	$allowed_orderby = array( 'name', 'status', 'trigger_source', 'last_run_at', 'rows_created', 'rows_updated', 'rows_trashed', 'error_count', 'next_scheduled' );
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sorting parameters.
+	$orderby = isset( $_GET['orderby'] ) ? sanitize_key( (string) wp_unslash( $_GET['orderby'] ) ) : 'name';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sorting parameters.
+	$order = isset( $_GET['order'] ) ? strtolower( sanitize_key( (string) wp_unslash( $_GET['order'] ) ) ) : 'asc';
+
+	if ( ! in_array( $orderby, $allowed_orderby, true ) ) {
+		$orderby = 'name';
+	}
+
+	if ( ! in_array( $order, array( 'asc', 'desc' ), true ) ) {
+		$order = 'asc';
+	}
+
+	return array(
+		'orderby' => $orderby,
+		'order'   => $order,
+	);
+}
+
+/**
+ * Sorts schedule dashboard metrics by one supported column.
+ *
+ * @param array<int, array<string, mixed>> $metrics Metrics rows.
+ * @param string                            $orderby Order by field.
+ * @param string                            $order   Sort direction.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function eai_sort_dashboard_metrics( array $metrics, $orderby, $order ) {
+	usort(
+		$metrics,
+		static function ( $left, $right ) use ( $orderby, $order ) {
+			$comparison = 0;
+
+			switch ( $orderby ) {
+				case 'status':
+				case 'trigger_source':
+					$left_value  = isset( $left[ $orderby ] ) ? (string) $left[ $orderby ] : '';
+					$right_value = isset( $right[ $orderby ] ) ? (string) $right[ $orderby ] : '';
+					$comparison  = strcasecmp( $left_value, $right_value );
+					break;
+
+				case 'last_run_at':
+					$left_value  = isset( $left['last_run_at'] ) && '' !== (string) $left['last_run_at'] ? strtotime( (string) $left['last_run_at'] ) : 0;
+					$right_value = isset( $right['last_run_at'] ) && '' !== (string) $right['last_run_at'] ? strtotime( (string) $right['last_run_at'] ) : 0;
+					$left_value  = false === $left_value ? 0 : (int) $left_value;
+					$right_value = false === $right_value ? 0 : (int) $right_value;
+					$comparison  = $left_value <=> $right_value;
+					break;
+
+				case 'rows_created':
+				case 'rows_updated':
+				case 'rows_trashed':
+				case 'error_count':
+					$left_value  = isset( $left[ $orderby ] ) ? (int) $left[ $orderby ] : 0;
+					$right_value = isset( $right[ $orderby ] ) ? (int) $right[ $orderby ] : 0;
+					$comparison  = $left_value <=> $right_value;
+					break;
+
+				case 'next_scheduled':
+					$left_value  = isset( $left['next_scheduled_ts'] ) ? (int) $left['next_scheduled_ts'] : 0;
+					$right_value = isset( $right['next_scheduled_ts'] ) ? (int) $right['next_scheduled_ts'] : 0;
+					$comparison  = $left_value <=> $right_value;
+					break;
+
+				case 'name':
+				default:
+					$left_value  = isset( $left['name'] ) ? (string) $left['name'] : '';
+					$right_value = isset( $right['name'] ) ? (string) $right['name'] : '';
+					$comparison  = strcasecmp( $left_value, $right_value );
+					break;
+			}
+
+			return 'asc' === $order ? $comparison : -1 * $comparison;
+		}
+	);
+
+	return $metrics;
+}
+
+/**
+ * Renders one sortable dashboard table header link.
+ *
+ * @param string $label            Header label.
+ * @param string $column_orderby   Orderby key for this column.
+ * @param string $current_orderby  Current orderby value.
+ * @param string $current_order    Current order direction.
+ *
+ * @return void
+ */
+function eai_render_dashboard_sortable_header( $label, $column_orderby, $current_orderby, $current_order ) {
+	$is_active  = $column_orderby === $current_orderby;
+	$next_order = ( $is_active && 'asc' === $current_order ) ? 'desc' : 'asc';
+
+	$url = add_query_arg(
+		array(
+			'page'    => 'eapi-schedules',
+			'orderby' => $column_orderby,
+			'order'   => $next_order,
+		),
+		admin_url( 'admin.php' )
+	);
+
+	$indicator = '';
+	if ( $is_active ) {
+		$indicator = 'asc' === $current_order ? ' &uarr;' : ' &darr;';
+	}
+
+	echo '<a href="' . esc_url( $url ) . '">' . esc_html( $label ) . $indicator . '</a>';
+}
+
+/**
  * Renders schedules dashboard page.
  */
 function eai_render_schedules_page() {
@@ -1407,6 +1526,8 @@ return;
 }
 
 $metrics = eai_get_dashboard_metrics();
+$sorting = eai_get_dashboard_sorting_args();
+$metrics = eai_sort_dashboard_metrics( $metrics, $sorting['orderby'], $sorting['order'] );
 ?>
 <div class="wrap">
 <h1><?php esc_html_e( 'Schedules & Health Dashboard', 'enterprise-api-importer' ); ?></h1>
@@ -1433,13 +1554,13 @@ font-weight: 600;
 <table class="widefat striped eai-schedules-table">
 <thead>
 <tr>
-<th><?php esc_html_e( 'Import Name & ID', 'enterprise-api-importer' ); ?></th>
-<th class="column-status"><?php esc_html_e( 'Status', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Trigger Source', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Last Run Time', 'enterprise-api-importer' ); ?></th>
+<th><?php eai_render_dashboard_sortable_header( __( 'Import Name & ID', 'enterprise-api-importer' ), 'name', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th class="column-status"><?php eai_render_dashboard_sortable_header( __( 'Status', 'enterprise-api-importer' ), 'status', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th><?php eai_render_dashboard_sortable_header( __( 'Trigger Source', 'enterprise-api-importer' ), 'trigger_source', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th><?php eai_render_dashboard_sortable_header( __( 'Last Run Time', 'enterprise-api-importer' ), 'last_run_at', $sorting['orderby'], $sorting['order'] ); ?></th>
 <th><?php esc_html_e( 'Last Run Metrics', 'enterprise-api-importer' ); ?></th>
 <th><?php esc_html_e( 'Details', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Next Scheduled Run', 'enterprise-api-importer' ); ?></th>
+<th><?php eai_render_dashboard_sortable_header( __( 'Next Scheduled Run', 'enterprise-api-importer' ), 'next_scheduled', $sorting['orderby'], $sorting['order'] ); ?></th>
 <th class="column-actions"><?php esc_html_e( 'Actions', 'enterprise-api-importer' ); ?></th>
 </tr>
 </thead>
