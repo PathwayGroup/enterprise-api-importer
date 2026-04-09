@@ -38,5 +38,5 @@ debug.log
 # Windows Zone Identifier files that can be copied into repos
 *:Zone.Identifier
 
-.github/
+.github/skills/
 .docs/
