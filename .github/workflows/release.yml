@@ -1,0 +1,168 @@
+name: Build and Publish WordPress Plugin Zip
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-release-asset:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set release metadata
+        shell: bash
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name || github.ref_name }}"
+          PLUGIN_SLUG="${{ github.event.repository.name }}"
+          ASSET_NAME="${PLUGIN_SLUG}-${TAG_NAME}.zip"
+
+          echo "TAG_NAME=${TAG_NAME}" >> "$GITHUB_ENV"
+          echo "PLUGIN_SLUG=${PLUGIN_SLUG}" >> "$GITHUB_ENV"
+          echo "ASSET_NAME=${ASSET_NAME}" >> "$GITHUB_ENV"
+
+      - name: Validate tag and plugin version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION_FROM_TAG="${TAG_NAME#v}"
+
+          MAIN_PLUGIN_FILE="$(grep -RIl --include='*.php' '^[[:space:]]*\*\?[[:space:]]*Plugin Name:' . | head -n 1 || true)"
+          if [ -z "${MAIN_PLUGIN_FILE}" ]; then
+            echo "No plugin file with a 'Plugin Name' header was found."
+            exit 1
+          fi
+
+          VERSION_FROM_HEADER="$(grep -Eim1 '^[[:space:]]*\*?[[:space:]]*Version:' "${MAIN_PLUGIN_FILE}" | sed -E 's/^[[:space:]]*\*?[[:space:]]*Version:[[:space:]]*//I' | tr -d '\r' | xargs || true)"
+          if [ -z "${VERSION_FROM_HEADER}" ]; then
+            echo "Could not read plugin Version from ${MAIN_PLUGIN_FILE}."
+            exit 1
+          fi
+
+          if [ "${VERSION_FROM_HEADER}" != "${VERSION_FROM_TAG}" ]; then
+            echo "Version mismatch: tag '${TAG_NAME}' does not match plugin header version '${VERSION_FROM_HEADER}'."
+            exit 1
+          fi
+
+          if [ -f readme.txt ]; then
+            STABLE_TAG="$(grep -Eim1 '^[[:space:]]*Stable tag:' readme.txt | sed -E 's/^[[:space:]]*Stable tag:[[:space:]]*//I' | tr -d '\r' | xargs || true)"
+            if [ -n "${STABLE_TAG}" ] && [ "${STABLE_TAG}" != "${VERSION_FROM_HEADER}" ] && [ "${STABLE_TAG}" != "trunk" ]; then
+              echo "readme.txt Stable tag '${STABLE_TAG}' does not match plugin version '${VERSION_FROM_HEADER}'."
+              exit 1
+            fi
+          fi
+
+          echo "MAIN_PLUGIN_FILE=${MAIN_PLUGIN_FILE}" >> "$GITHUB_ENV"
+
+      - name: Setup PHP (for Composer)
+        if: ${{ hashFiles('composer.json') != '' }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+          coverage: none
+
+      - name: Setup Node.js
+        if: ${{ hashFiles('package.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install and build frontend assets (if applicable)
+        if: ${{ hashFiles('package.json') != '' }}
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+          npm run build --if-present
+
+      - name: Install Composer dependencies (if applicable)
+        if: ${{ hashFiles('composer.json') != '' }}
+        shell: bash
+        run: |
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+      - name: Validate required plugin files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "${MAIN_PLUGIN_FILE}" ]; then
+            echo "Main plugin file '${MAIN_PLUGIN_FILE}' is missing."
+            exit 1
+          fi
+
+          if [ ! -f readme.txt ]; then
+            echo "Warning: readme.txt is missing (recommended for WordPress.org style distribution)."
+          fi
+
+      - name: Create clean plugin package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf dist
+          mkdir -p "dist/${PLUGIN_SLUG}"
+
+          # Copy plugin files while excluding development and CI artifacts.
+          rsync -a ./ "dist/${PLUGIN_SLUG}/" \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='test/' \
+            --exclude='.editorconfig' \
+            --exclude='.eslintrc*' \
+            --exclude='.prettierrc*' \
+            --exclude='.stylelintrc*' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='phpunit.xml*' \
+            --exclude='webpack.config.*' \
+            --exclude='vite.config.*' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='composer.lock' \
+            --exclude='dist/'
+
+          cd dist
+          zip -r "${ASSET_NAME}" "${PLUGIN_SLUG}"
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum "dist/${ASSET_NAME}" > "dist/${ASSET_NAME}.sha256"
+
+      - name: Upload zip to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            dist/${{ env.ASSET_NAME }}
+            dist/${{ env.ASSET_NAME }}.sha256
+          fail_on_unmatched_files: true
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
