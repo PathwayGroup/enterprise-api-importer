@@ -105,6 +105,8 @@ export default function DataRulesTab( {
 		<div className="eapi-ij-tab-content">
 			<div className="eapi-ij-field-with-action">
 				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
 					label={ __( 'JSON Array Path', 'enterprise-api-importer' ) }
 					value={ job.array_path }
 					onChange={ ( val ) => updateField( 'array_path', val ) }
@@ -125,6 +127,8 @@ export default function DataRulesTab( {
 			</div>
 
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={ __( 'Unique ID Path', 'enterprise-api-importer' ) }
 				value={ job.unique_id_path }
 				onChange={ ( val ) => updateField( 'unique_id_path', val ) }

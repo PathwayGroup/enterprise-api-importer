@@ -37,7 +37,7 @@ return;
 add_menu_page(
 __( 'Enterprise API Importer', 'enterprise-api-importer' ),
 __( 'EAPI', 'enterprise-api-importer' ),
-'read',
+'manage_options',
 'eapi-manage',
 'eai_render_manage_imports_page',
 'dashicons-database-import',
@@ -48,7 +48,7 @@ add_submenu_page(
 'eapi-manage',
 __( 'Manage Imports', 'enterprise-api-importer' ),
 __( 'Manage Imports', 'enterprise-api-importer' ),
-'read',
+'manage_options',
 'eapi-manage',
 'eai_render_manage_imports_page'
 );
@@ -57,7 +57,7 @@ add_submenu_page(
 'eapi-manage',
 __( 'Schedules', 'enterprise-api-importer' ),
 __( 'Schedules', 'enterprise-api-importer' ),
-'read',
+'manage_options',
 'eapi-schedules',
 'eai_render_schedules_page'
 );
@@ -656,6 +656,7 @@ function eai_rest_get_import_job( WP_REST_Request $request ) {
 	$row['id']                       = (int) $row['id'];
 	$row['custom_interval_minutes']  = absint( $row['custom_interval_minutes'] );
 	$row['lock_editing']             = (int) $row['lock_editing'];
+	$row                             = eai_mask_import_credentials( $row );
 
 	return new WP_REST_Response( $row, 200 );
 }
@@ -813,6 +814,39 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 		}
 	}
 
+	// Process custom meta mappings.
+	$custom_meta_mappings_json = '[]';
+	if ( isset( $params['custom_meta_mappings'] ) ) {
+		$raw_mappings = $params['custom_meta_mappings'];
+		if ( is_string( $raw_mappings ) ) {
+			$decoded_mappings = json_decode( $raw_mappings, true );
+		} else {
+			$decoded_mappings = $raw_mappings;
+		}
+		if ( is_array( $decoded_mappings ) ) {
+			$sanitized_mappings = array();
+			foreach ( $decoded_mappings as $mapping ) {
+				if ( ! is_array( $mapping ) ) {
+					continue;
+				}
+				$mk = isset( $mapping['key'] ) ? sanitize_text_field( trim( (string) $mapping['key'] ) ) : '';
+				$mv = isset( $mapping['value'] ) ? sanitize_text_field( (string) $mapping['value'] ) : '';
+				if ( '' === $mk ) {
+					continue;
+				}
+				$sanitized_mappings[] = array( 'key' => $mk, 'value' => $mv );
+			}
+			$encoded_mappings = wp_json_encode( $sanitized_mappings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+			if ( false !== $encoded_mappings ) {
+				$custom_meta_mappings_json = $encoded_mappings;
+			}
+		}
+	}
+
+	// Encrypt sensitive credentials before storage.
+	$auth_token    = eai_encrypt_credential( $auth_token );
+	$auth_password = eai_encrypt_credential( $auth_password );
+
 	$data = array(
 		'name'                    => $name,
 		'endpoint_url'            => $endpoint_url,
@@ -835,10 +869,48 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 		'post_status'             => $post_status,
 		'comment_status'          => $comment_status,
 		'ping_status'             => $ping_status,
+		'custom_meta_mappings'    => $custom_meta_mappings_json,
 	);
-	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+	$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' );
 
 	return array( 'data' => $data, 'formats' => $formats );
+}
+
+/**
+ * Preserves existing encrypted credential values when the frontend sends blank fields.
+ *
+ * The REST GET masks credentials, so the frontend cannot echo them back.
+ * When updating, blank credential values mean "unchanged" — we must read
+ * the existing encrypted value from the DB and re-use it.
+ *
+ * @param array<string, mixed> &$data      Sanitized save data (modified by reference).
+ * @param int                   $import_id  Existing import job ID.
+ */
+function eai_preserve_unchanged_credentials( array &$data, int $import_id ) {
+	global $wpdb;
+
+	$table = eai_db_imports_table();
+
+	// Read raw (encrypted) values directly — do NOT decrypt.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$existing_raw = $wpdb->get_row(
+		$wpdb->prepare(
+			'SELECT auth_token, auth_password FROM %i WHERE id = %d',
+			$table,
+			absint( $import_id )
+		),
+		ARRAY_A
+	);
+
+	if ( ! is_array( $existing_raw ) ) {
+		return;
+	}
+
+	foreach ( eai_get_credential_field_names() as $field ) {
+		if ( isset( $data[ $field ] ) && '' === (string) $data[ $field ] && isset( $existing_raw[ $field ] ) ) {
+			$data[ $field ] = $existing_raw[ $field ];
+		}
+	}
 }
 
 /**
@@ -902,6 +974,9 @@ function eai_rest_update_import_job( WP_REST_Request $request ) {
 	if ( $sanitized instanceof WP_REST_Response ) {
 		return $sanitized;
 	}
+
+	// When the frontend sends empty credential fields (masked), preserve existing encrypted values.
+	eai_preserve_unchanged_credentials( $sanitized['data'], $id );
 
 	$result = eai_db_save_import_config( $id, $sanitized['data'], $sanitized['formats'] );
 	if ( is_wp_error( $result ) ) {
@@ -3073,6 +3148,10 @@ if ( 'basic_auth' !== $auth_method ) {
 	$auth_password = '';
 }
 
+// Encrypt credential fields before storage.
+$auth_token    = eai_encrypt_credential( $auth_token );
+$auth_password = eai_encrypt_credential( $auth_password );
+
 if ( 'custom' === $recurrence ) {
 	$custom_interval_minutes = $custom_interval_minutes > 0 ? $custom_interval_minutes : 30;
 } else {
@@ -3179,6 +3258,11 @@ $data = array(
 	'mapping_template' => $mapping_template,
 );
 $formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' );
+
+// Preserve existing encrypted credentials when blank values are submitted for an existing import.
+if ( $import_id > 0 ) {
+	eai_preserve_unchanged_credentials( $data, $import_id );
+}
 
 $persisted_import_id = eai_db_save_import_config( $import_id, $data, $formats );
 if ( is_wp_error( $persisted_import_id ) ) {

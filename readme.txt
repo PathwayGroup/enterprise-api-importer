@@ -5,7 +5,7 @@ Tags: api, import, etl, json, cron
 Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,6 +28,16 @@ Use Enterprise API Importer to run clean, repeatable import workflows without sa
 - Per-import editing lock toggle for imported posts (allow editing or enforce read-only)
 - Time-aware batch processing via WP-Cron to reduce timeout and memory-risk scenarios
 - **[New v1.2] Tableau-Style Reporting Dashboard:** Real-time metrics on environment health, security posture, and API performance with interactive charts, status indicators, and audit activity feed
+- **[New] Credential Encryption & REST Masking:**
+  - AES-256-CBC encryption at rest for auth_token and auth_password fields
+  - REST GET responses mask credentials; boolean flags indicate stored state
+  - Blank credential fields on update preserve existing encrypted values
+  - React UI shows saved-credential indicators with placeholder text
+  - apply_filters no longer exposes raw tokens to third-party hooks
+- **[New] Import Pipeline Sanitization:**
+  - Twig-rendered post content sanitized via wp_kses_post before wp_insert_post
+  - Custom meta values sanitized via sanitize_text_field before update_post_meta
+  - Admin menu pages restricted to manage_options capability (was read)
 - **[New] Enterprise-Grade Security Hardening:**
   - Dedicated template management capability with multisite support
   - Twig template security validation (disallowed tags, size/complexity limits, syntax checking)
@@ -115,6 +125,16 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 3. API Connection and Data Filtering rules.
 
 == Changelog ==
+= 1.2.2 =
+* Security hardening release.
+* Encrypted credential storage at rest for auth_token and auth_password.
+* REST import-job GET now masks credentials and returns has_auth_token / has_auth_password flags.
+* Update handlers preserve existing encrypted credentials when masked fields are submitted blank.
+* Removed raw token exposure from eai_remote_request_args filter context.
+* Added post-content sanitization with wp_kses_post before post insert/update.
+* Added custom-meta sanitization with sanitize_text_field before update_post_meta.
+* Tightened admin menu capability from read to manage_options.
+
 = 1.2.1 =
 * Maintenance release from cleaned git history.
 * Removed accidentally committed documentation/test-data directories from repository history and release packaging.
@@ -153,6 +173,15 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
   - Transient-backed caching (600s TTL) with force-refresh capability.
   - Shimmer loading states and dark/light theme-aware styling via Tailwind CSS (namespaced to avoid wp-admin conflicts).
   - Menu: EAPI → Dashboard (requires read capability).
+* **Credential Encryption & Data Sanitization**
+  - Credential fields (auth_token, auth_password) are now encrypted at rest with AES-256-CBC using a key derived from wp_salt('auth').
+  - REST GET responses mask credential values and expose boolean has_auth_token / has_auth_password flags.
+  - Credential preservation on update: blank credential fields retain existing encrypted values.
+  - React auth fields show "Credential saved" indicators with placeholder text for stored credentials.
+  - apply_filters('eai_remote_request_args') no longer passes raw token — passes auth_method instead.
+  - Twig-rendered post content now passes through wp_kses_post() before wp_insert_post() (stored XSS prevention).
+  - Twig-compiled custom meta values now pass through sanitize_text_field() before update_post_meta().
+  - Admin menu pages capability changed from 'read' to 'manage_options' (subscriber access blocked).
 * **Enhanced Security Hardening (Enterprise-Grade)**
   - Added dedicated `eai_manage_templates` capability for template configuration access (separate from `manage_options`).
   - Implemented multisite-aware permission system: `eai_manage_templates` OR `manage_options` OR `is_super_admin()`.
@@ -183,6 +212,9 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 * Added secure media sideload helper foundation with source URL deduplication metadata.
 
 == Upgrade Notice ==
+= 1.2.2 =
+Security hardening release. Includes encrypted credential storage, masked REST credential responses, safer filter context handling, stronger content/meta sanitization, and tighter admin capability checks.
+
 = 1.2.1 =
 Maintenance release with cleaned repository history and packaging only. No functional upgrade steps required.
 

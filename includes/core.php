@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'EAI_DB_SCHEMA_VERSION' ) ) {
-	define( 'EAI_DB_SCHEMA_VERSION', '20260408-2' );
+	define( 'EAI_DB_SCHEMA_VERSION', '20260410-1' );
 }
 
 /**
@@ -65,6 +65,7 @@ function eai_activate_plugin() {
 		post_status varchar(20) NOT NULL DEFAULT 'draft',
 		comment_status varchar(20) NOT NULL DEFAULT 'closed',
 		ping_status varchar(20) NOT NULL DEFAULT 'closed',
+		custom_meta_mappings longtext NULL,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),
 		KEY name (name)
@@ -105,6 +106,7 @@ function eai_activate_plugin() {
 	eai_ensure_imports_auth_columns();
 	eai_ensure_imports_featured_image_column();
 	eai_ensure_imports_post_status_columns();
+	eai_ensure_imports_custom_meta_mappings_column();
 
 	eai_sync_template_management_capabilities();
 
@@ -228,6 +230,24 @@ function eai_ensure_imports_post_status_columns() {
 }
 
 /**
+ * Ensures custom_meta_mappings column exists on the imports table.
+ *
+ * @return void
+ */
+function eai_ensure_imports_custom_meta_mappings_column() {
+	global $wpdb;
+
+	$table = eai_db_imports_table();
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'custom_meta_mappings' ) );
+	if ( null === $exists ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN custom_meta_mappings longtext NULL AFTER ping_status', $table ) );
+	}
+}
+
+/**
  * Runs on plugin deactivation.
  *
  * Clears plugin-owned scheduled cron events.
@@ -248,6 +268,7 @@ function eai_maybe_upgrade_schema() {
 	eai_ensure_imports_auth_columns();
 	eai_ensure_imports_featured_image_column();
 	eai_ensure_imports_post_status_columns();
+	eai_ensure_imports_custom_meta_mappings_column();
 
 	$installed_version = (string) get_option( 'eai_db_schema_version', '' );
 
@@ -271,4 +292,174 @@ function eai_get_default_settings() {
 		'allowed_endpoint_hosts'       => '',
 		'allowed_endpoint_cidrs'       => '',
 	);
+}
+
+// ---------------------------------------------------------------------------
+// Credential encryption helpers.
+// ---------------------------------------------------------------------------
+
+if ( ! defined( 'EAI_CIPHER_METHOD' ) ) {
+	define( 'EAI_CIPHER_METHOD', 'aes-256-cbc' );
+}
+
+if ( ! defined( 'EAI_ENCRYPTED_PREFIX' ) ) {
+	define( 'EAI_ENCRYPTED_PREFIX', 'eai_enc:' );
+}
+
+/**
+ * Derives a 256-bit encryption key from the WordPress AUTH salts.
+ *
+ * @return string Raw binary key (32 bytes).
+ */
+function eai_get_encryption_key() {
+	return hash( 'sha256', wp_salt( 'auth' ) . 'eai_credential_encryption', true );
+}
+
+/**
+ * Encrypts a plaintext credential for safe at-rest storage.
+ *
+ * Returns the original value unchanged when the OpenSSL extension is
+ * unavailable or the input is already encrypted.
+ *
+ * @param string $plaintext Credential to encrypt.
+ *
+ * @return string Encrypted string prefixed with EAI_ENCRYPTED_PREFIX, or original on failure.
+ */
+function eai_encrypt_credential( $plaintext ) {
+	$plaintext = (string) $plaintext;
+
+	if ( '' === $plaintext ) {
+		return '';
+	}
+
+	// Already encrypted.
+	if ( str_starts_with( $plaintext, EAI_ENCRYPTED_PREFIX ) ) {
+		return $plaintext;
+	}
+
+	if ( ! function_exists( 'openssl_encrypt' ) ) {
+		return $plaintext;
+	}
+
+	$key    = eai_get_encryption_key();
+	$iv_len = openssl_cipher_iv_length( EAI_CIPHER_METHOD );
+
+	if ( false === $iv_len || $iv_len <= 0 ) {
+		return $plaintext;
+	}
+
+	$iv = openssl_random_pseudo_bytes( $iv_len );
+
+	if ( false === $iv ) {
+		return $plaintext;
+	}
+
+	$ciphertext = openssl_encrypt( $plaintext, EAI_CIPHER_METHOD, $key, OPENSSL_RAW_DATA, $iv );
+
+	if ( false === $ciphertext ) {
+		return $plaintext;
+	}
+
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Required for safe binary storage in DB text columns.
+	return EAI_ENCRYPTED_PREFIX . base64_encode( $iv . $ciphertext );
+}
+
+/**
+ * Decrypts an encrypted credential string.
+ *
+ * Returns the original value unchanged when it is not encrypted (legacy
+ * plaintext) or when the OpenSSL extension is unavailable.
+ *
+ * @param string $encrypted Encrypted credential.
+ *
+ * @return string Decrypted plaintext, or original if not encrypted.
+ */
+function eai_decrypt_credential( $encrypted ) {
+	$encrypted = (string) $encrypted;
+
+	if ( '' === $encrypted ) {
+		return '';
+	}
+
+	if ( ! str_starts_with( $encrypted, EAI_ENCRYPTED_PREFIX ) ) {
+		// Legacy plaintext — return as-is.
+		return $encrypted;
+	}
+
+	if ( ! function_exists( 'openssl_decrypt' ) ) {
+		return '';
+	}
+
+	$payload = substr( $encrypted, strlen( EAI_ENCRYPTED_PREFIX ) );
+
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Required for reading encrypted binary stored in DB text columns.
+	$raw = base64_decode( $payload, true );
+
+	if ( false === $raw ) {
+		return '';
+	}
+
+	$iv_len = openssl_cipher_iv_length( EAI_CIPHER_METHOD );
+
+	if ( false === $iv_len || $iv_len <= 0 || strlen( $raw ) <= $iv_len ) {
+		return '';
+	}
+
+	$iv         = substr( $raw, 0, $iv_len );
+	$ciphertext = substr( $raw, $iv_len );
+
+	$key       = eai_get_encryption_key();
+	$decrypted = openssl_decrypt( $ciphertext, EAI_CIPHER_METHOD, $key, OPENSSL_RAW_DATA, $iv );
+
+	if ( false === $decrypted ) {
+		return '';
+	}
+
+	return $decrypted;
+}
+
+/**
+ * Returns the list of import-config column names that contain sensitive credentials.
+ *
+ * @return string[]
+ */
+function eai_get_credential_field_names() {
+	return array( 'auth_token', 'auth_password' );
+}
+
+/**
+ * Decrypts all credential fields in an import configuration row.
+ *
+ * @param array<string, mixed> $row Import config row.
+ *
+ * @return array<string, mixed>
+ */
+function eai_decrypt_import_credentials( array $row ) {
+	foreach ( eai_get_credential_field_names() as $field ) {
+		if ( isset( $row[ $field ] ) && is_string( $row[ $field ] ) ) {
+			$row[ $field ] = eai_decrypt_credential( $row[ $field ] );
+		}
+	}
+
+	return $row;
+}
+
+/**
+ * Masks credential fields in an import configuration row for REST responses.
+ *
+ * Replaces raw credential values with empty strings and adds boolean
+ * `has_*` flags so the frontend can show appropriate UI cues.
+ *
+ * @param array<string, mixed> $row Import config row (already decrypted).
+ *
+ * @return array<string, mixed>
+ */
+function eai_mask_import_credentials( array $row ) {
+	foreach ( eai_get_credential_field_names() as $field ) {
+		$has_value         = isset( $row[ $field ] ) && '' !== (string) $row[ $field ];
+		$row[ 'has_' . $field ] = $has_value;
+		$row[ $field ]     = '';
+	}
+
+	return $row;
 }

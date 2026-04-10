@@ -935,7 +935,7 @@ function eai_get_remote_request_args( $auth_method = 'none', $token = '', $auth_
 		'reject_unsafe_urls' => true,
 	);
 
-	return apply_filters( 'eai_remote_request_args', $args, $token );
+	return apply_filters( 'eai_remote_request_args', $args, $auth_method );
 }
 
 /**
@@ -1351,10 +1351,11 @@ function eai_resolve_json_array_path( $decoded_json, $path ) {
  * @param string $post_status               WordPress post status for new items. Default 'draft'.
  * @param string $comment_status            Comment status for new items. Default 'closed'.
  * @param string $ping_status               Ping status for new items. Default 'closed'.
+ * @param array  $custom_meta_mappings      Array of {key, value} custom meta mappings. Default empty.
  *
  * @return array<string, mixed>|WP_Error
  */
-function eai_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0, $post_status = 'draft', $comment_status = 'closed', $ping_status = 'closed' ) {
+function eai_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0, $post_status = 'draft', $comment_status = 'closed', $ping_status = 'closed', $custom_meta_mappings = array() ) {
 	if ( ! is_array( $item ) ) {
 		return new WP_Error( 'eai_invalid_item', __( 'Transform input must be an array.', 'enterprise-api-importer' ) );
 	}
@@ -1408,6 +1409,10 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	}
 
 	$post_content = eai_render_mapping_template_for_item( $item, $mapping_template );
+
+	if ( ! is_wp_error( $post_content ) ) {
+		$post_content = wp_kses_post( $post_content );
+	}
 
 	if ( is_wp_error( $post_content ) ) {
 		if ( 'eai_template_syntax_error' === $post_content->get_error_code() ) {
@@ -1564,6 +1569,7 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 		update_post_meta( $insert_post_id, '_eai_import_id', $import_id );
 		update_post_meta( $insert_post_id, '_last_synced_timestamp', $timestamp );
 		eai_save_item_meta_with_manifest( $insert_post_id, $item, $import_id );
+		eai_apply_custom_meta_mappings( $insert_post_id, $item, $custom_meta_mappings );
 
 		return array(
 			'action'  => 'inserted',
@@ -1598,6 +1604,7 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 
 		update_post_meta( $existing_post_id, '_last_synced_timestamp', $timestamp );
 		eai_save_item_meta_with_manifest( $existing_post_id, $item, $import_id );
+		eai_apply_custom_meta_mappings( $existing_post_id, $item, $custom_meta_mappings );
 
 		return array(
 			'action'  => 'updated',
@@ -1622,6 +1629,7 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 
 		update_post_meta( $existing_post_id, '_last_synced_timestamp', $timestamp );
 		eai_save_item_meta_with_manifest( $existing_post_id, $item, $import_id );
+		eai_apply_custom_meta_mappings( $existing_post_id, $item, $custom_meta_mappings );
 
 		return array(
 			'action'  => 'updated',
@@ -1632,11 +1640,80 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 	// Touch sync timestamp even when content and title are unchanged so valid items are not treated as orphans.
 	update_post_meta( $existing_post_id, '_last_synced_timestamp', $timestamp );
 	eai_save_item_meta_with_manifest( $existing_post_id, $item, $import_id );
+	eai_apply_custom_meta_mappings( $existing_post_id, $item, $custom_meta_mappings );
 
 	return array(
 		'action'  => $featured_image_updated ? 'updated' : 'unchanged',
 		'post_id' => $existing_post_id,
 	);
+}
+
+/**
+ * Applies custom meta mappings by rendering each value through Twig.
+ *
+ * @param int                  $post_id  The WordPress post ID.
+ * @param array<string, mixed> $item     The raw API record for Twig context.
+ * @param array                $mappings Array of {key, value} mapping objects.
+ */
+function eai_apply_custom_meta_mappings( $post_id, $item, $mappings ) {
+	if ( empty( $mappings ) || ! is_array( $mappings ) ) {
+		return;
+	}
+
+	$post_id = absint( $post_id );
+	if ( 0 === $post_id ) {
+		return;
+	}
+
+	$twig = eai_get_twig_environment();
+	if ( is_wp_error( $twig ) ) {
+		return;
+	}
+
+	$loader = $twig->getLoader();
+	if ( ! $loader instanceof \Twig\Loader\ArrayLoader ) {
+		return;
+	}
+
+	foreach ( $mappings as $mapping ) {
+		if ( ! is_array( $mapping ) ) {
+			continue;
+		}
+
+		$meta_key  = isset( $mapping['key'] ) ? sanitize_text_field( $mapping['key'] ) : '';
+		$raw_value = isset( $mapping['value'] ) ? (string) $mapping['value'] : '';
+
+		if ( '' === $meta_key ) {
+			continue;
+		}
+
+		$template_name = 'custom-meta-' . md5( $meta_key . $raw_value );
+
+		try {
+			$loader->setTemplate( $template_name, $raw_value );
+
+			$compiled_value = (string) $twig->render(
+				$template_name,
+				array(
+					'record' => $item,
+					'item'   => $item,
+					'data'   => $item,
+				)
+			);
+		} catch ( \Twig\Error\Error $error ) {
+			continue;
+		}
+
+		if ( 'true' === $compiled_value ) {
+			$compiled_value = true;
+		} elseif ( 'false' === $compiled_value ) {
+			$compiled_value = false;
+		} elseif ( is_string( $compiled_value ) ) {
+			$compiled_value = sanitize_text_field( $compiled_value );
+		}
+
+		update_post_meta( $post_id, $meta_key, $compiled_value );
+	}
 }
 
 /**
@@ -2438,6 +2515,15 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 		$post_status      = isset( $import_job['post_status'] ) ? (string) $import_job['post_status'] : 'draft';
 		$comment_status   = isset( $import_job['comment_status'] ) ? (string) $import_job['comment_status'] : 'closed';
 		$ping_status      = isset( $import_job['ping_status'] ) ? (string) $import_job['ping_status'] : 'closed';
+		$custom_meta_mappings = array();
+		if ( ! empty( $import_job['custom_meta_mappings'] ) ) {
+			$decoded_meta_mappings = is_string( $import_job['custom_meta_mappings'] )
+				? json_decode( $import_job['custom_meta_mappings'], true )
+				: $import_job['custom_meta_mappings'];
+			if ( is_array( $decoded_meta_mappings ) ) {
+				$custom_meta_mappings = $decoded_meta_mappings;
+			}
+		}
 		$chunks           = array_chunk( $items, 50 );
 		$row_completed    = true;
 
@@ -2460,7 +2546,7 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 
 				++$result['rows_processed'];
 
-				$item_result = eai_transform_and_load_item( $item, $mapping_template, $title_template, $target_post_type, $unique_id_path, $row_import_id, $featured_image_source_path, $post_author, $post_status, $comment_status, $ping_status );
+				$item_result = eai_transform_and_load_item( $item, $mapping_template, $title_template, $target_post_type, $unique_id_path, $row_import_id, $featured_image_source_path, $post_author, $post_status, $comment_status, $ping_status, $custom_meta_mappings );
 
 				if ( is_wp_error( $item_result ) ) {
 					$result['errors'][] = sprintf(

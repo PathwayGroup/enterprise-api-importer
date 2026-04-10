@@ -48,6 +48,8 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 	return (
 		<div className="eapi-ij-tab-content">
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={ __( 'Job Name', 'enterprise-api-importer' ) }
 				value={ job.name }
 				onChange={ ( val ) => updateField( 'name', val ) }
@@ -55,6 +57,8 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 			/>
 
 			<TextControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={ __( 'Endpoint URL', 'enterprise-api-importer' ) }
 				type="url"
 				value={ job.endpoint_url }

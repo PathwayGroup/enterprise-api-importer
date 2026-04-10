@@ -28,6 +28,36 @@ export default function MappingTemplatingTab( {
 	const [ templateScrollTop, setTemplateScrollTop ] = useState( 0 );
 	const templateEditorRef = useRef( null );
 
+	const customMetaMappings = useMemo( () => {
+		try {
+			const parsed = typeof job.custom_meta_mappings === 'string'
+				? JSON.parse( job.custom_meta_mappings )
+				: job.custom_meta_mappings;
+			return Array.isArray( parsed ) ? parsed : [];
+		} catch {
+			return [];
+		}
+	}, [ job.custom_meta_mappings ] );
+
+	const setCustomMetaMappings = useCallback( ( mappings ) => {
+		updateField( 'custom_meta_mappings', JSON.stringify( mappings ) );
+	}, [ updateField ] );
+
+	const handleAddMapping = useCallback( () => {
+		setCustomMetaMappings( [ ...customMetaMappings, { key: '', value: '' } ] );
+	}, [ customMetaMappings, setCustomMetaMappings ] );
+
+	const handleRemoveMapping = useCallback( ( index ) => {
+		setCustomMetaMappings( customMetaMappings.filter( ( _, i ) => i !== index ) );
+	}, [ customMetaMappings, setCustomMetaMappings ] );
+
+	const handleUpdateMapping = useCallback( ( index, field, value ) => {
+		const updated = customMetaMappings.map( ( mapping, i ) =>
+			i === index ? { ...mapping, [ field ]: value } : mapping
+		);
+		setCustomMetaMappings( updated );
+	}, [ customMetaMappings, setCustomMetaMappings ] );
+
 	const postTypeOptions = ( postTypes || [] ).map( ( pt ) => ( {
 		label: pt.label,
 		value: pt.value,
@@ -104,6 +134,8 @@ export default function MappingTemplatingTab( {
 	return (
 		<div className="eapi-ij-tab-content">
 			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={ __( 'Target Post Type', 'enterprise-api-importer' ) }
 				value={ job.target_post_type }
 				options={ postTypeOptions }
@@ -112,6 +144,7 @@ export default function MappingTemplatingTab( {
 			/>
 
 			<CheckboxControl
+				__nextHasNoMarginBottom
 				label={ __( 'Lock editing of imported posts', 'enterprise-api-importer' ) }
 				checked={ !! job.lock_editing }
 				onChange={ ( val ) => updateField( 'lock_editing', val ? 1 : 0 ) }
@@ -121,6 +154,8 @@ export default function MappingTemplatingTab( {
 			<Flex className="eapi-ij-post-settings" gap={ 4 } wrap>
 				<FlexBlock>
 					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
 						label={ __( 'Default Post Status', 'enterprise-api-importer' ) }
 						value={ job.post_status || 'draft' }
 						options={ [
@@ -134,6 +169,8 @@ export default function MappingTemplatingTab( {
 				</FlexBlock>
 				<FlexBlock>
 					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
 						label={ __( 'Author', 'enterprise-api-importer' ) }
 						value={ String( job.post_author || 0 ) }
 						options={ authorOptions }
@@ -143,6 +180,8 @@ export default function MappingTemplatingTab( {
 				</FlexBlock>
 				<FlexBlock>
 					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
 						label={ __( 'Comment Status', 'enterprise-api-importer' ) }
 						value={ job.comment_status || 'closed' }
 						options={ [
@@ -155,6 +194,8 @@ export default function MappingTemplatingTab( {
 				</FlexBlock>
 				<FlexBlock>
 					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
 						label={ __( 'Pingback/Trackback Status', 'enterprise-api-importer' ) }
 						value={ job.ping_status || 'closed' }
 						options={ [
@@ -170,6 +211,8 @@ export default function MappingTemplatingTab( {
 			<Flex className="eapi-ij-split" align="stretch">
 				<FlexBlock className="eapi-ij-split-editor">
 					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
 						label={ __( 'Post Title Template', 'enterprise-api-importer' ) }
 						value={ job.title_template }
 						onChange={ ( val ) => updateField( 'title_template', val ) }
@@ -177,6 +220,8 @@ export default function MappingTemplatingTab( {
 					/>
 
 					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
 						label={ __( 'Featured Image Source Path', 'enterprise-api-importer' ) }
 						value={ job.featured_image_source_path || '' }
 						onChange={ ( val ) => updateField( 'featured_image_source_path', val ) }
@@ -184,6 +229,7 @@ export default function MappingTemplatingTab( {
 					/>
 
 					<BaseControl
+						__nextHasNoMarginBottom
 						label={ __( 'Mapping Template', 'enterprise-api-importer' ) }
 						help={ __( 'Twig template for the post body. Use data.field_name to reference API fields.', 'enterprise-api-importer' ) }
 					>
@@ -250,6 +296,53 @@ export default function MappingTemplatingTab( {
 					</Panel>
 				</FlexItem>
 			</Flex>
+
+			<Panel className="eapi-ij-custom-meta-panel">
+				<PanelBody
+					title={ __( 'Custom Fields (Post Meta)', 'enterprise-api-importer' ) }
+					initialOpen={ customMetaMappings.length > 0 }
+				>
+					{ customMetaMappings.map( ( mapping, index ) => (
+						<Flex key={ index } gap={ 3 } align="flex-end" className="eapi-ij-custom-meta-row">
+							<FlexBlock>
+								<TextControl
+									__next40pxDefaultSize
+									__nextHasNoMarginBottom
+									label={ index === 0 ? __( 'Meta Key', 'enterprise-api-importer' ) : undefined }
+									placeholder="_price"
+									value={ mapping.key }
+									onChange={ ( val ) => handleUpdateMapping( index, 'key', val ) }
+								/>
+							</FlexBlock>
+							<FlexBlock>
+								<TextControl
+									__next40pxDefaultSize
+									__nextHasNoMarginBottom
+									label={ index === 0 ? __( 'Meta Value (Twig enabled)', 'enterprise-api-importer' ) : undefined }
+									placeholder="{{ data.price }}"
+									value={ mapping.value }
+									onChange={ ( val ) => handleUpdateMapping( index, 'value', val ) }
+								/>
+							</FlexBlock>
+							<FlexItem>
+								<Button
+									isDestructive
+									icon="trash"
+									label={ __( 'Remove', 'enterprise-api-importer' ) }
+									onClick={ () => handleRemoveMapping( index ) }
+								/>
+							</FlexItem>
+						</Flex>
+					) ) }
+					<Button
+						variant="secondary"
+						onClick={ handleAddMapping }
+						style={ { marginTop: '8px' } }
+					>
+						{ __( '+ Add Custom Field', 'enterprise-api-importer' ) }
+					</Button>
+				</PanelBody>
+			</Panel>
 
 			{ dryRunResult && (
 				<div className="eapi-ij-dry-run-result">

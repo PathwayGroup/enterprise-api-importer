@@ -30,6 +30,7 @@ const DEFAULT_JOB = {
 	post_status: 'draft',
 	comment_status: 'closed',
 	ping_status: 'closed',
+	custom_meta_mappings: '[]',
 };
 
 const TABS = [

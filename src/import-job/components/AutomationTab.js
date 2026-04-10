@@ -13,6 +13,8 @@ export default function AutomationTab( { job, updateField } ) {
 	return (
 		<div className="eapi-ij-tab-content">
 			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 				label={ __( 'Recurrence', 'enterprise-api-importer' ) }
 				value={ job.recurrence }
 				options={ RECURRENCE_OPTIONS }
@@ -22,6 +24,8 @@ export default function AutomationTab( { job, updateField } ) {
 
 			{ job.recurrence === 'custom' && (
 				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
 					label={ __( 'Custom Interval (minutes)', 'enterprise-api-importer' ) }
 					type="number"
 					min={ 1 }

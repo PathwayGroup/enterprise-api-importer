@@ -215,7 +215,19 @@ eai_flush_reporting_transients(); // Clears all 9 reporter transients + history
 
 **Monitoring via WP-Cron:** All metrics are calculated on-demand and cached, so no background jobs required. Transient eviction is natural.
 
-### 6) Enhanced Security Hardening (5-Layer Defense)
+### 6) Security Hardening — Credential Encryption & Data Sanitization
+
+Credential fields (`auth_token`, `auth_password`) are now encrypted at rest using AES-256-CBC with a key derived from `wp_salt('auth')`. Encrypted values are prefixed with `eai_enc:` for identification — legacy plaintext values are handled gracefully during the transition.
+
+- **REST GET masking**: Credential values are replaced with empty strings in API responses. Boolean flags (`has_auth_token`, `has_auth_password`) indicate whether a credential is stored.
+- **Credential preservation on update**: When the frontend sends blank credential fields (because they were masked), the server preserves the existing encrypted values instead of overwriting with blanks.
+- **React UI indicators**: Auth credential fields show "Credential saved. Leave blank to keep existing value." with a `••••••••` placeholder when a credential is already stored.
+- **Filter safety**: `apply_filters( 'eai_remote_request_args', $args, $auth_method )` now passes the auth method string instead of the raw token.
+- **Post content sanitization**: Twig-rendered content is passed through `wp_kses_post()` before `wp_insert_post()` to prevent stored XSS from untrusted API payloads.
+- **Custom meta sanitization**: Twig-compiled meta values are sanitized with `sanitize_text_field()` before `update_post_meta()`.
+- **Admin menu capability**: Menu pages now require `manage_options` instead of `read`, preventing subscriber-level access.
+
+### 7) Enhanced Security Hardening (5-Layer Defense)
 
 #### ✅ Dedicated Template Management Capability
 
@@ -295,7 +307,7 @@ apply_filters( 'eai_allow_internal_endpoints', false ); // default: block RFC191
 add_filter( 'eai_twig_strict_variables', function() { return false; } ); // permissive mode
 ```
 
-### 6) React Import Job Workspace + REST CRUD
+### 8) React Import Job Workspace + REST CRUD
 
 The import add/edit screen has been rebuilt as a React tabbed workspace using `@wordpress/components`.
 
@@ -310,7 +322,7 @@ The import add/edit screen has been rebuilt as a React tabbed workspace using `@
 - API test endpoint (`/wp-json/eapi/v1/test-api-connection`) now powers in-UI sample preview for mapping.
 - Dry-run endpoint (`/wp-json/eapi/v1/dry-run`) supports template verification before import runs.
 
-### 7) Per-Import Edit-Lock Toggle
+### 9) Per-Import Edit-Lock Toggle
 
 You can now control edit behavior per import job from Mapping & Templating.
 
@@ -405,7 +417,15 @@ Recommended baseline:
 
 ## Security and Reliability Model
 
+### Credential Storage & Handling
+- **AES-256-CBC encryption at rest**: `auth_token` and `auth_password` are encrypted before database storage using a key derived from `wp_salt('auth')`.
+- **Transparent decryption**: Credentials are decrypted transparently at the DB read layer for import execution.
+- **REST API masking**: GET responses never expose credentials — fields are replaced with empty strings and `has_auth_token` / `has_auth_password` boolean flags.
+- **Credential preservation**: Blank credential fields on update are treated as "unchanged" — existing encrypted values are preserved.
+- **Filter safety**: `apply_filters( 'eai_remote_request_args' )` no longer passes raw credentials to third-party hooks.
+
 ### Capability-Based Access Control
+- **Admin menu access**: Restricted to `manage_options` capability (administrators only).
 - **Template management**: Restricted to `eai_manage_templates` capability (or `manage_options` / multisite super-admin).
 - **Import operations**: Guarded by permission checks on admin pages and REST endpoints.
 - **Imported content**: Read-only behavior is configurable per import job (`lock_editing`) via `map_meta_cap` filter.
@@ -422,6 +442,11 @@ Recommended baseline:
 - **Private IP blocking**: RFC1918 and loopback addresses blocked by default (opt-in via settings).
 - **Hostname allowlisting**: Exact matching and wildcard subdomain patterns (e.g., `*.internal.local`).
 - **CIDR allowlisting**: IPv4 and IPv6 network ranges supported and validated via `inet_pton()`.
+
+### Import Pipeline Sanitization
+- **Post content**: Twig-rendered content is passed through `wp_kses_post()` before `wp_insert_post()` to prevent stored XSS from malicious API data.
+- **Custom meta values**: Twig-compiled meta values are sanitized with `sanitize_text_field()` before `update_post_meta()`.
+- **Post titles**: Rendered titles are stripped of all HTML via `wp_strip_all_tags()` and truncated to 255 characters.
 
 ### Data Handling & Nonces
 - Input sanitization before database persistence.
