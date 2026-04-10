@@ -5,7 +5,7 @@ Tags: api, import, etl, json, cron
 Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -115,6 +115,11 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 3. API Connection and Data Filtering rules.
 
 == Changelog ==
+= 1.2.1 =
+* Maintenance release from cleaned git history.
+* Removed accidentally committed documentation/test-data directories from repository history and release packaging.
+* No runtime feature changes.
+
 = 1.2.0 =
 * **Updated: React Import Job Workspace**
   - Replaced the legacy linear create/edit form with a tabbed workspace in wp-admin.
@@ -178,6 +183,9 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 * Added secure media sideload helper foundation with source URL deduplication metadata.
 
 == Upgrade Notice ==
+= 1.2.1 =
+Maintenance release with cleaned repository history and packaging only. No functional upgrade steps required.
+
 = 1.2.0 =
 Security and UX release: Includes the new React import workspace, expanded auth methods, API preview/dry-run tools, optional templates on job creation, and per-import editing lock controls, plus enterprise hardening features (capabilities, Twig validation, audit logs, SSRF allowlisting).
 = 1.0.0 =
