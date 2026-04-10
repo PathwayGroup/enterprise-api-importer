@@ -17,3 +17,8 @@
 /enterprise-api-importer.zip
 .distignore
 .gitignore
+
+# Safe vendor size trims (non-runtime docs only).
+/vendor/**/README*
+/vendor/**/CHANGELOG*
+/vendor/**/UPGRADE*
