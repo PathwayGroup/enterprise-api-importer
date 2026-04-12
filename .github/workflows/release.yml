@@ -3,9 +3,6 @@ name: Build and Publish WordPress Plugin Zip
 on:
   release:
     types: [published]
-  push:
-    tags:
-      - "*"
   workflow_dispatch:
     inputs:
       tag_name:
@@ -17,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-${{ github.event.inputs.tag_name || github.event.release.tag_name || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
