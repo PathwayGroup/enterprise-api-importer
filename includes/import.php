@@ -957,7 +957,7 @@ function eai_fetch_api_payload( $endpoint, $auth_method = 'none', $token = '', $
 		return $validated_endpoint;
 	}
 
-	$cache_key      = 'api_importer_cache_' . md5( $endpoint );
+	$cache_key      = 'eai_api_cache_' . md5( $endpoint );
 	$cached_payload = false;
 	$used_cache     = false;
 

@@ -9,7 +9,6 @@
 /README.md
 /package.json
 /package-lock.json
-/composer.json
 /composer.lock
 /postcss.config.js
 /tailwind.config.js

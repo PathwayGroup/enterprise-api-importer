@@ -1276,176 +1276,6 @@ function eai_render_imports_list_page() {
 	$active_state = eai_get_active_run_state();
 	?>
 	<div class="wrap eapi-manage-shell">
-		<?php eai_render_shared_tableau_admin_styles(); ?>
-		<style>
-			.eapi-manage-shell {
-				max-width: 1320px;
-			}
-			.eapi-manage-topbar {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				gap: 12px;
-				margin-bottom: 16px;
-			}
-			.eapi-manage-topbar h1 {
-				margin: 0;
-			}
-			.eapi-manage-kpis {
-				display: grid;
-				grid-template-columns: repeat( auto-fit, minmax( 220px, 1fr ) );
-				gap: 12px;
-				margin: 16px 0 18px;
-			}
-			.eapi-manage-kpi {
-				background: #fff;
-				border: 1px solid #e2e8f0;
-				border-radius: 12px;
-				padding: 14px;
-				box-shadow: 0 1px 2px rgba( 15, 23, 42, 0.05 );
-			}
-			.eapi-manage-kpi-label {
-				font-size: 11px;
-				line-height: 1.4;
-				font-weight: 600;
-				letter-spacing: 0.06em;
-				text-transform: uppercase;
-				color: #64748b;
-				margin-bottom: 6px;
-			}
-			.eapi-manage-kpi-value {
-				font-size: 25px;
-				line-height: 1.15;
-				font-weight: 700;
-				color: #0f172a;
-			}
-			.eapi-manage-running {
-				display: inline-flex;
-				align-items: center;
-				gap: 8px;
-				padding: 6px 10px;
-				border-radius: 999px;
-				background: #dbeafe;
-				color: #1e40af;
-				font-size: 12px;
-				font-weight: 600;
-			}
-			.eapi-manage-running::before {
-				content: '';
-				width: 8px;
-				height: 8px;
-				border-radius: 999px;
-				background: #3b82f6;
-			}
-			.eapi-manage-card {
-				background: #fff;
-				border: 1px solid #e2e8f0;
-				border-radius: 14px;
-				box-shadow: 0 2px 4px rgba( 15, 23, 42, 0.04 );
-				padding: 0;
-				overflow: visible;
-				margin-bottom: 18px;
-			}
-			.eapi-manage-card-header {
-				padding: 14px 16px;
-				border-bottom: 1px solid #e2e8f0;
-				background: linear-gradient( 180deg, #ffffff 0%, #f8fafc 100% );
-			}
-			.eapi-manage-card-title {
-				margin: 0;
-				font-size: 14px;
-				font-weight: 600;
-				color: #334155;
-				letter-spacing: 0.03em;
-				text-transform: uppercase;
-				text-align: center;
-			}
-			.eapi-manage-card-body {
-				padding: 12px 16px 16px;
-			}
-			.eapi-manage-card .wp-list-table,
-			.eapi-ownership-table {
-				border: 1px solid #e2e8f0;
-				border-radius: 10px;
-				overflow: visible;
-			}
-			.eapi-manage-card .wp-list-table thead th,
-			.eapi-ownership-table thead th {
-				background: #f8fafc;
-				color: #64748b;
-				font-size: 11px;
-				font-weight: 700;
-				letter-spacing: 0.06em;
-				text-transform: uppercase;
-				border-bottom: 1px solid #e2e8f0;
-				position: static;
-			}
-			.eapi-manage-card .wp-list-table tbody tr:hover,
-			.eapi-ownership-table tbody tr:hover {
-				background: #f8fafc;
-			}
-			.eapi-manage-card .wp-list-table td,
-			.eapi-ownership-table td {
-				border-bottom: 1px solid #f1f5f9;
-			}
-			.eapi-manage-card .wp-list-table th.column-actions,
-			.eapi-manage-card .wp-list-table td.column-actions {
-				text-align: center;
-			}
-			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn {
-				display: inline-block;
-				padding: 2px 7px;
-				border-radius: 999px;
-				text-decoration: none;
-				border: 1px solid transparent;
-				font-size: 11px;
-				font-weight: 600;
-				line-height: 1.2;
-				margin: 0 2px;
-			}
-			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-edit {
-				background: #16a34a;
-				border-color: #15803d;
-				color: #ffffff;
-				padding: 4px 10px;
-				font-size: 16px;
-				font-weight: 700;
-			}
-			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-edit:hover {
-				background: #15803d;
-			}
-			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-delete {
-				background: #dc2626;
-				border-color: #b91c1c;
-				color: #ffffff;
-			}
-			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-delete:hover {
-				background: #b91c1c;
-			}
-			.eapi-manage-card .wp-list-table td.column-endpoint,
-			.eapi-manage-card .wp-list-table td.column-id {
-				font-family: Menlo, Consolas, Monaco, "Liberation Mono", monospace;
-				font-size: 12px;
-			}
-			.eapi-manage-card .wp-list-table th.column-id,
-			.eapi-manage-card .wp-list-table td.column-id {
-				width: 56px;
-			}
-			.eapi-manage-card .wp-list-table th.column-status,
-			.eapi-manage-card .wp-list-table td.column-status {
-				width: 112px;
-				white-space: nowrap;
-			}
-			.eapi-manage-card .wp-list-table th.column-health,
-			.eapi-manage-card .wp-list-table td.column-health {
-				width: 108px;
-				white-space: nowrap;
-			}
-			.eapi-manage-card .tablenav.top,
-			.eapi-manage-card .tablenav.bottom {
-				padding: 10px 0;
-			}
-		</style>
 
 		<div class="eapi-manage-topbar">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Imports', 'enterprise-api-importer' ); ?></h1>
@@ -1787,117 +1617,7 @@ function eai_render_shared_tableau_admin_styles() {
 	}
 
 	$printed = true;
-	?>
-	<style>
-		:root {
-			--eapi-border: #e2e8f0;
-			--eapi-slate-50: #f8fafc;
-			--eapi-slate-300: #cbd5e1;
-			--eapi-slate-500: #64748b;
-			--eapi-slate-900: #0f172a;
-		}
-
-		.eapi-admin-table {
-			border: 1px solid var(--eapi-border);
-			border-radius: 10px;
-			overflow: visible;
-		}
-
-		.eapi-admin-table thead th {
-			background: var(--eapi-slate-50);
-			color: var(--eapi-slate-500);
-			font-size: 11px;
-			font-weight: 700;
-			letter-spacing: 0.06em;
-			text-transform: uppercase;
-			border-bottom: 1px solid var(--eapi-border);
-			position: static;
-		}
-
-		.eapi-admin-table tbody tr:hover {
-			background: var(--eapi-slate-50);
-		}
-
-		.eapi-admin-table td {
-			border-bottom: 1px solid #f1f5f9;
-		}
-
-		.eai-badge {
-			display: inline-block;
-			padding: 4px 10px;
-			border-radius: 999px;
-			font-size: 12px;
-			font-weight: 600;
-		}
-
-		.eai-badge.is-success { background: #dcfce7; color: #166534; }
-		.eai-badge.is-failed { background: #fee2e2; color: #991b1b; }
-		.eai-badge.is-processing { background: #dbeafe; color: #1e40af; }
-		.eai-badge.is-idle { background: #e5e7eb; color: #374151; }
-
-		.eapi-health-chip {
-			display: inline-block;
-			padding: 3px 9px;
-			border-radius: 999px;
-			font-size: 11px;
-			font-weight: 700;
-			letter-spacing: 0.02em;
-			border: 1px solid transparent;
-		}
-
-		.eapi-health-chip.is-good {
-			background: #ecfdf5;
-			color: #166534;
-			border-color: #bbf7d0;
-		}
-
-		.eapi-health-chip.is-warn {
-			background: #fffbeb;
-			color: #92400e;
-			border-color: #fde68a;
-		}
-
-		.eapi-health-chip.is-bad {
-			background: #fef2f2;
-			color: #991b1b;
-			border-color: #fecaca;
-		}
-
-		.eapi-sparkline {
-			display: inline-flex;
-			align-items: flex-end;
-			gap: 2px;
-			height: 24px;
-			padding: 1px 0;
-		}
-
-		.eapi-spark-pair {
-			display: inline-flex;
-			align-items: flex-end;
-			gap: 1px;
-			height: 24px;
-		}
-
-		.eapi-mini-bar {
-			display: inline-block;
-			width: 3px;
-			border-radius: 2px;
-		}
-
-		.eapi-mini-bar.is-created {
-			background: #2563eb;
-		}
-
-		.eapi-mini-bar.is-updated {
-			background: #0d9488;
-		}
-
-		.eapi-trend-empty {
-			color: var(--eapi-slate-500);
-			font-size: 12px;
-		}
-	</style>
-	<?php
+	// CSS is now enqueued via eai_enqueue_admin_page_styles().
 }
 
 /**
@@ -2034,14 +1754,6 @@ $metrics = eai_sort_dashboard_metrics( $metrics, $sorting['orderby'], $sorting['
 <div class="wrap">
 <h1><?php esc_html_e( 'Schedules & Health Dashboard', 'enterprise-api-importer' ); ?></h1>
 <?php eai_render_admin_notices(); ?>
-<?php eai_render_shared_tableau_admin_styles(); ?>
-
-<style>
-.eai-schedules-table .column-status,
-.eai-schedules-table .column-actions {
-white-space: nowrap;
-}
-</style>
 
 <table class="widefat striped eapi-admin-table eai-schedules-table">
 <thead>
@@ -2129,1027 +1841,6 @@ function eai_get_filter_operator_options() {
  */
 function eai_render_import_edit_page() {
 	echo '<div class="wrap"><div id="eapi-import-job-root"></div></div>';
-}
-
-/**
- * Legacy create/edit import page renderer (replaced by React workspace).
- *
- * @deprecated Use eai_render_import_edit_page() which mounts the React workspace.
- */
-function eai_render_import_edit_page_legacy() {
-// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only import ID for loading edit form data.
-$import_id     = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
-$import_row    = null;
-
-if ( $import_id > 0 ) {
-	$import_row = eai_db_get_import_config( $import_id );
-}
-
-$defaults = array(
-	'id'               => 0,
-	'name'             => '',
-	'endpoint_url'     => '',
-	'auth_method'      => 'none',
-	'auth_token'       => '',
-	'auth_header_name' => '',
-	'auth_username'    => '',
-	'auth_password'    => '',
-	'array_path'       => '',
-	'unique_id_path'   => 'id',
-	'recurrence'       => 'off',
-	'custom_interval_minutes' => 30,
-	'filter_rules'     => '[]',
-	'target_post_type' => 'post',
-	'title_template'   => '',
-	'mapping_template' => '',
-);
-$import = is_array( $import_row ) ? wp_parse_args( $import_row, $defaults ) : $defaults;
-$import['custom_interval_minutes'] = absint( $import['custom_interval_minutes'] );
-if ( 'custom' === (string) $import['recurrence'] && $import['custom_interval_minutes'] <= 0 ) {
-	$import['custom_interval_minutes'] = 30;
-}
-$import['target_post_type'] = sanitize_key( (string) $import['target_post_type'] );
-if ( '' === $import['target_post_type'] ) {
-	$import['target_post_type'] = 'post';
-}
-
-$public_post_types = get_post_types( array( 'public' => true ), 'objects' );
-$public_post_types = is_array( $public_post_types ) ? $public_post_types : array();
-
-if ( isset( $public_post_types['attachment'] ) ) {
-	unset( $public_post_types['attachment'] );
-}
-
-$saved_post_type   = (string) $import['target_post_type'];
-
-if ( ! post_type_exists( $saved_post_type ) ) {
-	$saved_post_type = 'post';
-}
-
-if ( ! isset( $public_post_types[ $saved_post_type ] ) ) {
-	if ( isset( $public_post_types['post'] ) ) {
-		$saved_post_type = 'post';
-	} elseif ( ! empty( $public_post_types ) ) {
-		$first_post_type = array_key_first( $public_post_types );
-		$saved_post_type = is_string( $first_post_type ) ? $first_post_type : 'post';
-	} else {
-		$saved_post_type = 'post';
-	}
-}
-
-$import['target_post_type'] = $saved_post_type;
-
-$filter_operator_options = eai_get_filter_operator_options();
-$decoded_filter_rules    = json_decode( (string) $import['filter_rules'], true );
-$filter_rules_for_ui     = array();
-if ( is_array( $decoded_filter_rules ) ) {
-	foreach ( $decoded_filter_rules as $filter_rule ) {
-		if ( ! is_array( $filter_rule ) ) {
-			continue;
-		}
-
-		$rule_key      = isset( $filter_rule['key'] ) ? sanitize_text_field( (string) $filter_rule['key'] ) : '';
-		$rule_operator = isset( $filter_rule['operator'] ) ? sanitize_key( (string) $filter_rule['operator'] ) : '';
-		$rule_value    = isset( $filter_rule['value'] ) ? sanitize_text_field( (string) $filter_rule['value'] ) : '';
-
-		if ( '' === $rule_key || ! isset( $filter_operator_options[ $rule_operator ] ) ) {
-			continue;
-		}
-
-		$filter_rules_for_ui[] = array(
-			'key'      => $rule_key,
-			'operator' => $rule_operator,
-			'value'    => $rule_value,
-		);
-	}
-}
-
-if ( empty( $filter_rules_for_ui ) ) {
-	$filter_rules_for_ui[] = array(
-		'key'      => '',
-		'operator' => 'equals',
-		'value'    => '',
-	);
-}
-$is_edit = (int) $import['id'] > 0;
-?>
-<div class="wrap">
-<h1><?php echo esc_html( $is_edit ? __( 'Edit Import Job', 'enterprise-api-importer' ) : __( 'Create Import Job', 'enterprise-api-importer' ) ); ?></h1>
-<?php eai_render_admin_notices(); ?>
-
-<style>
-.eai-import-form-table {
-	max-width: 1100px;
-	background: #fff;
-	border: 1px solid #dcdcde;
-	border-radius: 10px;
-	overflow: hidden;
-}
-
-.eai-import-form-table th,
-.eai-import-form-table td {
-	padding-top: 14px;
-	padding-bottom: 14px;
-	border-top: 1px solid #f0f0f1;
-}
-
-.eai-import-form-table tbody tr:first-child th,
-.eai-import-form-table tbody tr:first-child td,
-.eai-import-form-table .eai-form-section + tr th,
-.eai-import-form-table .eai-form-section + tr td {
-	border-top: 0;
-}
-
-.eai-import-form-table .eai-form-section th {
-	padding: 18px 20px 12px;
-	background: linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
-	border-top: 1px solid #dcdcde;
-}
-
-.eai-import-form-table .eai-form-section:first-child th {
-	border-top: 0;
-}
-
-.eai-form-section-title {
-	margin: 0 0 4px;
-	font-size: 14px;
-	font-weight: 600;
-	color: #0f172a;
-}
-
-.eai-form-section-description {
-	margin: 0;
-	font-weight: 400;
-	color: #475569;
-}
-</style>
-
-<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-<input type="hidden" name="action" value="eai_save_import" />
-<input type="hidden" name="import_id" value="<?php echo esc_attr( (string) $import['id'] ); ?>" />
-<?php wp_nonce_field( 'eai_save_import', 'eai_save_import_nonce' ); ?>
-
-<table class="form-table eai-import-form-table" role="presentation">
-<tbody>
-<tr class="eai-form-section">
-<th colspan="2" scope="colgroup">
-<h2 class="eai-form-section-title"><?php esc_html_e( 'Connection Setup', 'enterprise-api-importer' ); ?></h2>
-<p class="eai-form-section-description"><?php esc_html_e( 'Define the endpoint, choose authentication, and confirm the API is returning the data you expect.', 'enterprise-api-importer' ); ?></p>
-</th>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_name"><?php esc_html_e( 'Name', 'enterprise-api-importer' ); ?></label></th>
-<td><input name="name" type="text" id="eai_import_name" class="regular-text" value="<?php echo esc_attr( (string) $import['name'] ); ?>" required /></td>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_endpoint_url"><?php esc_html_e( 'Endpoint URL', 'enterprise-api-importer' ); ?></label></th>
-<td><input name="endpoint_url" type="url" id="eai_import_endpoint_url" class="large-text" value="<?php echo esc_attr( (string) $import['endpoint_url'] ); ?>" required /></td>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_auth_method"><?php esc_html_e( 'Authentication Method', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<select name="auth_method" id="eai_import_auth_method">
-<option value="none" <?php selected( (string) $import['auth_method'], 'none' ); ?>><?php esc_html_e( 'None', 'enterprise-api-importer' ); ?></option>
-<option value="bearer" <?php selected( (string) $import['auth_method'], 'bearer' ); ?>><?php esc_html_e( 'Bearer Token', 'enterprise-api-importer' ); ?></option>
-<option value="api_key_custom" <?php selected( (string) $import['auth_method'], 'api_key_custom' ); ?>><?php esc_html_e( 'API Key (Custom Header)', 'enterprise-api-importer' ); ?></option>
-<option value="basic_auth" <?php selected( (string) $import['auth_method'], 'basic_auth' ); ?>><?php esc_html_e( 'Basic Auth', 'enterprise-api-importer' ); ?></option>
-</select>
-<p class="description"><?php esc_html_e( 'Select the authentication method required by your API endpoint.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr class="eai-auth-field eai-auth-bearer" style="display:none;">
-<th scope="row"><label for="eai_import_auth_token_bearer"><?php esc_html_e( 'Bearer Token', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="auth_token" type="password" id="eai_import_auth_token_bearer" class="regular-text" value="<?php echo esc_attr( 'bearer' === (string) $import['auth_method'] ? (string) $import['auth_token'] : '' ); ?>" autocomplete="new-password" />
-<p class="description"><?php esc_html_e( 'OAuth or API bearer token sent as Authorization: Bearer <token>.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr class="eai-auth-field eai-auth-api_key_custom" style="display:none;">
-<th scope="row"><label for="eai_import_auth_header_name"><?php esc_html_e( 'Header Name', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="auth_header_name" type="text" id="eai_import_auth_header_name" class="regular-text" value="<?php echo esc_attr( (string) $import['auth_header_name'] ); ?>" placeholder="Authorization-Key" />
-<p class="description"><?php esc_html_e( 'Custom HTTP header name, e.g. Authorization-Key, X-API-Key.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr class="eai-auth-field eai-auth-api_key_custom" style="display:none;">
-<th scope="row"><label for="eai_import_auth_token_apikey"><?php esc_html_e( 'API Key', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="auth_token_apikey" type="password" id="eai_import_auth_token_apikey" class="regular-text" value="<?php echo esc_attr( 'api_key_custom' === (string) $import['auth_method'] ? (string) $import['auth_token'] : '' ); ?>" autocomplete="new-password" />
-<p class="description"><?php esc_html_e( 'The API key value sent in the custom header above.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr class="eai-auth-field eai-auth-basic_auth" style="display:none;">
-<th scope="row"><label for="eai_import_auth_username"><?php esc_html_e( 'Username', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="auth_username" type="text" id="eai_import_auth_username" class="regular-text" value="<?php echo esc_attr( (string) $import['auth_username'] ); ?>" autocomplete="off" />
-</td>
-</tr>
-<tr class="eai-auth-field eai-auth-basic_auth" style="display:none;">
-<th scope="row"><label for="eai_import_auth_password"><?php esc_html_e( 'Password', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="auth_password" type="password" id="eai_import_auth_password" class="regular-text" value="<?php echo esc_attr( (string) $import['auth_password'] ); ?>" autocomplete="new-password" />
-</td>
-</tr>
-<tr class="eai-form-section">
-<th colspan="2" scope="colgroup">
-<h2 class="eai-form-section-title"><?php esc_html_e( 'Import Rules', 'enterprise-api-importer' ); ?></h2>
-<p class="eai-form-section-description"><?php esc_html_e( 'Tell the importer where the records live, how to identify them, when to run, and which items to include.', 'enterprise-api-importer' ); ?></p>
-</th>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_array_path"><?php esc_html_e( 'JSON Array Path', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="array_path" type="text" id="eai_import_array_path" class="regular-text" value="<?php echo esc_attr( (string) $import['array_path'] ); ?>" />
-<p class="description"><?php esc_html_e( 'Example: data.employees. Leave empty if the API root is already an array.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_unique_id_path"><?php esc_html_e( 'Unique ID Path', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="unique_id_path" type="text" id="eai_import_unique_id_path" class="regular-text" value="<?php echo esc_attr( (string) $import['unique_id_path'] ); ?>" />
-<p class="description"><?php esc_html_e( 'Dot-path to the source unique identifier (example: CourseIDFull or data.course.id). Defaults to id when empty.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_recurrence"><?php esc_html_e( 'Recurrence', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<select name="recurrence" id="eai_import_recurrence">
-<option value="off" <?php selected( (string) $import['recurrence'], 'off' ); ?>><?php esc_html_e( 'Off', 'enterprise-api-importer' ); ?></option>
-<option value="hourly" <?php selected( (string) $import['recurrence'], 'hourly' ); ?>><?php esc_html_e( 'Hourly', 'enterprise-api-importer' ); ?></option>
-<option value="twicedaily" <?php selected( (string) $import['recurrence'], 'twicedaily' ); ?>><?php esc_html_e( 'Twice Daily', 'enterprise-api-importer' ); ?></option>
-<option value="daily" <?php selected( (string) $import['recurrence'], 'daily' ); ?>><?php esc_html_e( 'Daily', 'enterprise-api-importer' ); ?></option>
-<option value="custom" <?php selected( (string) $import['recurrence'], 'custom' ); ?>><?php esc_html_e( 'Custom', 'enterprise-api-importer' ); ?></option>
-</select>
-<span id="eai_custom_interval_wrapper" style="margin-left:10px;">
-<label for="eai_import_custom_interval_minutes"><?php esc_html_e( 'Custom minutes', 'enterprise-api-importer' ); ?></label>
-<input name="custom_interval_minutes" type="number" id="eai_import_custom_interval_minutes" min="1" step="1" class="small-text" value="<?php echo esc_attr( (string) $import['custom_interval_minutes'] ); ?>" />
-</span>
-<p class="description"><?php esc_html_e( 'When set to Custom, the import runs every N minutes. Use Off to disable recurring automation.', 'enterprise-api-importer' ); ?></p>
-<script>
-( function() {
-	var recurrenceSelect = document.getElementById( 'eai_import_recurrence' );
-	var customWrapper = document.getElementById( 'eai_custom_interval_wrapper' );
-	var customInput = document.getElementById( 'eai_import_custom_interval_minutes' );
-
-	if ( ! recurrenceSelect || ! customWrapper || ! customInput ) {
-		return;
-	}
-
-	var toggleCustomMinutes = function() {
-		var isCustom = recurrenceSelect.value === 'custom';
-
-		customWrapper.style.display = isCustom ? 'inline-flex' : 'none';
-		customWrapper.style.alignItems = isCustom ? 'center' : '';
-		customWrapper.style.gap = isCustom ? '6px' : '';
-		customInput.disabled = ! isCustom;
-
-		if ( isCustom && parseInt( customInput.value, 10 ) <= 0 ) {
-			customInput.value = '30';
-		}
-	};
-
-	recurrenceSelect.addEventListener( 'change', toggleCustomMinutes );
-	toggleCustomMinutes();
-} )();
-
-( function() {
-	var authMethodSelect = document.getElementById( 'eai_import_auth_method' );
-
-	if ( ! authMethodSelect ) {
-		return;
-	}
-
-	var toggleAuthFields = function() {
-		var method = authMethodSelect.value;
-		var allRows = document.querySelectorAll( '.eai-auth-field' );
-
-		Array.prototype.forEach.call( allRows, function( row ) {
-			row.style.display = 'none';
-		} );
-
-		if ( method && method !== 'none' ) {
-			var activeRows = document.querySelectorAll( '.eai-auth-' + method );
-			Array.prototype.forEach.call( activeRows, function( row ) {
-				row.style.display = 'table-row';
-			} );
-		}
-	};
-
-	authMethodSelect.addEventListener( 'change', toggleAuthFields );
-	toggleAuthFields();
-} )();
-</script>
-</td>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_target_post_type"><?php esc_html_e( 'Target Post Type', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<select name="target_post_type" id="eai_import_target_post_type">
-<?php foreach ( $public_post_types as $post_type_name => $post_type_object ) : ?>
-<option value="<?php echo esc_attr( (string) $post_type_name ); ?>" <?php selected( (string) $import['target_post_type'], (string) $post_type_name ); ?>><?php echo esc_html( (string) $post_type_object->labels->name ); ?></option>
-<?php endforeach; ?>
-</select>
-<p class="description"><?php esc_html_e( 'Select which public WordPress post type receives imported records.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr>
-<th scope="row"><?php esc_html_e( 'Data Filters', 'enterprise-api-importer' ); ?></th>
-<td>
-<p class="description"><?php esc_html_e( 'Only records matching every filter are staged for import (AND logic).', 'enterprise-api-importer' ); ?></p>
-<table class="widefat striped" style="max-width:900px; margin-top:8px;">
-<thead>
-<tr>
-<th><?php esc_html_e( 'Key', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Operator', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Value', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Actions', 'enterprise-api-importer' ); ?></th>
-</tr>
-</thead>
-<tbody id="eai-filter-rules-body">
-<?php foreach ( $filter_rules_for_ui as $filter_rule ) : ?>
-<tr>
-<td><input type="text" name="filter_rules[key][]" class="regular-text" value="<?php echo esc_attr( (string) $filter_rule['key'] ); ?>" placeholder="department" /></td>
-<td>
-<select name="filter_rules[operator][]">
-<?php foreach ( $filter_operator_options as $operator_key => $operator_label ) : ?>
-<option value="<?php echo esc_attr( $operator_key ); ?>" <?php selected( (string) $filter_rule['operator'], $operator_key ); ?>><?php echo esc_html( $operator_label ); ?></option>
-<?php endforeach; ?>
-</select>
-</td>
-<td><input type="text" name="filter_rules[value][]" class="regular-text" value="<?php echo esc_attr( (string) $filter_rule['value'] ); ?>" placeholder="Engineering" /></td>
-<td><button type="button" class="button eai-remove-filter-row"><?php esc_html_e( 'Remove', 'enterprise-api-importer' ); ?></button></td>
-</tr>
-<?php endforeach; ?>
-</tbody>
-</table>
-
-<p style="margin-top:8px;">
-<button type="button" class="button" id="eai-add-filter-row"><?php esc_html_e( 'Add Filter', 'enterprise-api-importer' ); ?></button>
-</p>
-
-<template id="eai-filter-rule-template">
-<tr>
-<td><input type="text" name="filter_rules[key][]" class="regular-text" value="" placeholder="department" /></td>
-<td>
-<select name="filter_rules[operator][]">
-<?php foreach ( $filter_operator_options as $operator_key => $operator_label ) : ?>
-<option value="<?php echo esc_attr( $operator_key ); ?>"><?php echo esc_html( $operator_label ); ?></option>
-<?php endforeach; ?>
-</select>
-</td>
-<td><input type="text" name="filter_rules[value][]" class="regular-text" value="" placeholder="Engineering" /></td>
-<td><button type="button" class="button eai-remove-filter-row"><?php esc_html_e( 'Remove', 'enterprise-api-importer' ); ?></button></td>
-</tr>
-</template>
-
-<script>
-( function() {
-	var filterBody = document.getElementById( 'eai-filter-rules-body' );
-	var addFilterButton = document.getElementById( 'eai-add-filter-row' );
-	var rowTemplate = document.getElementById( 'eai-filter-rule-template' );
-
-	if ( ! filterBody || ! addFilterButton || ! rowTemplate ) {
-		return;
-	}
-
-	addFilterButton.addEventListener( 'click', function() {
-		var templateRow = rowTemplate.content.firstElementChild.cloneNode( true );
-		filterBody.appendChild( templateRow );
-	} );
-
-	filterBody.addEventListener( 'click', function( event ) {
-		var target = event.target;
-		if ( ! target.classList.contains( 'eai-remove-filter-row' ) ) {
-			return;
-		}
-
-		var row = target.closest( 'tr' );
-		if ( ! row ) {
-			return;
-		}
-
-		if ( filterBody.children.length <= 1 ) {
-			var keyInput = row.querySelector( 'input[name="filter_rules[key][]"]' );
-			var valueInput = row.querySelector( 'input[name="filter_rules[value][]"]' );
-			var operatorSelect = row.querySelector( 'select[name="filter_rules[operator][]"]' );
-			if ( keyInput ) { keyInput.value = ''; }
-			if ( valueInput ) { valueInput.value = ''; }
-			if ( operatorSelect ) { operatorSelect.value = 'equals'; }
-			return;
-		}
-
-		row.remove();
-	} );
-} )();
-</script>
-</td>
-</tr>
-<tr>
-<th scope="row"><?php esc_html_e( 'API Preview', 'enterprise-api-importer' ); ?></th>
-<td>
-<p class="description"><?php esc_html_e( 'Test your API connection and see available data fields before creating templates.', 'enterprise-api-importer' ); ?></p>
-<p><button type="button" class="button button-secondary" id="eai-preview-api-trigger"><?php esc_html_e( 'Preview API Data', 'enterprise-api-importer' ); ?></button></p>
-<div id="eai-preview-success" class="notice notice-success" style="display:none; margin:0 0 12px; padding:12px; position:relative;"></div>
-<div id="eai-preview-error" class="notice notice-error" style="display:none; margin:0 0 12px; padding:8px 12px;"></div>
-</td>
-</tr>
-<tr class="eai-form-section">
-<th colspan="2" scope="colgroup">
-<h2 class="eai-form-section-title"><?php esc_html_e( 'Templates & Testing', 'enterprise-api-importer' ); ?></h2>
-<p class="eai-form-section-description"><?php esc_html_e( 'Preview the API response, then build and dry-run the Twig templates that turn records into WordPress content.', 'enterprise-api-importer' ); ?></p>
-</th>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_title_template"><?php esc_html_e( 'Post Title Template', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<input name="title_template" type="text" id="eai_import_title_template" class="large-text" maxlength="255" value="<?php echo esc_attr( (string) $import['title_template'] ); ?>" />
-<p class="description"><?php esc_html_e( 'Supports Twig syntax (for example: {{ user.first_name }} {{ user.last_name }}). If left blank, defaults to Imported Item {ID}.', 'enterprise-api-importer' ); ?></p>
-</td>
-</tr>
-<tr>
-<th scope="row"><label for="eai_import_mapping_template"><?php esc_html_e( 'Mapping Template', 'enterprise-api-importer' ); ?></label></th>
-<td>
-<div id="eai-dry-run-error" class="notice notice-error" style="display:none; margin:0 0 12px; padding:8px 12px;"></div>
-<textarea name="mapping_template" id="eai_import_mapping_template" rows="12" class="large-text code" required><?php echo esc_textarea( (string) $import['mapping_template'] ); ?></textarea>
-<p style="margin-top:10px;">
-<button type="button" class="button button-primary" id="eai-dry-run-trigger"><?php esc_html_e( 'Test Template (Dry Run)', 'enterprise-api-importer' ); ?></button>
-</p>
-</td>
-</tr>
-</tbody>
-</table>
-
-<?php submit_button( $is_edit ? __( 'Update Import', 'enterprise-api-importer' ) : __( 'Create Import', 'enterprise-api-importer' ) ); ?>
-</form>
-
-<?php if ( $is_edit ) : ?>
-<p><?php esc_html_e( 'Template changed? Use this to re-render existing imported items for this import job.', 'enterprise-api-importer' ); ?></p>
-<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-<input type="hidden" name="action" value="eai_run_import" />
-<input type="hidden" name="import_id" value="<?php echo esc_attr( (string) $import['id'] ); ?>" />
-<input type="hidden" name="eai_template_sync" value="1" />
-<?php wp_nonce_field( 'eai_manual_run', 'eai_manual_run_nonce' ); ?>
-<?php submit_button( __( 'Update Existing Imported Items From Template', 'enterprise-api-importer' ), 'secondary', 'submit', false ); ?>
-</form>
-<?php endif; ?>
-
-<?php if ( $is_edit ) : ?>
-<hr />
-<h2><?php esc_html_e( 'Run This Import', 'enterprise-api-importer' ); ?></h2>
-<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-<input type="hidden" name="action" value="eai_run_import" />
-<input type="hidden" name="import_id" value="<?php echo esc_attr( (string) $import['id'] ); ?>" />
-<?php wp_nonce_field( 'eai_manual_run', 'eai_manual_run_nonce' ); ?>
-<?php submit_button( __( 'Run Import Now', 'enterprise-api-importer' ), 'secondary' ); ?>
-</form>
-
-<?php
-$test_result_key = 'eai_endpoint_test_result_' . (int) $import['id'];
-$test_result = get_transient( $test_result_key );
-if ( false !== $test_result ) {
-delete_transient( $test_result_key );
-}
-?>
-
-<hr />
-<div class="eai-panel">
-<style>
-.eai-panel { margin-top: 18px; padding: 18px 20px; border: 1px solid #dcdcde; border-radius: 10px; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); box-shadow: 0 1px 0 rgba(0,0,0,0.03); }
-.eai-panel h2 { margin-top: 0; }
-.eai-metrics { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 14px; }
-.eai-chip { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef2ff; color: #1e3a8a; }
-.eai-chip.is-error { background: #fef2f2; color: #991b1b; }
-.eai-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
-.eai-stat { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff; }
-.eai-stat-label { display: block; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; }
-.eai-stat-value { display: block; font-size: 15px; font-weight: 600; margin-top: 2px; }
-.eai-preview { border: 1px solid #cbd5e1; border-radius: 8px; background: #0f172a; color: #e2e8f0; padding: 12px; max-height: 300px; overflow: auto; font-size: 12px; line-height: 1.5; }
-.eai-record { border: 1px solid #dbe3ec; border-radius: 10px; padding: 12px; background: #fff; margin-bottom: 12px; }
-.eai-record h4 { margin: 0 0 8px; }
-.eai-mapped-render { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc; max-height: 220px; overflow: auto; }
-.eai-mode-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
-</style>
-
-<h2><?php esc_html_e( 'Endpoint Test & Preview', 'enterprise-api-importer' ); ?></h2>
-<p><?php esc_html_e( 'Validate connectivity and inspect sample response data before running an import.', 'enterprise-api-importer' ); ?></p>
-<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-<input type="hidden" name="action" value="eai_test_import_endpoint" />
-<input type="hidden" name="import_id" value="<?php echo esc_attr( (string) $import['id'] ); ?>" />
-<?php wp_nonce_field( 'eai_test_import_endpoint', 'eai_test_import_endpoint_nonce' ); ?>
-
-<div class="eai-mode-row">
-<label><input type="radio" name="eai_preview_mode" value="structure" checked="checked" /> <?php esc_html_e( 'Structure Preview', 'enterprise-api-importer' ); ?></label>
-<label><input type="radio" name="eai_preview_mode" value="mapping" /> <?php esc_html_e( 'Normalized + Mapping Preview (first 3 records)', 'enterprise-api-importer' ); ?></label>
-</div>
-
-<?php submit_button( __( 'Test Endpoint', 'enterprise-api-importer' ), 'primary', 'submit', false ); ?>
-</form>
-
-<?php if ( is_array( $test_result ) && ! empty( $test_result ) ) : ?>
-<div class="eai-metrics">
-<span class="eai-chip <?php echo ( isset( $test_result['type'] ) && 'error' === $test_result['type'] ) ? 'is-error' : ''; ?>"><?php echo esc_html( isset( $test_result['type'] ) && 'error' === $test_result['type'] ? __( 'Test Failed', 'enterprise-api-importer' ) : __( 'Test Passed', 'enterprise-api-importer' ) ); ?></span>
-<span class="eai-chip"><?php echo esc_html( ! empty( $test_result['used_cache'] ) ? __( 'Source: Cached Response', 'enterprise-api-importer' ) : __( 'Source: Live API Call', 'enterprise-api-importer' ) ); ?></span>
-</div>
-<p><strong><?php esc_html_e( 'Message:', 'enterprise-api-importer' ); ?></strong> <?php echo esc_html( isset( $test_result['message'] ) ? (string) $test_result['message'] : '' ); ?></p>
-
-<div class="eai-grid">
-<div class="eai-stat">
-<span class="eai-stat-label"><?php esc_html_e( 'HTTP Code', 'enterprise-api-importer' ); ?></span>
-<span class="eai-stat-value"><?php echo esc_html( isset( $test_result['http_code'] ) ? (string) $test_result['http_code'] : 'n/a' ); ?></span>
-</div>
-<div class="eai-stat">
-<span class="eai-stat-label"><?php esc_html_e( 'Payload Type', 'enterprise-api-importer' ); ?></span>
-<span class="eai-stat-value"><?php echo esc_html( isset( $test_result['payload_type'] ) ? (string) $test_result['payload_type'] : 'unknown' ); ?></span>
-</div>
-<div class="eai-stat">
-<span class="eai-stat-label"><?php esc_html_e( 'Items Found', 'enterprise-api-importer' ); ?></span>
-<span class="eai-stat-value"><?php echo esc_html( isset( $test_result['item_count'] ) ? (string) $test_result['item_count'] : '0' ); ?></span>
-</div>
-<div class="eai-stat">
-<span class="eai-stat-label"><?php esc_html_e( 'JSON Path Used', 'enterprise-api-importer' ); ?></span>
-<span class="eai-stat-value"><?php echo esc_html( isset( $test_result['json_path'] ) && '' !== (string) $test_result['json_path'] ? (string) $test_result['json_path'] : 'root' ); ?></span>
-</div>
-</div>
-
-<?php if ( ! empty( $test_result['sample_keys'] ) && is_array( $test_result['sample_keys'] ) ) : ?>
-<p><strong><?php esc_html_e( 'Sample Item Keys:', 'enterprise-api-importer' ); ?></strong> <?php echo esc_html( implode( ', ', array_slice( $test_result['sample_keys'], 0, 25 ) ) ); ?></p>
-<?php endif; ?>
-
-<?php if ( isset( $test_result['sample_json'] ) && '' !== (string) $test_result['sample_json'] ) : ?>
-<p><strong><?php esc_html_e( 'Sample Preview', 'enterprise-api-importer' ); ?></strong></p>
-<pre class="eai-preview"><?php echo esc_html( (string) $test_result['sample_json'] ); ?></pre>
-<?php endif; ?>
-
-<?php if ( isset( $test_result['preview_mode'] ) && 'mapping' === (string) $test_result['preview_mode'] ) : ?>
-<h3><?php esc_html_e( 'Normalized + Mapping Preview', 'enterprise-api-importer' ); ?></h3>
-<?php if ( ! empty( $test_result['normalized_preview'] ) && is_array( $test_result['normalized_preview'] ) ) : ?>
-<?php foreach ( $test_result['normalized_preview'] as $preview_row ) : ?>
-<div class="eai-record">
-<h4><?php
-/* translators: %d is the preview record sequence number. */
-echo esc_html( sprintf( __( 'Record %d', 'enterprise-api-importer' ), isset( $preview_row['record_number'] ) ? (int) $preview_row['record_number'] : 0 ) );
-?></h4>
-<?php if ( ! empty( $preview_row['mapping_error'] ) ) : ?>
-<p><strong><?php esc_html_e( 'Mapping Error:', 'enterprise-api-importer' ); ?></strong> <?php echo esc_html( (string) $preview_row['mapping_error'] ); ?></p>
-<?php else : ?>
-<p><strong><?php esc_html_e( 'Mapped Content (Rendered Safely):', 'enterprise-api-importer' ); ?></strong></p>
-<div class="eai-mapped-render"><?php echo wp_kses_post( isset( $preview_row['mapped_content'] ) ? (string) $preview_row['mapped_content'] : '' ); ?></div>
-<?php endif; ?>
-</div>
-<?php endforeach; ?>
-<?php else : ?>
-<p><?php esc_html_e( 'No normalized records were available for mapping preview.', 'enterprise-api-importer' ); ?></p>
-<?php endif; ?>
-<?php endif; ?>
-<?php endif; ?>
-</div>
-<?php endif; ?>
-
-<div id="eai-dry-run-modal" class="eai-dry-run-modal" aria-hidden="true" inert style="display:none;">
-<div class="eai-dry-run-modal__backdrop" data-close="1"></div>
-<div class="eai-dry-run-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="eai-dry-run-modal-title">
-<div class="eai-dry-run-modal__header">
-<h2 id="eai-dry-run-modal-title"><?php esc_html_e( 'Template Dry Run Preview', 'enterprise-api-importer' ); ?></h2>
-<button type="button" class="button-link" id="eai-dry-run-close" aria-label="<?php esc_attr_e( 'Close preview', 'enterprise-api-importer' ); ?>">&times;</button>
-</div>
-
-<div class="eai-dry-run-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Dry Run Preview Tabs', 'enterprise-api-importer' ); ?>">
-<button type="button" class="button button-secondary is-active" data-tab="data"><?php esc_html_e( 'Available Data Context', 'enterprise-api-importer' ); ?></button>
-<button type="button" class="button button-secondary" data-tab="preview"><?php esc_html_e( 'Rendered Preview', 'enterprise-api-importer' ); ?></button>
-</div>
-
-<div class="eai-dry-run-pane" data-pane="data">
-<pre><code id="eai-dry-run-raw-data"></code></pre>
-</div>
-
-<div class="eai-dry-run-pane" data-pane="preview" style="display:none;">
-<h3 id="eai-dry-run-rendered-title"></h3>
-<div id="eai-dry-run-rendered-body" class="eai-dry-run-rendered-body"></div>
-</div>
-</div>
-</div>
-
-<style>
-.eai-dry-run-modal {
-	position: fixed;
-	inset: 0;
-	z-index: 100000;
-	align-items: center;
-	justify-content: center;
-}
-
-.eai-dry-run-modal__backdrop {
-	position: absolute;
-	inset: 0;
-	background: rgba(15, 23, 42, 0.6);
-	backdrop-filter: blur(2px);
-}
-
-.eai-dry-run-modal__dialog {
-	position: relative;
-	width: min(960px, 92vw);
-	max-height: 85vh;
-	overflow: auto;
-	background: #ffffff;
-	border-radius: 14px;
-	border: 1px solid #dbe3ec;
-	box-shadow: 0 18px 40px rgba(2, 6, 23, 0.2);
-	padding: 18px;
-}
-
-.eai-dry-run-modal__header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 10px;
-}
-
-.eai-dry-run-modal__header h2 {
-	margin: 0;
-}
-
-.eai-dry-run-tabs {
-	display: flex;
-	gap: 8px;
-	margin-bottom: 12px;
-}
-
-.eai-dry-run-tabs .is-active {
-	background: #0f172a;
-	color: #f8fafc;
-	border-color: #0f172a;
-}
-
-.eai-dry-run-pane pre {
-	background: #0b1220;
-	color: #e2e8f0;
-	padding: 12px;
-	border-radius: 8px;
-	overflow: auto;
-	max-height: 58vh;
-}
-
-.eai-dry-run-rendered-body {
-	border: 1px solid #dbe3ec;
-	border-radius: 8px;
-	padding: 14px;
-	background: #f8fafc;
-	max-height: 58vh;
-	overflow: auto;
-}
-
-@media (max-width: 782px) {
-	.eai-dry-run-modal__dialog {
-		width: 96vw;
-		max-height: 90vh;
-		padding: 12px;
-	}
-}
-</style>
-
-<script>
-var config = <?php echo wp_json_encode(
-	array(
-		'restUrl' => esc_url_raw( rest_url( 'eapi/v1/dry-run' ) ),
-		'nonce'   => wp_create_nonce( 'wp_rest' ),
-		'i18n'    => array(
-			'buttonIdle'       => __( 'Test Template (Dry Run)', 'enterprise-api-importer' ),
-			'buttonLoading'    => __( 'Fetching...', 'enterprise-api-importer' ),
-			'requestFailed'    => __( 'Dry run request failed.', 'enterprise-api-importer' ),
-			'retryMessage'     => __( 'Dry run request failed. Please try again.', 'enterprise-api-importer' ),
-			/* translators: %d is the Twig template line number where the syntax error occurred. */
-			'twigErrorPrefix'  => __( 'Twig syntax error on line %d: ', 'enterprise-api-importer' ),
-		),
-	)
-); ?>;
-
-// Dry-run modal elements
-var trigger = document.getElementById( 'eai-dry-run-trigger' );
-var errorNotice = document.getElementById( 'eai-dry-run-error' );
-var modal = document.getElementById( 'eai-dry-run-modal' );
-var closeButton = document.getElementById( 'eai-dry-run-close' );
-var rawDataElement = document.getElementById( 'eai-dry-run-raw-data' );
-var titleElement = document.getElementById( 'eai-dry-run-rendered-title' );
-var bodyElement = document.getElementById( 'eai-dry-run-rendered-body' );
-
-// Preview API elements
-var previewTrigger = document.getElementById( 'eai-preview-api-trigger' );
-var previewSuccess = document.getElementById( 'eai-preview-success' );
-var previewError = document.getElementById( 'eai-preview-error' );
-
-( function() {
-	var tabButtons = modal ? modal.querySelectorAll( '[data-tab]' ) : [];
-	var tabPanes = modal ? modal.querySelectorAll( '[data-pane]' ) : [];
-	var previouslyFocusedElement = null;
-
-	if ( ! trigger || ! errorNotice || ! modal || !closeButton || ! rawDataElement || ! titleElement || ! bodyElement ) {
-		return;
-	}
-
-	var setLoading = function( isLoading ) {
-		trigger.disabled = isLoading;
-		trigger.textContent = isLoading ? config.i18n.buttonLoading : config.i18n.buttonIdle;
-	};
-
-	var showError = function( message ) {
-		errorNotice.textContent = message;
-		errorNotice.style.display = 'block';
-	};
-
-	var clearError = function() {
-		errorNotice.textContent = '';
-		errorNotice.style.display = 'none';
-	};
-
-	var openModal = function() {
-		previouslyFocusedElement = document.activeElement;
-		modal.removeAttribute( 'inert' );
-		modal.style.display = 'flex';
-		modal.setAttribute( 'aria-hidden', 'false' );
-		if ( closeButton && typeof closeButton.focus === 'function' ) {
-			closeButton.focus();
-		}
-	};
-
-	var closeModal = function() {
-		if ( document.activeElement && modal.contains( document.activeElement ) && trigger && typeof trigger.focus === 'function' ) {
-			trigger.focus();
-		} else if ( previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function' ) {
-			previouslyFocusedElement.focus();
-		}
-
-		modal.setAttribute( 'aria-hidden', 'true' );
-		modal.style.display = 'none';
-		modal.setAttribute( 'inert', '' );
-	};
-
-	var activateTab = function( tabName ) {
-		Array.prototype.forEach.call( tabButtons, function( button ) {
-			button.classList.toggle( 'is-active', button.getAttribute( 'data-tab' ) === tabName );
-		} );
-
-		Array.prototype.forEach.call( tabPanes, function( pane ) {
-			pane.style.display = pane.getAttribute( 'data-pane' ) === tabName ? '' : 'none';
-		} );
-	};
-
-	Array.prototype.forEach.call( tabButtons, function( button ) {
-		button.addEventListener( 'click', function() {
-			activateTab( button.getAttribute( 'data-tab' ) );
-		} );
-	} );
-
-	modal.addEventListener( 'click', function( event ) {
-		var target = event.target;
-		if ( target && target.getAttribute( 'data-close' ) === '1' ) {
-			closeModal();
-		}
-	} );
-
-	closeButton.addEventListener( 'click', closeModal );
-
-	document.addEventListener( 'keydown', function( event ) {
-		if ( event.key === 'Escape' && modal.getAttribute( 'aria-hidden' ) === 'false' ) {
-			closeModal();
-		}
-	} );
-
-	trigger.addEventListener( 'click', function() {
-		clearError();
-		setLoading( true );
-
-		var apiUrlInput = document.getElementById( 'eai_import_endpoint_url' );
-		var authMethodInput = document.getElementById( 'eai_import_auth_method' );
-		var authTokenBearerInput = document.getElementById( 'eai_import_auth_token_bearer' );
-		var authTokenApikeyInput = document.getElementById( 'eai_import_auth_token_apikey' );
-		var authHeaderNameInput = document.getElementById( 'eai_import_auth_header_name' );
-		var authUsernameInput = document.getElementById( 'eai_import_auth_username' );
-		var authPasswordInput = document.getElementById( 'eai_import_auth_password' );
-		var arrayPathInput = document.getElementById( 'eai_import_array_path' );
-		var titleTemplateInput = document.getElementById( 'eai_import_title_template' );
-		var bodyTemplateInput = document.getElementById( 'eai_import_mapping_template' );
-		var filterRows = document.querySelectorAll( '#eai-filter-rules-body tr' );
-
-		var currentMethod = authMethodInput ? authMethodInput.value : 'none';
-		var resolvedToken = '';
-		if ( currentMethod === 'bearer' ) {
-			resolvedToken = authTokenBearerInput ? authTokenBearerInput.value : '';
-		} else if ( currentMethod === 'api_key_custom' ) {
-			resolvedToken = authTokenApikeyInput ? authTokenApikeyInput.value : '';
-		}
-
-		var rules = [];
-		Array.prototype.forEach.call( filterRows, function( row ) {
-			var keyInput = row.querySelector( 'input[name="filter_rules[key][]"]' );
-			var operatorInput = row.querySelector( 'select[name="filter_rules[operator][]"]' );
-			var valueInput = row.querySelector( 'input[name="filter_rules[value][]"]' );
-
-			var keyValue = keyInput ? keyInput.value.trim() : '';
-			if ( keyValue === '' ) {
-				return;
-			}
-
-			rules.push( {
-				key: keyValue,
-				operator: operatorInput ? operatorInput.value : 'equals',
-				value: valueInput ? valueInput.value : ''
-			} );
-		} );
-
-		var payload = {
-			api_url: apiUrlInput ? apiUrlInput.value.trim() : '',
-			title_template: titleTemplateInput ? titleTemplateInput.value : '',
-			body_template: bodyTemplateInput ? bodyTemplateInput.value : '',
-			auth_method: currentMethod,
-			auth_token: resolvedToken,
-			auth_header_name: authHeaderNameInput ? authHeaderNameInput.value : '',
-			auth_username: authUsernameInput ? authUsernameInput.value : '',
-			auth_password: authPasswordInput ? authPasswordInput.value : '',
-			data_filters: {
-				array_path: arrayPathInput ? arrayPathInput.value.trim() : '',
-				rules: rules
-			}
-		};
-
-		fetch( config.restUrl, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-WP-Nonce': config.nonce
-			},
-			body: JSON.stringify( payload )
-		} )
-			.then( function( response ) {
-				return response.json().then( function( data ) {
-					return {
-						ok: response.ok,
-						data: data
-					};
-				} );
-			} )
-			.then( function( result ) {
-				if ( ! result.ok ) {
-					var message = result.data && result.data.message ? result.data.message : config.i18n.requestFailed;
-					if ( result.data && result.data.code === 'eai_twig_render_error' ) {
-						var lineNumber = parseInt( result.data.line_number || 0, 10 );
-						if ( lineNumber > 0 ) {
-							message = config.i18n.twigErrorPrefix.replace( '%d', lineNumber ) + message;
-						}
-					}
-					showError( message );
-					return;
-				}
-
-				rawDataElement.textContent = JSON.stringify( result.data.raw_data || {}, null, 2 );
-				titleElement.textContent = result.data.rendered_title || '';
-				bodyElement.innerHTML = result.data.rendered_body || '';
-				activateTab( 'data' );
-				openModal();
-			} )
-			.catch( function() {
-				showError( config.i18n.retryMessage );
-			} )
-			.finally( function() {
-				setLoading( false );
-			} );
-	} );
-} )();
-
-( function() {
-	if ( ! previewTrigger || ! previewSuccess || ! previewError || ! config ) {
-		return;
-	}
-
-	var showPreviewSuccess = function( message ) {
-		previewSuccess.innerHTML = message;
-		previewSuccess.style.display = 'block';
-	};
-
-	var clearPreviewSuccess = function() {
-		previewSuccess.innerHTML = '';
-		previewSuccess.style.display = 'none';
-	};
-
-	var showPreviewError = function( message ) {
-		clearPreviewSuccess();
-		previewError.textContent = message;
-		previewError.style.display = 'block';
-	};
-
-	var clearPreviewError = function() {
-		previewError.textContent = '';
-		previewError.style.display = 'none';
-	};
-
-	previewTrigger.addEventListener( 'click', function() {
-		clearPreviewError();
-		clearPreviewSuccess();
-		previewTrigger.disabled = true;
-		var originalText = previewTrigger.textContent;
-		previewTrigger.textContent = '<?php echo esc_js( __( 'Testing...', 'enterprise-api-importer' ) ); ?>';
-
-		var apiUrlInput = document.getElementById( 'eai_import_endpoint_url' );
-		var authMethodInput = document.getElementById( 'eai_import_auth_method' );
-		var authTokenBearerInput = document.getElementById( 'eai_import_auth_token_bearer' );
-		var authTokenApikeyInput = document.getElementById( 'eai_import_auth_token_apikey' );
-		var authHeaderNameInput = document.getElementById( 'eai_import_auth_header_name' );
-		var authUsernameInput = document.getElementById( 'eai_import_auth_username' );
-		var authPasswordInput = document.getElementById( 'eai_import_auth_password' );
-		var arrayPathInput = document.getElementById( 'eai_import_array_path' );
-
-		var currentMethod = authMethodInput ? authMethodInput.value : 'none';
-		var resolvedToken = '';
-		if ( currentMethod === 'bearer' ) {
-			resolvedToken = authTokenBearerInput ? authTokenBearerInput.value : '';
-		} else if ( currentMethod === 'api_key_custom' ) {
-			resolvedToken = authTokenApikeyInput ? authTokenApikeyInput.value : '';
-		}
-
-		var testPayload = {
-			api_url: apiUrlInput ? apiUrlInput.value.trim() : '',
-			array_path: arrayPathInput ? arrayPathInput.value.trim() : '',
-			auth_method: currentMethod,
-			auth_token: resolvedToken,
-			auth_header_name: authHeaderNameInput ? authHeaderNameInput.value : '',
-			auth_username: authUsernameInput ? authUsernameInput.value : '',
-			auth_password: authPasswordInput ? authPasswordInput.value : ''
-		};
-
-		fetch( config.restUrl.replace( '/dry-run', '/test-api-connection' ), {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-WP-Nonce': config.nonce
-			},
-			body: JSON.stringify( testPayload )
-		} )
-			.then( function( response ) {
-				return response.json().then( function( data ) {
-					return {
-						ok: response.ok,
-						data: data
-					};
-				} );
-			} )
-			.then( function( result ) {
-				previewTrigger.disabled = false;
-				previewTrigger.textContent = originalText;
-
-				if ( ! result.ok ) {
-					var message = result.data && result.data.message ? result.data.message : '<?php echo esc_js( __( 'API test failed.', 'enterprise-api-importer' ) ); ?>';
-					showPreviewError( message );
-					return;
-				}
-
-				var keysHtml = '<strong><?php echo esc_js( __( 'Available Fields:', 'enterprise-api-importer' ) ); ?></strong> ';
-				if ( result.data.available_keys && result.data.available_keys.length > 0 ) {
-					keysHtml += '<?php echo esc_js( __( 'data.', 'enterprise-api-importer' ) ); ?>' + result.data.available_keys.join( ', data.' );
-				} else {
-					keysHtml += '<?php echo esc_js( __( 'No keys found', 'enterprise-api-importer' ) ); ?>';
-				}
-
-				var successMsg = '<div style="background: #f0f6fc; border: 1px solid #7293a1; padding: 10px; border-radius: 4px; margin-bottom: 10px;">' +
-					'<button type="button" class="button-link" id="eai-preview-success-dismiss" aria-label="<?php echo esc_js( __( 'Dismiss preview result', 'enterprise-api-importer' ) ); ?>" style="position: absolute; top: 8px; right: 10px; text-decoration: none; font-size: 16px; line-height: 1;">&times;</button>' +
-					'<p><strong><?php echo esc_js( __( 'Connection Successful!', 'enterprise-api-importer' ) ); ?></strong></p>' +
-					'<p><?php echo esc_js( __( 'Items Found:', 'enterprise-api-importer' ) ); ?> ' + result.data.item_count + '</p>' +
-					'<p>' + keysHtml + '</p>' +
-					'<p style="margin-top: 8px;"><strong><?php echo esc_js( __( 'Sample Data:', 'enterprise-api-importer' ) ); ?></strong></p>' +
-					'<pre style="background: #fff; border: 1px solid #ddd; padding: 8px; border-radius: 3px; max-height: 300px; overflow: auto; font-size: 12px;">' + window.escapeHtml( result.data.sample_json || '{}' ) + '</pre>' +
-					'</div>';
-
-				showPreviewSuccess( successMsg );
-
-				var dismissButton = document.getElementById( 'eai-preview-success-dismiss' );
-				if ( dismissButton ) {
-					dismissButton.addEventListener( 'click', function() {
-						clearPreviewSuccess();
-					} );
-				}
-			} )
-			.catch( function( error ) {
-				previewTrigger.disabled = false;
-				previewTrigger.textContent = originalText;
-				showPreviewError( '<?php echo esc_js( __( 'API test request failed. See browser console for details.', 'enterprise-api-importer' ) ); ?>' );
-				console.error( 'API test error:', error );
-			} );
-	} );
-
-	if ( ! window.escapeHtml ) {
-		window.escapeHtml = function( text ) {
-			var map = {
-				'&': '&amp;',
-				'<': '&lt;',
-				'>': '&gt;',
-				'"': '&quot;',
-				"'": '&#039;'
-			};
-			return String( text ).replace( /[&<>"']/g, function( m ) { return map[ m ]; } );
-		};
-	}
-} )();
-</script>
-</div>
-<?php
 }
 
 /**
@@ -3830,6 +2521,337 @@ function eai_render_network_dashboard_page() {
 	echo '</tbody></table>';
 	echo '</div>';
 }
+
+/**
+ * Enqueues inline admin page styles for the EAPI manage-list and schedules pages.
+ *
+ * Styles are anchored to handles registered with a false source so they are output
+ * in the <head> via wp_head() rather than as raw inline <style> tags in page content.
+ *
+ * @param string $hook_suffix Current admin page hook suffix.
+ */
+function eai_enqueue_admin_page_styles( string $hook_suffix ): void {
+	$is_manage    = 'toplevel_page_eapi-manage' === $hook_suffix;
+	$is_schedules = 'eapi_page_eapi-schedules' === $hook_suffix;
+
+	if ( ! $is_manage && ! $is_schedules ) {
+		return;
+	}
+
+	// The edit view loads its own React styles; only target the list view here.
+	if ( $is_manage ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page routing check.
+		$action = isset( $_GET['action'] ) ? sanitize_key( (string) wp_unslash( $_GET['action'] ) ) : '';
+		if ( 'edit' === $action ) {
+			return;
+		}
+	}
+
+	// Shared tableau-style CSS used on both the manage-list and schedules pages.
+	$shared_css = "
+		:root {
+			--eapi-border: #e2e8f0;
+			--eapi-slate-50: #f8fafc;
+			--eapi-slate-300: #cbd5e1;
+			--eapi-slate-500: #64748b;
+			--eapi-slate-900: #0f172a;
+		}
+
+		.eapi-admin-table {
+			border: 1px solid var(--eapi-border);
+			border-radius: 10px;
+			overflow: visible;
+		}
+
+		.eapi-admin-table thead th {
+			background: var(--eapi-slate-50);
+			color: var(--eapi-slate-500);
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			border-bottom: 1px solid var(--eapi-border);
+			position: static;
+		}
+
+		.eapi-admin-table tbody tr:hover {
+			background: var(--eapi-slate-50);
+		}
+
+		.eapi-admin-table td {
+			border-bottom: 1px solid #f1f5f9;
+		}
+
+		.eai-badge {
+			display: inline-block;
+			padding: 4px 10px;
+			border-radius: 999px;
+			font-size: 12px;
+			font-weight: 600;
+		}
+
+		.eai-badge.is-success { background: #dcfce7; color: #166534; }
+		.eai-badge.is-failed { background: #fee2e2; color: #991b1b; }
+		.eai-badge.is-processing { background: #dbeafe; color: #1e40af; }
+		.eai-badge.is-idle { background: #e5e7eb; color: #374151; }
+
+		.eapi-health-chip {
+			display: inline-block;
+			padding: 3px 9px;
+			border-radius: 999px;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.02em;
+			border: 1px solid transparent;
+		}
+
+		.eapi-health-chip.is-good {
+			background: #ecfdf5;
+			color: #166534;
+			border-color: #bbf7d0;
+		}
+
+		.eapi-health-chip.is-warn {
+			background: #fffbeb;
+			color: #92400e;
+			border-color: #fde68a;
+		}
+
+		.eapi-health-chip.is-bad {
+			background: #fef2f2;
+			color: #991b1b;
+			border-color: #fecaca;
+		}
+
+		.eapi-sparkline {
+			display: inline-flex;
+			align-items: flex-end;
+			gap: 2px;
+			height: 24px;
+			padding: 1px 0;
+		}
+
+		.eapi-spark-pair {
+			display: inline-flex;
+			align-items: flex-end;
+			gap: 1px;
+			height: 24px;
+		}
+
+		.eapi-mini-bar {
+			display: inline-block;
+			width: 3px;
+			border-radius: 2px;
+		}
+
+		.eapi-mini-bar.is-created {
+			background: #2563eb;
+		}
+
+		.eapi-mini-bar.is-updated {
+			background: #0d9488;
+		}
+
+		.eapi-trend-empty {
+			color: var(--eapi-slate-500);
+			font-size: 12px;
+		}
+	";
+
+	if ( $is_manage ) {
+		$manage_css = "
+			.eapi-manage-shell {
+				max-width: 1320px;
+			}
+			.eapi-manage-topbar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+				margin-bottom: 16px;
+			}
+			.eapi-manage-topbar h1 {
+				margin: 0;
+			}
+			.eapi-manage-kpis {
+				display: grid;
+				grid-template-columns: repeat( auto-fit, minmax( 220px, 1fr ) );
+				gap: 12px;
+				margin: 16px 0 18px;
+			}
+			.eapi-manage-kpi {
+				background: #fff;
+				border: 1px solid #e2e8f0;
+				border-radius: 12px;
+				padding: 14px;
+				box-shadow: 0 1px 2px rgba( 15, 23, 42, 0.05 );
+			}
+			.eapi-manage-kpi-label {
+				font-size: 11px;
+				line-height: 1.4;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: #64748b;
+				margin-bottom: 6px;
+			}
+			.eapi-manage-kpi-value {
+				font-size: 25px;
+				line-height: 1.15;
+				font-weight: 700;
+				color: #0f172a;
+			}
+			.eapi-manage-running {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 10px;
+				border-radius: 999px;
+				background: #dbeafe;
+				color: #1e40af;
+				font-size: 12px;
+				font-weight: 600;
+			}
+			.eapi-manage-running::before {
+				content: '';
+				width: 8px;
+				height: 8px;
+				border-radius: 999px;
+				background: #3b82f6;
+			}
+			.eapi-manage-card {
+				background: #fff;
+				border: 1px solid #e2e8f0;
+				border-radius: 14px;
+				box-shadow: 0 2px 4px rgba( 15, 23, 42, 0.04 );
+				padding: 0;
+				overflow: visible;
+				margin-bottom: 18px;
+			}
+			.eapi-manage-card-header {
+				padding: 14px 16px;
+				border-bottom: 1px solid #e2e8f0;
+				background: linear-gradient( 180deg, #ffffff 0%, #f8fafc 100% );
+			}
+			.eapi-manage-card-title {
+				margin: 0;
+				font-size: 14px;
+				font-weight: 600;
+				color: #334155;
+				letter-spacing: 0.03em;
+				text-transform: uppercase;
+				text-align: center;
+			}
+			.eapi-manage-card-body {
+				padding: 12px 16px 16px;
+			}
+			.eapi-manage-card .wp-list-table,
+			.eapi-ownership-table {
+				border: 1px solid #e2e8f0;
+				border-radius: 10px;
+				overflow: visible;
+			}
+			.eapi-manage-card .wp-list-table thead th,
+			.eapi-ownership-table thead th {
+				background: #f8fafc;
+				color: #64748b;
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				border-bottom: 1px solid #e2e8f0;
+				position: static;
+			}
+			.eapi-manage-card .wp-list-table tbody tr:hover,
+			.eapi-ownership-table tbody tr:hover {
+				background: #f8fafc;
+			}
+			.eapi-manage-card .wp-list-table td,
+			.eapi-ownership-table td {
+				border-bottom: 1px solid #f1f5f9;
+			}
+			.eapi-manage-card .wp-list-table th.column-actions,
+			.eapi-manage-card .wp-list-table td.column-actions {
+				text-align: center;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn {
+				display: inline-block;
+				padding: 2px 7px;
+				border-radius: 999px;
+				text-decoration: none;
+				border: 1px solid transparent;
+				font-size: 11px;
+				font-weight: 600;
+				line-height: 1.2;
+				margin: 0 2px;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-edit {
+				background: #16a34a;
+				border-color: #15803d;
+				color: #ffffff;
+				padding: 4px 10px;
+				font-size: 16px;
+				font-weight: 700;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-edit:hover {
+				background: #15803d;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-delete {
+				background: #dc2626;
+				border-color: #b91c1c;
+				color: #ffffff;
+			}
+			.eapi-manage-card .wp-list-table td.column-actions a.eapi-action-btn.is-delete:hover {
+				background: #b91c1c;
+			}
+			.eapi-manage-card .wp-list-table td.column-endpoint,
+			.eapi-manage-card .wp-list-table td.column-id {
+				font-family: Menlo, Consolas, Monaco, \"Liberation Mono\", monospace;
+				font-size: 12px;
+			}
+			.eapi-manage-card .wp-list-table th.column-id,
+			.eapi-manage-card .wp-list-table td.column-id {
+				width: 56px;
+			}
+			.eapi-manage-card .wp-list-table th.column-status,
+			.eapi-manage-card .wp-list-table td.column-status {
+				width: 112px;
+				white-space: nowrap;
+			}
+			.eapi-manage-card .wp-list-table th.column-health,
+			.eapi-manage-card .wp-list-table td.column-health {
+				width: 108px;
+				white-space: nowrap;
+			}
+			.eapi-manage-card .tablenav.top,
+			.eapi-manage-card .tablenav.bottom {
+				padding: 10px 0;
+			}
+		";
+
+		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Inline-only handle; no src URL.
+		wp_register_style( 'eapi-manage-list', false, array(), false );
+		wp_enqueue_style( 'eapi-manage-list' );
+		wp_add_inline_style( 'eapi-manage-list', $shared_css );
+		wp_add_inline_style( 'eapi-manage-list', $manage_css );
+	}
+
+	if ( $is_schedules ) {
+		$schedules_css = "
+			.eai-schedules-table .column-status,
+			.eai-schedules-table .column-actions {
+				white-space: nowrap;
+			}
+		";
+
+		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Inline-only handle; no src URL.
+		wp_register_style( 'eapi-schedules', false, array(), false );
+		wp_enqueue_style( 'eapi-schedules' );
+		wp_add_inline_style( 'eapi-schedules', $shared_css );
+		wp_add_inline_style( 'eapi-schedules', $schedules_css );
+	}
+}
+add_action( 'admin_enqueue_scripts', 'eai_enqueue_admin_page_styles' );
 
 /**
  * Enqueue dashboard assets on the dashboard admin page only.
