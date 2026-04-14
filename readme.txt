@@ -5,7 +5,7 @@ Tags: api, import, etl, json, cron
 Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -136,6 +136,11 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 3. API Connection and Data Filtering rules.
 
 == Changelog ==
+= 1.2.4 =
+* Aligned Twig dry-run template normalization with save-time normalization so preview output matches persisted output.
+* Expanded mapping template HTML allowlist to support modern layout markup and CSS hooks (`article`, `header`, `section`, `footer`, `div`, `span`, and `class` attributes on common tags).
+* Kept mapping allowlist behavior consistent across dry-run, REST import-job save, and classic admin save handlers.
+
 = 1.2.3 =
 * Added multisite Network Admin dashboard support while preserving per-site importer dashboards.
 * Added multisite activation safeguards so unsupported Network Activate attempts are blocked and reverted.
@@ -230,6 +235,9 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 * Added secure media sideload helper foundation with source URL deduplication metadata.
 
 == Upgrade Notice ==
+= 1.2.4 =
+Dry-run rendering now mirrors save-time template normalization, and mapping template HTML allowlist support has been expanded for card-style/class-based templates while preserving centralized safety checks.
+
 = 1.2.3 =
 Multisite release. Adds a Network Admin summary dashboard, preserves per-site dashboards, blocks unsupported network activation, and changes the default SSRF dashboard state on new installs from critical to warning.
 

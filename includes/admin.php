@@ -375,10 +375,12 @@ function eai_rest_dry_run_template_preview( WP_REST_Request $request ) {
 	// Mirror save-time normalization so dry-run output matches persisted template output.
 	$title_template = mb_substr( trim( sanitize_text_field( $title_template ) ), 0, 255 );
 	$allowed_mapping_html = array(
-		'h1' => array(), 'h2' => array(), 'h3' => array(), 'h4' => array(), 'h5' => array(), 'h6' => array(),
-		'p' => array(), 'br' => array(), 'strong' => array(), 'em' => array(),
-		'ul' => array(), 'ol' => array(), 'li' => array(),
-		'a' => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true ),
+		'h1' => array( 'class' => true ), 'h2' => array( 'class' => true ), 'h3' => array( 'class' => true ), 'h4' => array( 'class' => true ), 'h5' => array( 'class' => true ), 'h6' => array( 'class' => true ),
+		'p' => array( 'class' => true ), 'br' => array(), 'strong' => array( 'class' => true ), 'em' => array( 'class' => true ),
+		'ul' => array( 'class' => true ), 'ol' => array( 'class' => true ), 'li' => array( 'class' => true ),
+		'article' => array( 'class' => true ), 'header' => array( 'class' => true ), 'section' => array( 'class' => true ), 'footer' => array( 'class' => true ),
+		'div' => array( 'class' => true ), 'span' => array( 'class' => true ),
+		'a' => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true, 'class' => true ),
 	);
 	$body_template = wp_kses( $body_template, $allowed_mapping_html );
 
@@ -806,10 +808,12 @@ function eai_rest_sanitize_import_job_fields( array $params ) {
 	}
 
 	$allowed_mapping_html = array(
-		'h1' => array(), 'h2' => array(), 'h3' => array(), 'h4' => array(), 'h5' => array(), 'h6' => array(),
-		'p' => array(), 'br' => array(), 'strong' => array(), 'em' => array(),
-		'ul' => array(), 'ol' => array(), 'li' => array(),
-		'a' => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true ),
+		'h1' => array( 'class' => true ), 'h2' => array( 'class' => true ), 'h3' => array( 'class' => true ), 'h4' => array( 'class' => true ), 'h5' => array( 'class' => true ), 'h6' => array( 'class' => true ),
+		'p' => array( 'class' => true ), 'br' => array(), 'strong' => array( 'class' => true ), 'em' => array( 'class' => true ),
+		'ul' => array( 'class' => true ), 'ol' => array( 'class' => true ), 'li' => array( 'class' => true ),
+		'article' => array( 'class' => true ), 'header' => array( 'class' => true ), 'section' => array( 'class' => true ), 'footer' => array( 'class' => true ),
+		'div' => array( 'class' => true ), 'span' => array( 'class' => true ),
+		'a' => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true, 'class' => true ),
 	);
 	$mapping_template = wp_kses( $template_raw, $allowed_mapping_html );
 
@@ -1936,20 +1940,26 @@ $custom_interval_minutes = 0;
 	}
 
 $allowed_mapping_html = array(
-'h1'     => array(),
-'h2'     => array(),
-'h3'     => array(),
-'h4'     => array(),
-'h5'     => array(),
-'h6'     => array(),
-'p'      => array(),
+'h1'     => array( 'class' => true ),
+'h2'     => array( 'class' => true ),
+'h3'     => array( 'class' => true ),
+'h4'     => array( 'class' => true ),
+'h5'     => array( 'class' => true ),
+'h6'     => array( 'class' => true ),
+'p'      => array( 'class' => true ),
 'br'     => array(),
-'strong' => array(),
-'em'     => array(),
-'ul'     => array(),
-'ol'     => array(),
-'li'     => array(),
-'a'      => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true ),
+'strong' => array( 'class' => true ),
+'em'     => array( 'class' => true ),
+'ul'     => array( 'class' => true ),
+'ol'     => array( 'class' => true ),
+'li'     => array( 'class' => true ),
+'article' => array( 'class' => true ),
+'header'  => array( 'class' => true ),
+'section' => array( 'class' => true ),
+'footer'  => array( 'class' => true ),
+'div'     => array( 'class' => true ),
+'span'    => array( 'class' => true ),
+'a'      => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true, 'class' => true ),
 );
 $mapping_template = wp_kses( (string) $template_raw, $allowed_mapping_html );
 

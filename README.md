@@ -42,6 +42,12 @@ It gives you:
 - Endpoint test, API data preview, and Twig dry-run tools before production execution.
 - Per-import edit-lock toggle to allow or prevent wp-admin edits on imported posts.
 
+## Latest Release (1.2.4)
+
+- Dry-run/save parity for templates: Twig dry-run now uses the same title normalization and mapping-template sanitization flow as save handlers.
+- Expanded mapping HTML support: structural tags (`article`, `header`, `section`, `footer`, `div`, `span`) and `class` attributes on common tags are now preserved.
+- Consistent behavior across all save paths: dry-run, REST import-job save, and classic wp-admin save share matching allowlist expectations.
+
 ## Multisite Operation
 
 In WordPress multisite, the plugin follows a per-site execution model with an optional network summary view.

@@ -3,7 +3,7 @@
  * Plugin Name: Enterprise API Importer
  * Plugin URI:  https://github.com/tporret/enterprise-api-importer
  * Description: Highly secure enterprise ETL importer for WordPress.
- * Version:     1.2.3
+ * Version:     1.2.4
  * Author:      tporret
  * License:     GPL-2.0-or-later
  * Donate link: https://porretto.com/donate
