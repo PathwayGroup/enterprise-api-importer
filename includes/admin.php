@@ -372,6 +372,16 @@ function eai_rest_dry_run_template_preview( WP_REST_Request $request ) {
 	$auth_username  = isset( $params['auth_username'] ) ? sanitize_text_field( (string) $params['auth_username'] ) : '';
 	$auth_password  = isset( $params['auth_password'] ) ? (string) $params['auth_password'] : '';
 
+	// Mirror save-time normalization so dry-run output matches persisted template output.
+	$title_template = mb_substr( trim( sanitize_text_field( $title_template ) ), 0, 255 );
+	$allowed_mapping_html = array(
+		'h1' => array(), 'h2' => array(), 'h3' => array(), 'h4' => array(), 'h5' => array(), 'h6' => array(),
+		'p' => array(), 'br' => array(), 'strong' => array(), 'em' => array(),
+		'ul' => array(), 'ol' => array(), 'li' => array(),
+		'a' => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true ),
+	);
+	$body_template = wp_kses( $body_template, $allowed_mapping_html );
+
 	$title_template_validation = eai_validate_twig_template_security( $title_template, 'title' );
 	if ( is_wp_error( $title_template_validation ) ) {
 		return new WP_REST_Response(
