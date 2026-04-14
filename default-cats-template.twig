@@ -1,0 +1,96 @@
+<article class="breed-card">
+
+  <header class="breed-card__header">
+    <h2>{{ data.name }}</h2>
+
+    <ul class="breed-card__meta">
+      <li><strong>Origin:</strong> {{ data.origin }}</li>
+      <li><strong>Life span:</strong> {{ data.life_span }} years</li>
+      <li>
+        <strong>Weight:</strong>
+        {{ data.weight.imperial }} lbs
+        {# or data.weight.metric for kg #}
+      </li>
+    </ul>
+  </header>
+
+  <section class="breed-card__body">
+    <p>{{ data.description }}</p>
+
+    {% if data.temperament %}
+      <p class="breed-card__temperament">
+        {% for trait in data.temperament|split(', ') %}
+          <span class="badge">{{ trait }}</span>
+        {% endfor %}
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="breed-card__traits">
+    <h3>Traits</h3>
+
+    {% set traits = {
+      'Adaptability':      data.adaptability,
+      'Affection level':  data.affection_level,
+      'Child friendly':   data.child_friendly,
+      'Dog friendly':     data.dog_friendly,
+      'Energy level':     data.energy_level,
+      'Grooming':         data.grooming,
+      'Health issues':    data.health_issues,
+      'Intelligence':     data.intelligence,
+      'Shedding level':   data.shedding_level,
+      'Social needs':     data.social_needs,
+      'Stranger friendly':data.stranger_friendly,
+      'Vocalisation':     data.vocalisation
+    } %}
+
+    <ul class="breed-card__trait-list">
+      {% for label, score in traits %}
+      <li>
+        <span class="trait-label">{{ label }}</span>
+        <span class="trait-bar">
+          {% for i in 1..5 %}
+              {% if i <= score %}
+                <span class="pip pip--filled"></span>
+              {% else %}
+                <span class="pip"></span>
+              {% endif %}
+          {% endfor %}
+        </span>
+        <span class="trait-score">{{ score }}/5</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <footer class="breed-card__flags">
+    {% set flags = {
+      'Indoor':        data.indoor,
+      'Lap cat':       data.lap,
+      'Hypoallergenic':data.hypoallergenic,
+      'Natural breed': data.natural,
+      'Rare':          data.rare,
+      'Hairless':      data.hairless,
+      'Short legs':    data.short_legs
+    } %}
+
+    {% for label, val in flags %}
+      {% if val %}
+        <span class="flag">{{ label }}</span>
+      {% endif %}
+    {% endfor %}
+
+    <div class="breed-card__links">
+      {% if data.wikipedia_url %}
+        <a href="{{ data.wikipedia_url }}" target="_blank">Wikipedia</a>
+      {% endif %}
+      {% if data.cfa_url %}
+        <a href="{{ data.cfa_url }}" target="_blank">CFA</a>
+      {% endif %}
+      {% if data.vcahospitals_url %}
+        <a href="{{ data.vcahospitals_url }}" target="_blank">VCA Hospitals</a>
+      {% endif %}
+    </div>
+  </footer>
+
+</article>
