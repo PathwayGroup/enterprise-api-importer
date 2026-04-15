@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 /**
  * Admin job manager UI and handlers.
  *
@@ -6,7 +7,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-exit;
+	exit;
 }
 
 /**
@@ -15,15 +16,60 @@ exit;
  * @return bool
  */
 function eai_current_user_can_manage_imports() {
-if ( current_user_can( 'eai_manage_templates' ) || current_user_can( 'manage_options' ) ) {
-return true;
+	if ( current_user_can( 'eai_manage_templates' ) || current_user_can( 'manage_options' ) ) {
+		return true;
+	}
+
+	if ( is_multisite() && is_super_admin() ) {
+		return true;
+	}
+
+	return false;
 }
 
-if ( is_multisite() && is_super_admin() ) {
-return true;
+/**
+ * Validates the REST request nonce for admin tooling.
+ *
+ * @param WP_REST_Request $request REST request.
+ *
+ * @return true|WP_Error
+ */
+function eai_rest_validate_request_nonce( WP_REST_Request $request ) {
+	$nonce = (string) $request->get_header( 'x-wp-nonce' );
+
+	if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+		return new WP_Error(
+			'eai_rest_nonce_invalid',
+			esc_html__( 'Invalid request verification.', 'enterprise-api-importer' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	return true;
 }
 
-return false;
+/**
+ * Shared REST route permission callback for admin tooling.
+ *
+ * @param WP_REST_Request $request REST request.
+ *
+ * @return true|WP_Error
+ */
+function eai_rest_permission_callback( WP_REST_Request $request ) {
+	$nonce_check = eai_rest_validate_request_nonce( $request );
+	if ( is_wp_error( $nonce_check ) ) {
+		return $nonce_check;
+	}
+
+	if ( ! eai_current_user_can_manage_imports() ) {
+		return new WP_Error(
+			'rest_forbidden',
+			esc_html__( 'You are not allowed to access this resource.', 'enterprise-api-importer' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	return true;
 }
 
 /**
@@ -138,8 +184,8 @@ function eai_register_rest_routes() {
 		array(
 			'methods'             => 'POST',
 			'callback'            => 'eai_rest_dry_run_template_preview',
-			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+			'permission_callback' => static function ( WP_REST_Request $request ) {
+				return eai_rest_permission_callback( $request );
 			},
 		)
 	);
@@ -150,8 +196,8 @@ function eai_register_rest_routes() {
 		array(
 			'methods'             => 'POST',
 			'callback'            => 'eai_rest_test_api_connection',
-			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+			'permission_callback' => static function ( WP_REST_Request $request ) {
+				return eai_rest_permission_callback( $request );
 			},
 		)
 	);
@@ -164,15 +210,15 @@ function eai_register_rest_routes() {
 			array(
 				'methods'             => 'GET',
 				'callback'            => 'eai_rest_get_import_job',
-				'permission_callback' => static function () {
-					return eai_current_user_can_manage_imports();
+				'permission_callback' => static function ( WP_REST_Request $request ) {
+					return eai_rest_permission_callback( $request );
 				},
 			),
 			array(
 				'methods'             => 'PUT',
 				'callback'            => 'eai_rest_update_import_job',
-				'permission_callback' => static function () {
-					return eai_current_user_can_manage_imports();
+				'permission_callback' => static function ( WP_REST_Request $request ) {
+					return eai_rest_permission_callback( $request );
 				},
 			),
 		)
@@ -184,8 +230,8 @@ function eai_register_rest_routes() {
 		array(
 			'methods'             => 'POST',
 			'callback'            => 'eai_rest_create_import_job',
-			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+			'permission_callback' => static function ( WP_REST_Request $request ) {
+				return eai_rest_permission_callback( $request );
 			},
 		)
 	);
@@ -196,8 +242,8 @@ function eai_register_rest_routes() {
 		array(
 			'methods'             => 'POST',
 			'callback'            => 'eai_rest_run_import_job',
-			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+			'permission_callback' => static function ( WP_REST_Request $request ) {
+				return eai_rest_permission_callback( $request );
 			},
 		)
 	);
@@ -208,8 +254,8 @@ function eai_register_rest_routes() {
 		array(
 			'methods'             => 'POST',
 			'callback'            => 'eai_rest_template_sync_import_job',
-			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+			'permission_callback' => static function ( WP_REST_Request $request ) {
+				return eai_rest_permission_callback( $request );
 			},
 		)
 	);

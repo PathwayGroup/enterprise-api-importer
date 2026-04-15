@@ -1,4 +1,5 @@
 <?php
+declare( strict_types=1 );
 /**
  * Database access layer for Enterprise API Importer.
  *
@@ -403,10 +404,11 @@ function eai_db_delete_import_config( int $import_id ): bool {
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_db_get_unprocessed_staging_rows( int $import_id ): array {
+function eai_db_get_unprocessed_staging_rows( int $import_id, int $limit = 10 ): array {
 	global $wpdb;
 
 	$import_id = absint( $import_id );
+	$limit     = absint( $limit );
 	$table     = eai_db_temp_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -416,9 +418,11 @@ function eai_db_get_unprocessed_staging_rows( int $import_id ): array {
 			FROM %i
 			WHERE is_processed = 0
 				AND import_id = %d
-			ORDER BY id ASC",
+			ORDER BY id ASC
+			LIMIT %d",
 			$table,
-			$import_id
+			$import_id,
+			$limit
 		),
 		ARRAY_A
 	);
