@@ -10,14 +10,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Aggregates results from all registered reporter modules.
+ */
 class EAPI_Reporting_Aggregator {
 
-	/** @var self|null */
+	/**
+	 * Singleton instance.
+	 *
+	 * @var self|null
+	 */
 	private static ?self $instance = null;
 
-	/** @var EAPI_Reporter_Base[] */
+	/**
+	 * Registered reporter modules keyed by reporter ID.
+	 *
+	 * @var EAPI_Reporter_Base[]
+	 */
 	private array $reporters = array();
 
+	/**
+	 * Constructor.
+	 */
 	private function __construct() {}
 
 	/**
@@ -32,6 +46,10 @@ class EAPI_Reporting_Aggregator {
 
 	/**
 	 * Register a reporter module.
+	 *
+	 * @param EAPI_Reporter_Base $reporter Reporter instance.
+	 *
+	 * @return void
 	 */
 	public function register_reporter( EAPI_Reporter_Base $reporter ): void {
 		$this->reporters[ $reporter->get_id() ] = $reporter;

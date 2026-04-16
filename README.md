@@ -1,6 +1,6 @@
-# Enterprise API Importer
+# OmniFetch - REST API ETL Importer
 
-Enterprise API Importer is a WordPress plugin for secure, repeatable API-to-WordPress ETL.
+OmniFetch - REST API ETL Importer is a WordPress plugin for secure, repeatable API-to-WordPress ETL.
 It is built for teams that need enterprise-grade reliability without losing flexibility.
 
 This README is the technical overview for developers, maintainers, and operators working from the repository.
@@ -42,11 +42,10 @@ It gives you:
 - Endpoint test, API data preview, and Twig dry-run tools before production execution.
 - Per-import edit-lock toggle to allow or prevent wp-admin edits on imported posts.
 
-## Latest Release (1.2.4)
+## Latest Release (1.2.5)
 
-- Dry-run/save parity for templates: Twig dry-run now uses the same title normalization and mapping-template sanitization flow as save handlers.
-- Expanded mapping HTML support: structural tags (`article`, `header`, `section`, `footer`, `div`, `span`) and `class` attributes on common tags are now preserved.
-- Consistent behavior across all save paths: dry-run, REST import-job save, and classic wp-admin save share matching allowlist expectations.
+- Plugin naming update for resubmission: the public plugin name is now OmniFetch - REST API ETL Importer.
+- No functional changes are bundled with this release.
 
 ## Multisite Operation
 

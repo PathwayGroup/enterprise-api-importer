@@ -34,6 +34,8 @@ function eai_sync_template_management_capabilities() {
  * Runs on plugin activation.
  *
  * Creates and migrates ETL tables required by the import pipeline.
+ *
+ * @param bool $network_wide Whether activation was requested network-wide.
  */
 function eai_activate_plugin( $network_wide = false ) {
 	if ( is_multisite() && $network_wide ) {
@@ -47,8 +49,8 @@ function eai_activate_plugin( $network_wide = false ) {
 	$charset_collate = $wpdb->get_charset_collate();
 
 	$imports_table = $wpdb->prefix . 'eapi_imports';
-	$logs_table = $wpdb->prefix . 'custom_import_logs';
-	$temp_table = $wpdb->prefix . 'custom_import_temp';
+	$logs_table    = $wpdb->prefix . 'custom_import_logs';
+	$temp_table    = $wpdb->prefix . 'custom_import_temp';
 
 	$sql_imports = "CREATE TABLE {$imports_table} (
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -140,7 +142,7 @@ function eai_block_network_activation() {
 	deactivate_plugins( EAI_PLUGIN_BASENAME, true, true );
 
 	wp_die(
-		esc_html__( 'Enterprise API Importer cannot be network-activated. Activate it on the primary site to expose the Network Admin dashboard, then activate it only on the subsites that should run imports.', 'enterprise-api-importer' ),
+		esc_html__( 'OmniFetch - REST API ETL Importer cannot be network-activated. Activate it on the primary site to expose the Network Admin dashboard, then activate it only on the subsites that should run imports.', 'enterprise-api-importer' ),
 		esc_html__( 'Network activation is not supported', 'enterprise-api-importer' ),
 		array(
 			'back_link' => true,
@@ -305,8 +307,26 @@ function eai_ensure_imports_post_status_columns() {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $col_name ) );
 		if ( null === $exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN `{$col_name}` {$col_def} AFTER lock_editing", $table ) );
+			$query = '';
+
+			switch ( $col_name ) {
+				case 'post_status':
+					$query = "ALTER TABLE %i ADD COLUMN `post_status` varchar(20) NOT NULL DEFAULT 'draft' AFTER lock_editing";
+					break;
+				case 'comment_status':
+					$query = "ALTER TABLE %i ADD COLUMN `comment_status` varchar(20) NOT NULL DEFAULT 'closed' AFTER lock_editing";
+					break;
+				case 'ping_status':
+					$query = "ALTER TABLE %i ADD COLUMN `ping_status` varchar(20) NOT NULL DEFAULT 'closed' AFTER lock_editing";
+					break;
+			}
+
+			if ( '' === $query ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery -- Query text is selected from a fixed whitelist of literal ALTER statements.
+			$wpdb->query( $wpdb->prepare( $query, $table ) );
 		}
 	}
 }
@@ -376,11 +396,11 @@ function eai_maybe_upgrade_schema() {
  */
 function eai_get_default_settings() {
 	return array(
-		'cron_initial_delay_seconds'   => '5',
-		'cron_batch_delay_seconds'     => '15',
-		'allow_internal_endpoints'     => '0',
-		'allowed_endpoint_hosts'       => '',
-		'allowed_endpoint_cidrs'       => '',
+		'cron_initial_delay_seconds' => '5',
+		'cron_batch_delay_seconds'   => '15',
+		'allow_internal_endpoints'   => '0',
+		'allowed_endpoint_hosts'     => '',
+		'allowed_endpoint_cidrs'     => '',
 	);
 }
 
@@ -546,9 +566,9 @@ function eai_decrypt_import_credentials( array $row ) {
  */
 function eai_mask_import_credentials( array $row ) {
 	foreach ( eai_get_credential_field_names() as $field ) {
-		$has_value         = isset( $row[ $field ] ) && '' !== (string) $row[ $field ];
+		$has_value              = isset( $row[ $field ] ) && '' !== (string) $row[ $field ];
 		$row[ 'has_' . $field ] = $has_value;
-		$row[ $field ]     = '';
+		$row[ $field ]          = '';
 	}
 
 	return $row;

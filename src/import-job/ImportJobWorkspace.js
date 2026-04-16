@@ -41,7 +41,7 @@ const TABS = [
 ];
 
 export default function ImportJobWorkspace() {
-	const config = window.eapiImportJob || {};
+	const config = window.enterpriseApiImporterImportJob || {};
 	const importId = config.importId || 0;
 	const postTypes = config.postTypes || [];
 	const authors = config.authors || [];
@@ -57,7 +57,7 @@ export default function ImportJobWorkspace() {
 		if ( ! isEdit ) {
 			return;
 		}
-		apiFetch( { path: `/eapi/v1/import-jobs/${ importId }` } )
+		apiFetch( { path: `/enterprise-api-importer/v1/import-jobs/${ importId }` } )
 			.then( ( data ) => {
 				setJob( ( prev ) => ( { ...prev, ...data } ) );
 			} )
@@ -80,8 +80,8 @@ export default function ImportJobWorkspace() {
 
 		const method = isEdit ? 'PUT' : 'POST';
 		const path = isEdit
-			? `/eapi/v1/import-jobs/${ importId }`
-			: '/eapi/v1/import-jobs';
+			? `/enterprise-api-importer/v1/import-jobs/${ importId }`
+			: '/enterprise-api-importer/v1/import-jobs';
 
 		try {
 			const result = await apiFetch( {
@@ -123,7 +123,7 @@ export default function ImportJobWorkspace() {
 		setNotice( null );
 		try {
 			await apiFetch( {
-				path: `/eapi/v1/import-jobs/${ importId }/run`,
+				path: `/enterprise-api-importer/v1/import-jobs/${ importId }/run`,
 				method: 'POST',
 			} );
 			setNotice( {
@@ -145,7 +145,7 @@ export default function ImportJobWorkspace() {
 		setNotice( null );
 		try {
 			await apiFetch( {
-				path: `/eapi/v1/import-jobs/${ importId }/template-sync`,
+				path: `/enterprise-api-importer/v1/import-jobs/${ importId }/template-sync`,
 				method: 'POST',
 			} );
 			setNotice( {

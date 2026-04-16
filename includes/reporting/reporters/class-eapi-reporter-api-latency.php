@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports recent API processing latency.
+ */
 class EAPI_Reporter_API_Latency extends EAPI_Reporter_Base {
 
-	protected string $id       = 'api_latency';
-	protected string $category = 'Performance';
-	protected string $label    = 'API Latency';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'api_latency';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Performance';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'API Latency';
+
+	/**
+	 * Calculate API latency metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 

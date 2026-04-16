@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<ruleset name="Enterprise API Importer">
+	<description>Default PHP_CodeSniffer configuration for the Enterprise API Importer plugin.</description>
+
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+
+	<rule ref="WordPress"/>
+
+	<file>enterprise-api-importer.php</file>
+	<file>includes</file>
+	<file>uninstall.php</file>
+</ruleset>

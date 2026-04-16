@@ -1,10 +1,11 @@
 <?php
-declare( strict_types=1 );
 /**
  * Database access layer for Enterprise API Importer.
  *
  * @package EnterpriseAPIImporter
  */
+
+declare( strict_types=1 );
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -133,7 +134,7 @@ function eai_db_delete_network_snapshot( int $blog_id ): bool {
 	}
 
 	global $wpdb;
-	$table  = eai_db_network_dashboard_table();
+	$table   = eai_db_network_dashboard_table();
 	$blog_id = absint( $blog_id );
 
 	if ( $blog_id <= 0 ) {
@@ -194,9 +195,9 @@ function eai_db_get_import_configs(): array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
+			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
 			FROM %i
-			ORDER BY id DESC",
+			ORDER BY id DESC',
 			$table
 		),
 		ARRAY_A
@@ -240,9 +241,9 @@ function eai_db_get_import_config( int $import_id ): ?array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
+			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
 			FROM %i
-			WHERE id = %d",
+			WHERE id = %d',
 			$table,
 			$import_id
 		),
@@ -401,6 +402,7 @@ function eai_db_delete_import_config( int $import_id ): bool {
  * Gets the next unprocessed staging rows for one import (real-time query).
  *
  * @param int $import_id Import job ID.
+ * @param int $limit     Maximum number of rows to fetch.
  *
  * @return array<int, array<string, mixed>>
  */
@@ -414,12 +416,12 @@ function eai_db_get_unprocessed_staging_rows( int $import_id, int $limit = 10 ):
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT id, import_id, raw_json
+			'SELECT id, import_id, raw_json
 			FROM %i
 			WHERE is_processed = 0
 				AND import_id = %d
 			ORDER BY id ASC
-			LIMIT %d",
+			LIMIT %d',
 			$table,
 			$import_id,
 			$limit
@@ -445,10 +447,10 @@ function eai_db_count_unprocessed_staging_rows( int $import_id ): int {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$count = $wpdb->get_var(
 		$wpdb->prepare(
-			"SELECT COUNT(1)
+			'SELECT COUNT(1)
 			FROM %i
 			WHERE is_processed = 0
-				AND import_id = %d",
+				AND import_id = %d',
 			$table,
 			absint( $import_id )
 		)
@@ -564,7 +566,7 @@ function eai_db_get_latest_logs_indexed_by_import_id(): array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT l.import_id, l.status, l.rows_processed, l.rows_created, l.rows_updated, l.errors, l.created_at AS last_run_at
+			'SELECT l.import_id, l.status, l.rows_processed, l.rows_created, l.rows_updated, l.errors, l.created_at AS last_run_at
 			FROM %i l
 			INNER JOIN (
 				SELECT import_id, MAX(id) AS max_id
@@ -572,7 +574,7 @@ function eai_db_get_latest_logs_indexed_by_import_id(): array {
 				GROUP BY import_id
 			) latest
 				ON l.import_id = latest.import_id
-				AND l.id = latest.max_id",
+				AND l.id = latest.max_id',
 			$logs_table,
 			$logs_table
 		),
@@ -671,10 +673,10 @@ function eai_db_get_pending_counts_by_import_id(): array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT import_id, COUNT(id) AS pending_count
+			'SELECT import_id, COUNT(id) AS pending_count
 			FROM %i
 			WHERE is_processed = 0
-			GROUP BY import_id",
+			GROUP BY import_id',
 			$temp_table
 		),
 		ARRAY_A

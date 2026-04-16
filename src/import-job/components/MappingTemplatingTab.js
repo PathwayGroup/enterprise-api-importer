@@ -77,7 +77,7 @@ export default function MappingTemplatingTab( {
 
 		try {
 			const result = await apiFetch( {
-				path: '/eapi/v1/dry-run',
+				path: '/enterprise-api-importer/v1/dry-run',
 				method: 'POST',
 				data: {
 					api_url: job.endpoint_url,

@@ -1,333 +1,14 @@
 <?php
-declare( strict_types=1 );
 /**
  * Import pipeline and queue processing.
  *
  * @package EnterpriseAPIImporter
  */
 
+declare( strict_types=1 );
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
-}
-
-/**
- * Core import processing helpers.
- */
-class EAI_Import_Processor {
-	/**
-	 * Downloads and sideloads one remote image into the media library.
-	 *
-	 * Idempotency: if an attachment already exists with matching _eapi_source_url,
-	 * the existing attachment ID is returned immediately and no new download occurs.
-	 *
-	 * @param mixed $image_url   Absolute image URL.
-	 * @param mixed $post_id     Parent post ID.
-	 * @param mixed $is_featured Whether to assign as featured image.
-	 *
-	 * @return int|false Attachment ID on success, false on failure.
-	 */
-	public static function sideload_image( $image_url, $post_id, $is_featured = false ) {
-		$image_url   = is_string( $image_url ) ? trim( $image_url ) : '';
-		$post_id     = absint( $post_id );
-		$is_featured = (bool) $is_featured;
-
-		if ( '' === $image_url || $post_id <= 0 || ! wp_http_validate_url( $image_url ) ) {
-			self::log_media_error(
-				'Invalid Media URL',
-				$image_url,
-				$post_id,
-				__( 'Invalid media URL or post ID supplied for sideload.', 'enterprise-api-importer' )
-			);
-
-			return false;
-		}
-
-		$source_url = esc_url_raw( $image_url );
-
-		$existing_attachment_query = new WP_Query(
-			array(
-				'post_type'              => 'attachment',
-				'post_status'            => 'any',
-				'fields'                 => 'ids',
-				'posts_per_page'         => 1,
-				'no_found_rows'          => true,
-				'ignore_sticky_posts'    => true,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-				'meta_query'             => array(
-					array(
-						'key'     => '_eapi_source_url',
-						'value'   => $source_url,
-						'compare' => '=',
-					),
-				),
-			)
-		);
-
-		if ( ! empty( $existing_attachment_query->posts ) ) {
-			return (int) $existing_attachment_query->posts[0];
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-
-		$temp_file = download_url( $source_url );
-
-		if ( is_wp_error( $temp_file ) ) {
-			self::log_media_error(
-				'Media Download Error',
-				$source_url,
-				$post_id,
-				$temp_file->get_error_message()
-			);
-
-			return false;
-		}
-
-		$url_path = wp_parse_url( $source_url, PHP_URL_PATH );
-		$file_name = is_string( $url_path ) ? basename( $url_path ) : '';
-
-		if ( '' === $file_name ) {
-			$file_name = 'eapi-image-' . wp_generate_password( 12, false ) . '.jpg';
-		}
-
-		$file_array = array(
-			'name'     => sanitize_file_name( rawurldecode( $file_name ) ),
-			'tmp_name' => $temp_file,
-		);
-
-		$attachment_id = media_handle_sideload( $file_array, $post_id );
-
-		if ( is_wp_error( $attachment_id ) ) {
-			if ( isset( $file_array['tmp_name'] ) && is_string( $file_array['tmp_name'] ) ) {
-				wp_delete_file( $file_array['tmp_name'] );
-			}
-
-			self::log_media_error(
-				'Media Sideload Error',
-				$source_url,
-				$post_id,
-				$attachment_id->get_error_message()
-			);
-
-			return false;
-		}
-
-		$attachment_id = (int) $attachment_id;
-		update_post_meta( $attachment_id, '_eapi_source_url', $source_url );
-
-		if ( $is_featured ) {
-			set_post_thumbnail( $post_id, $attachment_id );
-		}
-
-		return $attachment_id;
-	}
-
-	/**
-	 * Parses rendered HTML, sideloads external images, and rewrites image sources to local URLs.
-	 *
-	 * @param mixed $html_content Rendered HTML content that may contain IMG tags.
-	 * @param mixed $post_id      Target post ID used as the parent for sideloaded attachments.
-	 *
-	 * @return string Updated HTML content with rewritten IMG src attributes where sideloading succeeds.
-	 */
-	public static function parse_and_sideload_content_images( $html_content, $post_id ) {
-		$html_content = is_string( $html_content ) ? $html_content : '';
-		$post_id      = absint( $post_id );
-
-		if ( '' === $html_content || $post_id <= 0 || ! class_exists( 'DOMDocument' ) ) {
-			return $html_content;
-		}
-
-		$dom               = new DOMDocument();
-		$previous_internal = libxml_use_internal_errors( true );
-		$wrapped_html      = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html_content . '</body></html>';
-
-		$loaded = $dom->loadHTML( $wrapped_html, LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED );
-
-		if ( false === $loaded ) {
-			libxml_clear_errors();
-			libxml_use_internal_errors( $previous_internal );
-
-			return $html_content;
-		}
-
-		$site_host = wp_parse_url( site_url(), PHP_URL_HOST );
-		$site_host = is_string( $site_host ) ? strtolower( $site_host ) : '';
-
-		$images = $dom->getElementsByTagName( 'img' );
-
-		foreach ( $images as $image_node ) {
-			if ( ! $image_node instanceof DOMElement ) {
-				continue;
-			}
-
-			$src = trim( (string) $image_node->getAttribute( 'src' ) );
-
-			if ( '' === $src ) {
-				continue;
-			}
-
-			$src_host = wp_parse_url( $src, PHP_URL_HOST );
-			$src_host = is_string( $src_host ) ? strtolower( $src_host ) : '';
-
-			if ( '' === $src_host || ( '' !== $site_host && $src_host === $site_host ) ) {
-				continue;
-			}
-
-			$attachment_id = self::sideload_image( $src, $post_id );
-
-			if ( false === $attachment_id ) {
-				continue;
-			}
-
-			$attachment_id = absint( $attachment_id );
-			$new_src       = wp_get_attachment_url( $attachment_id );
-
-			if ( ! is_string( $new_src ) || '' === $new_src ) {
-				continue;
-			}
-
-			$image_node->setAttribute( 'src', esc_url_raw( $new_src ) );
-
-			$class_attr = trim( (string) $image_node->getAttribute( 'class' ) );
-			$classes    = '' === $class_attr ? array() : preg_split( '/\s+/', $class_attr );
-
-			if ( ! is_array( $classes ) ) {
-				$classes = array();
-			}
-
-			$classes = array_filter( $classes, 'is_string' );
-			$wp_class = 'wp-image-' . $attachment_id;
-
-			if ( ! in_array( $wp_class, $classes, true ) ) {
-				$classes[] = $wp_class;
-			}
-
-			$image_node->setAttribute( 'class', implode( ' ', $classes ) );
-		}
-
-		$rewritten_html = $dom->saveHTML();
-		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
-
-		$rewritten_html = preg_replace( '/\A\s*<!DOCTYPE[^>]*>\s*/i', '', $rewritten_html );
-		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
-		$rewritten_html = preg_replace( '/\A\s*<html[^>]*>\s*<head>.*?<\/head>\s*<body[^>]*>/is', '', $rewritten_html );
-		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
-		$rewritten_html = preg_replace( '/<\/body>\s*<\/html>\s*\z/is', '', $rewritten_html );
-		$rewritten_html = is_string( $rewritten_html ) ? $rewritten_html : $html_content;
-
-		libxml_clear_errors();
-		libxml_use_internal_errors( $previous_internal );
-
-		return $rewritten_html;
-	}
-
-	/**
-	 * Runs daily garbage collection for import temp and log tables using chunked deletions.
-	 *
-	 * Chunking with LIMIT reduces lock duration and helps avoid large-table lock contention.
-	 *
-	 * @return array<string, mixed> Summary including deleted row counts and any query errors.
-	 */
-	public static function run_garbage_collection() {
-		global $wpdb;
-
-		if ( ! $wpdb instanceof wpdb ) {
-			return array(
-				'temp_deleted' => 0,
-				'logs_deleted' => 0,
-				'errors'       => array( 'Database connection is unavailable.' ),
-			);
-		}
-
-		$temp_table = $wpdb->prefix . 'custom_import_temp';
-		$logs_table = $wpdb->prefix . 'custom_import_logs';
-		$chunk_size = 1000;
-
-		$temp_deleted_total = 0;
-		$logs_deleted_total = 0;
-		$errors             = array();
-
-		do {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$temp_result  = $wpdb->query(
-				$wpdb->prepare(
-					'DELETE FROM %i WHERE is_processed = 1 OR created_at < ( UTC_TIMESTAMP() - INTERVAL 7 DAY ) LIMIT %d',
-					$temp_table,
-					$chunk_size
-				)
-			);
-			$temp_deleted = max( 0, (int) $wpdb->rows_affected );
-
-			if ( false === $temp_result ) {
-				$errors[] = 'Failed to purge records from custom_import_temp.';
-				break;
-			}
-
-			$temp_deleted_total += $temp_deleted;
-		} while ( $temp_deleted > 0 );
-
-		do {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$logs_result  = $wpdb->query(
-				$wpdb->prepare(
-					'DELETE FROM %i WHERE created_at < ( UTC_TIMESTAMP() - INTERVAL 30 DAY ) LIMIT %d',
-					$logs_table,
-					$chunk_size
-				)
-			);
-			$logs_deleted = max( 0, (int) $wpdb->rows_affected );
-
-			if ( false === $logs_result ) {
-				$errors[] = 'Failed to purge records from custom_import_logs.';
-				break;
-			}
-
-			$logs_deleted_total += $logs_deleted;
-		} while ( $logs_deleted > 0 );
-
-		return array(
-			'temp_deleted' => $temp_deleted_total,
-			'logs_deleted' => $logs_deleted_total,
-			'errors'       => $errors,
-		);
-	}
-
-	/**
-	 * Writes a media-processing error row to the import logs table.
-	 *
-	 * @param string $status    Log status label.
-	 * @param string $image_url Source image URL.
-	 * @param int    $post_id   Target post ID.
-	 * @param string $message   Error message.
-	 *
-	 * @return void
-	 */
-	private static function log_media_error( $status, $image_url, $post_id, $message ) {
-		$now         = gmdate( 'Y-m-d H:i:s', time() );
-		$run_id      = wp_generate_uuid4();
-		$status      = sanitize_text_field( (string) $status );
-		$image_url   = esc_url_raw( (string) $image_url );
-		$post_id     = absint( $post_id );
-		$message     = sanitize_text_field( (string) $message );
-		$error_json  = wp_json_encode(
-			array(
-				'media_error' => true,
-				'image_url'   => $image_url,
-				'post_id'     => $post_id,
-				'message'     => $message,
-			),
-			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-		);
-
-		if ( false === $error_json ) {
-			$error_json = '{"media_error":true,"message":"JSON encoding failed"}';
-		}
-
-		eai_db_insert_import_log( 0, $run_id, $status, 0, 0, 0, (string) $error_json, $now );
-	}
 }
 
 add_action( 'eai_process_import_queue', 'eai_handle_scheduled_import_batch' );
@@ -341,14 +22,14 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 }
 
 /**
- * Runs Enterprise API Importer garbage collection from WP-CLI.
+ * Runs OmniFetch - REST API ETL Importer garbage collection from WP-CLI.
  *
  * ## EXAMPLES
  *
  *     wp eai garbage-collect
  *
- * @param array<int, string>          $args       Positional WP-CLI args.
- * @param array<string, string|bool>  $assoc_args Associative WP-CLI args.
+ * @param array<int, string>         $args       Positional WP-CLI args.
+ * @param array<string, string|bool> $assoc_args Associative WP-CLI args.
  *
  * @return void
  */
@@ -408,7 +89,7 @@ function eai_register_custom_cron_schedules( $schedules ) {
 			'interval' => $minutes * MINUTE_IN_SECONDS,
 			'display'  => sprintf(
 				/* translators: %d is number of minutes. */
-				__( 'Every %d minutes (Enterprise API Importer)', 'enterprise-api-importer' ),
+				__( 'Every %d minutes (OmniFetch - REST API ETL Importer)', 'enterprise-api-importer' ),
 				$minutes
 			),
 		);
@@ -542,14 +223,14 @@ function eai_handle_import_batch_hook( $import_id, $trigger_source = 'run_now' )
 			0,
 			0,
 			array(
-				'start_time'        => $now,
-				'end_time'          => $now,
-				'orphans_trashed'   => 0,
-				'temp_rows_found'   => 0,
+				'start_time'          => $now,
+				'end_time'            => $now,
+				'orphans_trashed'     => 0,
+				'temp_rows_found'     => 0,
 				'temp_rows_processed' => 0,
-				'slices'            => 0,
-				'trigger_source'    => $trigger_source,
-				'processing_errors' => array( $extract_result->get_error_message() ),
+				'slices'              => 0,
+				'trigger_source'      => $trigger_source,
+				'processing_errors'   => array( $extract_result->get_error_message() ),
 			),
 			$now
 		);
@@ -561,18 +242,18 @@ function eai_handle_import_batch_hook( $import_id, $trigger_source = 'run_now' )
 
 	eai_set_active_run_state(
 		array(
-			'run_id'               => wp_generate_uuid4(),
-			'import_id'            => $import_id,
-			'trigger_source'       => $trigger_source,
-			'start_timestamp'      => $started_unix,
-			'start_time'           => gmdate( 'Y-m-d H:i:s', $started_unix ),
-			'rows_processed'       => 0,
-			'rows_created'         => 0,
-			'rows_updated'         => 0,
-			'temp_rows_found'      => 0,
-			'temp_rows_processed'  => 0,
-			'errors'               => array(),
-			'slices'               => 0,
+			'run_id'              => wp_generate_uuid4(),
+			'import_id'           => $import_id,
+			'trigger_source'      => $trigger_source,
+			'start_timestamp'     => $started_unix,
+			'start_time'          => gmdate( 'Y-m-d H:i:s', $started_unix ),
+			'rows_processed'      => 0,
+			'rows_created'        => 0,
+			'rows_updated'        => 0,
+			'temp_rows_found'     => 0,
+			'temp_rows_processed' => 0,
+			'errors'              => array(),
+			'slices'              => 0,
 		)
 	);
 
@@ -750,10 +431,14 @@ function eai_ip_matches_cidr( $ip, $cidr ) {
 	}
 
 	list( $network, $prefix ) = array_pad( explode( '/', $cidr, 2 ), 2, '' );
-	$prefix = (int) $prefix;
+	$prefix                   = (int) $prefix;
 
-	$ip_bin      = @inet_pton( $ip );
-	$network_bin = @inet_pton( $network );
+	if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) || ! filter_var( $network, FILTER_VALIDATE_IP ) ) {
+		return false;
+	}
+
+	$ip_bin      = inet_pton( $ip );
+	$network_bin = inet_pton( $network );
 
 	if ( false === $ip_bin || false === $network_bin || strlen( $ip_bin ) !== strlen( $network_bin ) ) {
 		return false;
@@ -1021,7 +706,7 @@ function eai_fetch_api_payload( $endpoint, $auth_method = 'none', $token = '', $
 
 		set_transient( $cache_key, $cached_payload, 5 * MINUTE_IN_SECONDS );
 	} else {
-		$used_cache = true;
+		$used_cache  = true;
 		$status_code = 200;
 	}
 
@@ -1040,20 +725,20 @@ function eai_fetch_api_payload( $endpoint, $auth_method = 'none', $token = '', $
  * @return array<string, mixed>|WP_Error
  */
 function eai_extract_and_stage_data( $import_id ) {
-	$import_id     = absint( $import_id );
-	$import_job    = eai_db_get_import_config( $import_id );
+	$import_id  = absint( $import_id );
+	$import_job = eai_db_get_import_config( $import_id );
 
 	if ( ! is_array( $import_job ) ) {
 		return new WP_Error( 'eai_import_not_found', __( 'Import job could not be found.', 'enterprise-api-importer' ) );
 	}
 
-	$endpoint  = trim( (string) $import_job['endpoint_url'] );
+	$endpoint         = trim( (string) $import_job['endpoint_url'] );
 	$auth_method      = trim( (string) ( $import_job['auth_method'] ?? 'none' ) );
-	$token             = trim( (string) $import_job['auth_token'] );
-	$auth_header_name  = trim( (string) ( $import_job['auth_header_name'] ?? '' ) );
-	$auth_username     = trim( (string) ( $import_job['auth_username'] ?? '' ) );
-	$auth_password     = (string) ( $import_job['auth_password'] ?? '' );
-	$json_path = trim( (string) $import_job['array_path'] );
+	$token            = trim( (string) $import_job['auth_token'] );
+	$auth_header_name = trim( (string) ( $import_job['auth_header_name'] ?? '' ) );
+	$auth_username    = trim( (string) ( $import_job['auth_username'] ?? '' ) );
+	$auth_password    = (string) ( $import_job['auth_password'] ?? '' );
+	$json_path        = trim( (string) $import_job['array_path'] );
 
 	if ( '' === $endpoint ) {
 		return new WP_Error( 'eai_missing_endpoint', __( 'API endpoint URL is not configured.', 'enterprise-api-importer' ) );
@@ -1171,8 +856,8 @@ function eai_decode_filter_rules_json( $filter_rules_json ) {
 /**
  * Applies all configured filter rules to selected records using AND logic.
  *
- * @param array<mixed>                           $selected_array Records selected from API payload.
- * @param array<int, array<string, string>>      $filter_rules   Sanitized filter rules.
+ * @param array<mixed>                      $selected_array Records selected from API payload.
+ * @param array<int, array<string, string>> $filter_rules   Sanitized filter rules.
  *
  * @return array<mixed>
  */
@@ -1342,17 +1027,18 @@ function eai_resolve_json_array_path( $decoded_json, $path ) {
  *
  * @param array<string, mixed> $item Single API record.
  *
- * @param string $mapping_template Mapping template for this import job.
- * @param string $title_template   Optional title template for this import job.
- * @param string $target_post_type          Target post type for this import job.
- * @param string $unique_id_path            Unique identifier path. Defaults to id.
- * @param int    $import_id                 Import job ID.
- * @param string $featured_image_source_path Dot-notation item path for featured image URL.
- * @param int    $post_author               WordPress user ID to assign as post author. 0 = default.
- * @param string $post_status               WordPress post status for new items. Default 'draft'.
- * @param string $comment_status            Comment status for new items. Default 'closed'.
- * @param string $ping_status               Ping status for new items. Default 'closed'.
- * @param array  $custom_meta_mappings      Array of {key, value} custom meta mappings. Default empty.
+ * @param string               $mapping_template Mapping template for this import job.
+ * @param string               $title_template   Optional title template for this import job.
+ * @param string               $target_post_type          Target post type for this import job.
+ * @param string               $unique_id_path            Unique identifier path. Defaults to id.
+ * @param int                  $import_id                 Import job ID.
+ * @param string               $featured_image_source_path Dot-notation item path for featured image URL.
+ * @param int                  $post_author               WordPress user ID to assign as post author. 0 = default.
+ * @param string               $post_status               WordPress post status for new items. Default 'draft'.
+ * @param string               $comment_status            Comment status for new items. Default 'closed'.
+ * @param string               $ping_status               Ping status for new items. Default 'closed'.
+ * @param array                $custom_meta_mappings      Array of {key, value} custom meta mappings. Default empty.
+ * @param array<string, int>   $existing_post_ids         Map of external IDs to existing post IDs.
  *
  * @return array<string, mixed>|WP_Error
  */
@@ -1361,13 +1047,13 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 		return new WP_Error( 'eai_invalid_item', __( 'Transform input must be an array.', 'enterprise-api-importer' ) );
 	}
 
-	$mapping_template = (string) $mapping_template;
-	$title_template   = trim( (string) $title_template );
-	$target_post_type = sanitize_key( (string) $target_post_type );
-	$unique_id_path   = trim( (string) $unique_id_path );
-	$import_id        = absint( $import_id );
+	$mapping_template           = (string) $mapping_template;
+	$title_template             = trim( (string) $title_template );
+	$target_post_type           = sanitize_key( (string) $target_post_type );
+	$unique_id_path             = trim( (string) $unique_id_path );
+	$import_id                  = absint( $import_id );
 	$featured_image_source_path = trim( (string) $featured_image_source_path );
-	$post_author      = absint( $post_author );
+	$post_author                = absint( $post_author );
 
 	$allowed_post_statuses = array( 'draft', 'publish', 'pending' );
 	$post_status           = in_array( (string) $post_status, $allowed_post_statuses, true ) ? (string) $post_status : 'draft';
@@ -1427,12 +1113,12 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 				0,
 				0,
 				array(
-					'start_time'         => $now,
-					'end_time'           => $now,
-					'template_error'     => true,
-					'import_id'          => $import_id,
-					'external_id'        => $external_id,
-					'processing_errors'  => array( $post_content->get_error_message() ),
+					'start_time'        => $now,
+					'end_time'          => $now,
+					'template_error'    => true,
+					'import_id'         => $import_id,
+					'external_id'       => $external_id,
+					'processing_errors' => array( $post_content->get_error_message() ),
 				),
 				$now
 			);
@@ -1561,7 +1247,7 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 
 		$post_content = EAI_Import_Processor::parse_and_sideload_content_images( $post_content, $insert_post_id );
 
-		if ( (string) $post_content !== (string) get_post_field( 'post_content', $insert_post_id ) ) {
+		if ( (string) get_post_field( 'post_content', $insert_post_id ) !== (string) $post_content ) {
 			$updated_insert_post_id = wp_update_post(
 				array(
 					'ID'           => $insert_post_id,
@@ -1589,7 +1275,7 @@ function eai_transform_and_load_item( $item, $mapping_template, $title_template 
 		);
 	}
 
-	$existing_post    = get_post( $existing_post_id );
+	$existing_post = get_post( $existing_post_id );
 
 	if ( ! $existing_post instanceof WP_Post ) {
 		return new WP_Error( 'eai_existing_post_not_found', __( 'Existing imported item post could not be loaded.', 'enterprise-api-importer' ) );
@@ -1712,13 +1398,10 @@ function eai_apply_custom_meta_mappings( $post_id, $item, $mappings ) {
 				)
 			);
 		} catch ( \Twig\Error\Error $error ) {
-			error_log(
-			sprintf(
-				/* translators: 1: post ID, 2: error text. */
-				'Enterprise API Importer custom meta mapping failed for post %d: %s',
+			do_action(
+				'eai_custom_meta_mapping_error',
 				$post_id,
 				sanitize_text_field( $error->getMessage() )
-			)
 			);
 			continue;
 		}
@@ -1768,7 +1451,7 @@ function eai_save_item_meta_with_manifest( $post_id, $item, $import_id ) {
 		}
 
 		if ( is_array( $value ) || is_object( $value ) ) {
-			$meta_key = '_eapi_' . sanitize_key( $key );
+			$meta_key                   = '_eapi_' . sanitize_key( $key );
 			$eapi_array_keys[]          = $meta_key;
 			$array_key_map[ $meta_key ] = $key;
 			$payload[ $key ]            = $value;
@@ -1912,7 +1595,7 @@ function eai_infer_field_type( $value ) {
 		return 'url';
 	}
 
-	if ( $trimmed !== wp_strip_all_tags( $trimmed ) ) {
+	if ( wp_strip_all_tags( $trimmed ) !== $trimmed ) {
 		return 'html';
 	}
 
@@ -2031,7 +1714,7 @@ function eai_get_item_value_by_path( $item, $path ) {
 function eai_get_existing_imported_post_ids_by_external_ids( array $external_ids, $import_id ) {
 	global $wpdb;
 
-	$import_id = absint( $import_id );
+	$import_id    = absint( $import_id );
 	$external_ids = array_values( array_filter( array_map( 'strval', $external_ids ), 'strlen' ) );
 
 	if ( $import_id <= 0 || empty( $external_ids ) ) {
@@ -2039,17 +1722,32 @@ function eai_get_existing_imported_post_ids_by_external_ids( array $external_ids
 	}
 
 	$placeholders = implode( ', ', array_fill( 0, count( $external_ids ), '%s' ) );
-	$query_args   = array_merge( array( "
+	$query        = "
 		SELECT pm1.meta_value AS external_id, pm1.post_id
-		FROM {$wpdb->postmeta} pm1
-		INNER JOIN {$wpdb->postmeta} pm2 ON pm1.post_id = pm2.post_id
-		WHERE pm1.meta_key = '_my_custom_api_id'
+		FROM %i pm1
+		INNER JOIN %i pm2 ON pm1.post_id = pm2.post_id
+		WHERE pm1.meta_key = %s
 			AND pm1.meta_value IN ( {$placeholders} )
-			AND pm2.meta_key = '_eai_import_id'
+			AND pm2.meta_key = %s
 			AND pm2.meta_value = %d
-	" ), $external_ids, array( $import_id ) );
+	";
+	$query_args   = array_merge(
+		array(
+			$wpdb->postmeta,
+			$wpdb->postmeta,
+			'_my_custom_api_id',
+		),
+		$external_ids,
+		array(
+			'_eai_import_id',
+			$import_id,
+		)
+	);
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query text is assembled from fixed placeholders and prepared values only.
+	$prepared_query = $wpdb->prepare( $query, $query_args );
 
-	$rows = $wpdb->get_results( $wpdb->prepare( ...$query_args ), ARRAY_A );
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query text above is prepared before execution.
+	$rows = $wpdb->get_results( $prepared_query, ARRAY_A );
 	if ( ! is_array( $rows ) ) {
 		return array();
 	}
@@ -2236,7 +1934,7 @@ function eai_validate_twig_template_security( $template, $type = 'mapping' ) {
 		);
 	}
 
-	$max_expressions = (int) apply_filters( 'eai_template_max_expressions', 250, $type );
+	$max_expressions  = (int) apply_filters( 'eai_template_max_expressions', 250, $type );
 	$expression_count = substr_count( $template, '{{' ) + substr_count( $template, '{%' );
 	if ( $max_expressions > 0 && $expression_count > $max_expressions ) {
 		return new WP_Error( 'eai_template_too_complex', __( 'Template has too many Twig expressions.', 'enterprise-api-importer' ) );
@@ -2476,7 +2174,8 @@ function eai_set_active_run_state( $state ) {
 
 /**
  * Clears the active import run state.
- *, 10
+ * , 10
+ *
  * @return void
  */
 function eai_clear_active_run_state() {
@@ -2496,8 +2195,8 @@ function eai_clear_active_run_state() {
  * @return array<string, mixed>|WP_Error
  */
 function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id, $max_runtime_seconds = 45 ) {
-	$import_id    = absint( $import_id );
-	$staged_rows  = eai_db_get_unprocessed_staging_rows( $import_id, 10 );
+	$import_id   = absint( $import_id );
+	$staged_rows = eai_db_get_unprocessed_staging_rows( $import_id, 10 );
 
 	if ( ! is_array( $staged_rows ) ) {
 		return new WP_Error( 'eai_staging_query_failed', __( 'Failed to query unprocessed staging rows.', 'enterprise-api-importer' ) );
@@ -2525,7 +2224,7 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 			break;
 		}
 
-		$row_id = isset( $staged_row['id'] ) ? (int) $staged_row['id'] : 0;
+		$row_id        = isset( $staged_row['id'] ) ? (int) $staged_row['id'] : 0;
 		$row_import_id = isset( $staged_row['import_id'] ) ? (int) $staged_row['import_id'] : 0;
 
 		if ( $row_id <= 0 ) {
@@ -2565,17 +2264,17 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 			continue;
 		}
 
-		$items            = eai_normalize_staged_items( $decoded_items );
-		$mapping_template = (string) $import_job['mapping_template'];
-		$title_template   = isset( $import_job['title_template'] ) ? (string) $import_job['title_template'] : '';
-		$target_post_type = isset( $import_job['target_post_type'] ) ? (string) $import_job['target_post_type'] : 'post';
-		$unique_id_path   = isset( $import_job['unique_id_path'] ) ? trim( (string) $import_job['unique_id_path'] ) : 'id';
+		$items                      = eai_normalize_staged_items( $decoded_items );
+		$mapping_template           = (string) $import_job['mapping_template'];
+		$title_template             = isset( $import_job['title_template'] ) ? (string) $import_job['title_template'] : '';
+		$target_post_type           = isset( $import_job['target_post_type'] ) ? (string) $import_job['target_post_type'] : 'post';
+		$unique_id_path             = isset( $import_job['unique_id_path'] ) ? trim( (string) $import_job['unique_id_path'] ) : 'id';
 		$featured_image_source_path = isset( $import_job['featured_image_source_path'] ) ? trim( (string) $import_job['featured_image_source_path'] ) : 'image.url';
-		$post_author      = isset( $import_job['post_author'] ) ? absint( $import_job['post_author'] ) : 0;
-		$post_status      = isset( $import_job['post_status'] ) ? (string) $import_job['post_status'] : 'draft';
-		$comment_status   = isset( $import_job['comment_status'] ) ? (string) $import_job['comment_status'] : 'closed';
-		$ping_status      = isset( $import_job['ping_status'] ) ? (string) $import_job['ping_status'] : 'closed';
-		$custom_meta_mappings = array();
+		$post_author                = isset( $import_job['post_author'] ) ? absint( $import_job['post_author'] ) : 0;
+		$post_status                = isset( $import_job['post_status'] ) ? (string) $import_job['post_status'] : 'draft';
+		$comment_status             = isset( $import_job['comment_status'] ) ? (string) $import_job['comment_status'] : 'closed';
+		$ping_status                = isset( $import_job['ping_status'] ) ? (string) $import_job['ping_status'] : 'closed';
+		$custom_meta_mappings       = array();
 		if ( ! empty( $import_job['custom_meta_mappings'] ) ) {
 			$decoded_meta_mappings = is_string( $import_job['custom_meta_mappings'] )
 				? json_decode( $import_job['custom_meta_mappings'], true )
@@ -2584,8 +2283,8 @@ function eai_process_unprocessed_staging_rows( $started_at_microtime, $import_id
 				$custom_meta_mappings = $decoded_meta_mappings;
 			}
 		}
-		$chunks           = array_chunk( $items, 50 );
-		$row_completed    = true;
+		$chunks        = array_chunk( $items, 50 );
+		$row_completed = true;
 
 		if ( '' === $unique_id_path ) {
 			$unique_id_path = 'id';
@@ -2702,14 +2401,14 @@ function eai_handle_scheduled_import_batch() {
 	if ( is_wp_error( $processing_result ) ) {
 		$end_time = gmdate( 'Y-m-d H:i:s', time() );
 		$details  = array(
-			'start_time'         => $state['start_time'],
-			'end_time'           => $end_time,
-			'orphans_trashed'    => 0,
-			'temp_rows_found'    => (int) $state['temp_rows_found'],
-			'temp_rows_processed'=> (int) $state['temp_rows_processed'],
-			'slices'             => (int) $state['slices'],
-			'trigger_source'     => isset( $state['trigger_source'] ) ? sanitize_key( (string) $state['trigger_source'] ) : 'unknown',
-			'processing_errors'  => array( $processing_result->get_error_message() ),
+			'start_time'          => $state['start_time'],
+			'end_time'            => $end_time,
+			'orphans_trashed'     => 0,
+			'temp_rows_found'     => (int) $state['temp_rows_found'],
+			'temp_rows_processed' => (int) $state['temp_rows_processed'],
+			'slices'              => (int) $state['slices'],
+			'trigger_source'      => isset( $state['trigger_source'] ) ? sanitize_key( (string) $state['trigger_source'] ) : 'unknown',
+			'processing_errors'   => array( $processing_result->get_error_message() ),
 		);
 
 		eai_write_import_log(
@@ -2814,14 +2513,14 @@ function eai_normalize_staged_items( $decoded_items ) {
 /**
  * Backport helper for list-array detection.
  *
- * @param array<mixed> $array Input array.
+ * @param array<mixed> $input_array Input array.
  *
  * @return bool
  */
-function eai_array_is_list( $array ) {
+function eai_array_is_list( $input_array ) {
 	$index = 0;
 
-	foreach ( $array as $key => $unused_value ) {
+	foreach ( $input_array as $key => $unused_value ) {
 		if ( $key !== $index ) {
 			return false;
 		}

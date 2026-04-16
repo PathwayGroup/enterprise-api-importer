@@ -10,18 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Base reporter implementation shared by dashboard metric modules.
+ */
 abstract class EAPI_Reporter_Base {
 
-	/** @var string Unique reporter identifier. */
+	/**
+	 * Unique reporter identifier.
+	 *
+	 * @var string
+	 */
 	protected string $id = '';
 
-	/** @var string Category grouping (Health, Security, Performance). */
+	/**
+	 * Category grouping for dashboard sections.
+	 *
+	 * @var string
+	 */
 	protected string $category = '';
 
-	/** @var string Human-readable label. */
+	/**
+	 * Human-readable label.
+	 *
+	 * @var string
+	 */
 	protected string $label = '';
 
-	/** @var int Cache TTL in seconds. */
+	/**
+	 * Cache TTL in seconds.
+	 *
+	 * @var int
+	 */
 	protected int $cache_ttl = 600;
 
 	/**

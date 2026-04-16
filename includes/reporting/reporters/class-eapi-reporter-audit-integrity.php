@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports recent template audit-log activity.
+ */
 class EAPI_Reporter_Audit_Integrity extends EAPI_Reporter_Base {
 
-	protected string $id       = 'audit_integrity';
-	protected string $category = 'Security';
-	protected string $label    = 'Audit Integrity';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'audit_integrity';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Security';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Audit Integrity';
+
+	/**
+	 * Calculate audit integrity metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 

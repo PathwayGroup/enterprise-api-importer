@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports the current staging-queue depth.
+ */
 class EAPI_Reporter_Queue_Depth extends EAPI_Reporter_Base {
 
-	protected string $id       = 'queue_depth';
-	protected string $category = 'Health';
-	protected string $label    = 'Queue Depth';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'queue_depth';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Health';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Queue Depth';
+
+	/**
+	 * Calculate queue depth metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 

@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports the number of unique configured API endpoints.
+ */
 class EAPI_Reporter_Active_Connections extends EAPI_Reporter_Base {
 
-	protected string $id       = 'active_connections';
-	protected string $category = 'Performance';
-	protected string $label    = 'Active Connections';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'active_connections';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Performance';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Active Connections';
+
+	/**
+	 * Calculate active connection metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 

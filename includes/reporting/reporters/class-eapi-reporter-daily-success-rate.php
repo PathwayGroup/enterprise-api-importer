@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports the recent import success-to-error ratio.
+ */
 class EAPI_Reporter_Daily_Success_Rate extends EAPI_Reporter_Base {
 
-	protected string $id       = 'daily_success_rate';
-	protected string $category = 'Health';
-	protected string $label    = 'Daily Success Rate';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'daily_success_rate';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Health';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Daily Success Rate';
+
+	/**
+	 * Calculate daily success rate metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
@@ -46,7 +71,7 @@ class EAPI_Reporter_Daily_Success_Rate extends EAPI_Reporter_Base {
 		$total            = 0;
 
 		foreach ( $rows as $row ) {
-			$cnt   = (int) $row->cnt;
+			$cnt    = (int) $row->cnt;
 			$total += $cnt;
 			if ( in_array( $row->status, $success_statuses, true ) ) {
 				$success_count += $cnt;

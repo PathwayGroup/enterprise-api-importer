@@ -130,13 +130,13 @@ class EAI_Imports_List_Table extends WP_List_Table {
 				}
 			}
 
-			$config['computed_status']      = $status;
-			$config['last_status']          = isset( $latest['status'] ) ? (string) $latest['status'] : '';
-			$config['pending_count']        = $pending;
-			$config['error_count']          = $error_count;
-			$config['rows_created']         = isset( $latest['rows_created'] ) ? (int) $latest['rows_created'] : 0;
-			$config['rows_updated']         = isset( $latest['rows_updated'] ) ? (int) $latest['rows_updated'] : 0;
-			$config['trend_points']         = isset( $trend_index[ $import_id ] ) ? $trend_index[ $import_id ] : array();
+			$config['computed_status'] = $status;
+			$config['last_status']     = isset( $latest['status'] ) ? (string) $latest['status'] : '';
+			$config['pending_count']   = $pending;
+			$config['error_count']     = $error_count;
+			$config['rows_created']    = isset( $latest['rows_created'] ) ? (int) $latest['rows_created'] : 0;
+			$config['rows_updated']    = isset( $latest['rows_updated'] ) ? (int) $latest['rows_updated'] : 0;
+			$config['trend_points']    = isset( $trend_index[ $import_id ] ) ? $trend_index[ $import_id ] : array();
 		}
 		unset( $config );
 
@@ -177,7 +177,7 @@ class EAI_Imports_List_Table extends WP_List_Table {
 			}
 		);
 
-		$total_items   = count( $all_configs );
+		$total_items = count( $all_configs );
 
 		$this->items = array_slice( $all_configs, $offset, $per_page );
 
@@ -248,8 +248,8 @@ class EAI_Imports_List_Table extends WP_List_Table {
 
 		$max_value = 1;
 		foreach ( $points as $point ) {
-			$created = isset( $point['created'] ) ? (int) $point['created'] : 0;
-			$updated = isset( $point['updated'] ) ? (int) $point['updated'] : 0;
+			$created   = isset( $point['created'] ) ? (int) $point['created'] : 0;
+			$updated   = isset( $point['updated'] ) ? (int) $point['updated'] : 0;
 			$max_value = max( $max_value, $created, $updated );
 		}
 
@@ -288,7 +288,7 @@ class EAI_Imports_List_Table extends WP_List_Table {
 
 		$edit_url = add_query_arg(
 			array(
-				'page'   => 'eapi-manage',
+				'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
 				'action' => 'edit',
 				'id'     => $import_id,
 			),

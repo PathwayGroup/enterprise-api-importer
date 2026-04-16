@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function eai_register_dashboard_rest_route() {
 	register_rest_route(
-		'eapi/v1',
+		EAI_ADMIN_REST_NAMESPACE,
 		'/dashboard',
 		array(
 			'methods'             => 'GET',
@@ -34,7 +34,7 @@ function eai_register_dashboard_rest_route() {
 	);
 
 	register_rest_route(
-		'eapi/v1',
+		EAI_ADMIN_REST_NAMESPACE,
 		'/dashboard/history',
 		array(
 			'methods'             => 'GET',
@@ -72,12 +72,12 @@ function eai_rest_dashboard_callback( WP_REST_Request $request ): WP_REST_Respon
  * @return string
  */
 function eai_reduce_dashboard_statuses( array $statuses ): string {
-	$rank_map    = array(
+	$rank_map     = array(
 		'green'  => 1,
 		'yellow' => 2,
 		'red'    => 3,
 	);
-	$best_match  = 'green';
+	$best_match   = 'green';
 	$highest_rank = 0;
 
 	foreach ( $statuses as $status ) {
@@ -144,9 +144,9 @@ function eai_is_plugin_active_on_blog( int $blog_id ): bool {
 		return true;
 	}
 
-	$blog_id          = absint( $blog_id );
-	$network_plugins  = (array) get_site_option( 'active_sitewide_plugins', array() );
-	$active_plugins   = (array) get_blog_option( $blog_id, 'active_plugins', array() );
+	$blog_id         = absint( $blog_id );
+	$network_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
+	$active_plugins  = (array) get_blog_option( $blog_id, 'active_plugins', array() );
 
 	if ( isset( $network_plugins[ EAI_PLUGIN_BASENAME ] ) ) {
 		return true;
@@ -206,7 +206,7 @@ function eai_refresh_network_dashboard_snapshots( bool $force_refresh = false ):
 	}
 
 	$active_site_ids = array();
-	$site_ids = get_sites(
+	$site_ids        = get_sites(
 		array(
 			'fields'   => 'ids',
 			'number'   => 0,
@@ -340,7 +340,7 @@ function eai_rest_dashboard_history_callback(): WP_REST_Response {
 
 	$audit_entries = array();
 	foreach ( $audit_rows as $row ) {
-		$details = json_decode( $row->errors, true );
+		$details         = json_decode( $row->errors, true );
 		$audit_entries[] = array(
 			'time'   => gmdate( 'M j, g:ia', strtotime( $row->created_at ) ),
 			'type'   => isset( $details['audit_type'] ) ? $details['audit_type'] : 'unknown',
@@ -367,8 +367,8 @@ function eai_rest_dashboard_history_callback(): WP_REST_Response {
 		);
 
 		$throughput_points[] = array(
-			'date'  => gmdate( 'M j', strtotime( "-{$i} days" ) ),
-			'rows'  => $sum,
+			'date' => gmdate( 'M j', strtotime( "-{$i} days" ) ),
+			'rows' => $sum,
 		);
 	}
 

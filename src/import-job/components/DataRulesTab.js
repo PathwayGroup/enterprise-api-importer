@@ -74,7 +74,7 @@ export default function DataRulesTab( {
 		setPreviewing( true );
 		try {
 			const result = await apiFetch( {
-				path: '/eapi/v1/test-api-connection',
+				path: '/enterprise-api-importer/v1/test-api-connection',
 				method: 'POST',
 				data: {
 					api_url: job.endpoint_url,

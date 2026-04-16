@@ -44,8 +44,8 @@ export default function Dashboard() {
 		try {
 			const params = refresh ? '?refresh=1' : '';
 			const [ dashRes, histRes ] = await Promise.all( [
-				apiFetch( { path: '/eapi/v1/dashboard' + params } ),
-				apiFetch( { path: '/eapi/v1/dashboard/history' } ),
+				apiFetch( { path: '/enterprise-api-importer/v1/dashboard' + params } ),
+				apiFetch( { path: '/enterprise-api-importer/v1/dashboard/history' } ),
 			] );
 			setData( dashRes );
 			setHistory( histRes );

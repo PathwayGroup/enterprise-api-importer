@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports configured endpoint protocol compliance.
+ */
 class EAPI_Reporter_Protocol_Enforcement extends EAPI_Reporter_Base {
 
-	protected string $id       = 'protocol_enforcement';
-	protected string $category = 'Security';
-	protected string $label    = 'Protocol Enforcement';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'protocol_enforcement';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Security';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Protocol Enforcement';
+
+	/**
+	 * Calculate protocol enforcement metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 

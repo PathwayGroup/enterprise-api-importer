@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports recent import throughput.
+ */
 class EAPI_Reporter_Throughput extends EAPI_Reporter_Base {
 
-	protected string $id       = 'throughput';
-	protected string $category = 'Performance';
-	protected string $label    = 'Throughput';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'throughput';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Performance';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Throughput';
+
+	/**
+	 * Calculate throughput metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 

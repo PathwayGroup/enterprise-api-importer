@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Enterprise API Importer
+ * Plugin Name: OmniFetch - REST API ETL Importer
  * Plugin URI:  https://github.com/tporret/enterprise-api-importer
  * Description: Highly secure enterprise ETL importer for WordPress.
- * Version:     1.2.4
+ * Version:     1.2.5
  * Author:      tporret
  * License:     GPL-2.0-or-later
  * Donate link: https://porretto.com/donate
@@ -11,6 +11,8 @@
  * Requires PHP: 8.1
  * Tested up to: 6.9
  * Text Domain: enterprise-api-importer
+ *
+ * @package EnterpriseAPIImporter
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,6 +21,62 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! defined( 'EAI_PLUGIN_BASENAME' ) ) {
 	define( 'EAI_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+}
+
+if ( ! defined( 'EAI_PLUGIN_VERSION' ) ) {
+	define( 'EAI_PLUGIN_VERSION', '1.2.5' );
+}
+
+if ( ! defined( 'EAI_ADMIN_REST_NAMESPACE' ) ) {
+	define( 'EAI_ADMIN_REST_NAMESPACE', 'enterprise-api-importer/v1' );
+}
+
+if ( ! defined( 'EAI_ADMIN_PAGE_MANAGE_SLUG' ) ) {
+	define( 'EAI_ADMIN_PAGE_MANAGE_SLUG', 'enterprise-api-importer-manage' );
+}
+
+if ( ! defined( 'EAI_ADMIN_PAGE_SCHEDULES_SLUG' ) ) {
+	define( 'EAI_ADMIN_PAGE_SCHEDULES_SLUG', 'enterprise-api-importer-schedules' );
+}
+
+if ( ! defined( 'EAI_ADMIN_PAGE_SETTINGS_SLUG' ) ) {
+	define( 'EAI_ADMIN_PAGE_SETTINGS_SLUG', 'enterprise-api-importer-settings' );
+}
+
+if ( ! defined( 'EAI_ADMIN_PAGE_DASHBOARD_SLUG' ) ) {
+	define( 'EAI_ADMIN_PAGE_DASHBOARD_SLUG', 'enterprise-api-importer-dashboard' );
+}
+
+if ( ! defined( 'EAI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG' ) ) {
+	define( 'EAI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG', 'enterprise-api-importer-network-dashboard' );
+}
+
+if ( ! defined( 'EAI_ADMIN_STYLE_MANAGE_HANDLE' ) ) {
+	define( 'EAI_ADMIN_STYLE_MANAGE_HANDLE', 'enterprise-api-importer-manage-list' );
+}
+
+if ( ! defined( 'EAI_ADMIN_STYLE_SCHEDULES_HANDLE' ) ) {
+	define( 'EAI_ADMIN_STYLE_SCHEDULES_HANDLE', 'enterprise-api-importer-schedules' );
+}
+
+if ( ! defined( 'EAI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE' ) ) {
+	define( 'EAI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE', 'enterprise-api-importer-network-dashboard' );
+}
+
+if ( ! defined( 'EAI_ADMIN_SCRIPT_DASHBOARD_HANDLE' ) ) {
+	define( 'EAI_ADMIN_SCRIPT_DASHBOARD_HANDLE', 'enterprise-api-importer-dashboard' );
+}
+
+if ( ! defined( 'EAI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE' ) ) {
+	define( 'EAI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE', 'enterprise-api-importer-import-job' );
+}
+
+if ( ! defined( 'EAI_ADMIN_DASHBOARD_ROOT_ID' ) ) {
+	define( 'EAI_ADMIN_DASHBOARD_ROOT_ID', 'enterprise-api-importer-dashboard-root' );
+}
+
+if ( ! defined( 'EAI_ADMIN_IMPORT_JOB_ROOT_ID' ) ) {
+	define( 'EAI_ADMIN_IMPORT_JOB_ROOT_ID', 'enterprise-api-importer-import-job-root' );
 }
 
 /**
@@ -55,7 +113,7 @@ function eai_enforce_supported_multisite_activation_mode() {
 	update_site_option( 'eai_network_activation_reverted', time() );
 
 	if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
-		WP_CLI::warning( 'Enterprise API Importer cannot remain network-activated. The plugin has been automatically reverted to the supported per-site activation model.' );
+		WP_CLI::warning( 'OmniFetch - REST API ETL Importer cannot remain network-activated. The plugin has been automatically reverted to the supported per-site activation model.' );
 	}
 
 	return true;
@@ -110,12 +168,12 @@ function eai_render_dependency_notice( $message ) {
 }
 
 $eai_dependency_error = '';
-$eai_missing_files   = eai_get_missing_dependency_files();
+$eai_missing_files    = eai_get_missing_dependency_files();
 
 if ( ! empty( $eai_missing_files ) ) {
 	$eai_dependency_error = sprintf(
 		/* translators: %s: missing plugin dependency files. */
-		__( 'Enterprise API Importer is missing required dependency files: %s. Rebuild/redeploy the plugin package including the full vendor directory.', 'enterprise-api-importer' ),
+		__( 'OmniFetch - REST API ETL Importer is missing required dependency files: %s. Rebuild/redeploy the plugin package including the full vendor directory.', 'enterprise-api-importer' ),
 		implode( ', ', $eai_missing_files )
 	);
 } else {
@@ -124,7 +182,7 @@ if ( ! empty( $eai_missing_files ) ) {
 	} catch ( Throwable $e ) {
 		$eai_dependency_error = sprintf(
 			/* translators: %s: low-level dependency load error. */
-			__( 'Enterprise API Importer failed to load dependencies: %s. Rebuild/redeploy the plugin package including composer vendor files.', 'enterprise-api-importer' ),
+			__( 'OmniFetch - REST API ETL Importer failed to load dependencies: %s. Rebuild/redeploy the plugin package including composer vendor files.', 'enterprise-api-importer' ),
 			$e->getMessage()
 		);
 	}
@@ -148,8 +206,9 @@ if ( eai_enforce_supported_multisite_activation_mode() ) {
 // Load plugin modules in dependency order.
 require_once __DIR__ . '/includes/core.php';
 require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/class-eapi-imports-list-table.php';
+require_once __DIR__ . '/includes/class-eai-imports-list-table.php';
 require_once __DIR__ . '/includes/content.php';
+require_once __DIR__ . '/includes/class-eai-import-processor.php';
 require_once __DIR__ . '/includes/import.php';
 require_once __DIR__ . '/includes/admin.php';
 require_once __DIR__ . '/includes/rest.php';

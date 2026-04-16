@@ -10,12 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reports recurring import scheduling health.
+ */
 class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
 
-	protected string $id       = 'cron_heartbeat';
-	protected string $category = 'Health';
-	protected string $label    = 'Cron Heartbeat';
+	/**
+	 * Reporter identifier.
+	 *
+	 * @var string
+	 */
+	protected string $id = 'cron_heartbeat';
 
+	/**
+	 * Reporter category.
+	 *
+	 * @var string
+	 */
+	protected string $category = 'Health';
+
+	/**
+	 * Reporter label.
+	 *
+	 * @var string
+	 */
+	protected string $label = 'Cron Heartbeat';
+
+	/**
+	 * Calculate cron heartbeat metrics.
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
@@ -32,9 +57,9 @@ class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
 
 		if ( empty( $rows ) ) {
 			return array(
-				'status'  => 'green',
-				'value'   => 'No Data',
-				'detail'  => 'No recurring imports configured.',
+				'status' => 'green',
+				'value'  => 'No Data',
+				'detail' => 'No recurring imports configured.',
 			);
 		}
 
@@ -81,6 +106,11 @@ class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
 
 	/**
 	 * Resolve the expected interval in seconds for a recurrence slug.
+	 *
+	 * @param string $recurrence     Recurrence slug.
+	 * @param int    $custom_minutes Custom interval length in minutes.
+	 *
+	 * @return int
 	 */
 	private function get_expected_interval( string $recurrence, int $custom_minutes ): int {
 		$schedules = wp_get_schedules();

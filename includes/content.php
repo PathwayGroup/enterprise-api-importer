@@ -34,7 +34,10 @@ function eai_register_imported_item_cpt() {
 			'show_in_menu'        => true,
 			'show_in_rest'        => true,
 			'has_archive'         => true,
-			'rewrite'             => array( 'slug' => 'imported-item', 'with_front' => false ),
+			'rewrite'             => array(
+				'slug'       => 'imported-item',
+				'with_front' => false,
+			),
 			'query_var'           => true,
 			'map_meta_cap'        => true,
 			'capability_type'     => 'post',
@@ -157,20 +160,22 @@ function eai_render_imported_items_read_only_notice() {
 	// Quick check: does this post type have any import-locked posts?
 	// The imported_item CPT is always relevant; for other types check meta existence.
 	if ( 'imported_item' !== $screen->post_type ) {
-		$has_locked = get_posts( array(
-			'post_type'      => $screen->post_type,
-			'meta_key'       => '_eai_import_id',
-			'meta_compare'   => 'EXISTS',
-			'posts_per_page' => 1,
-			'fields'         => 'ids',
-		) );
+		$has_locked = get_posts(
+			array(
+				'post_type'      => $screen->post_type,
+				'meta_key'       => '_eai_import_id',
+				'meta_compare'   => 'EXISTS',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+			)
+		);
 		if ( empty( $has_locked ) ) {
 			return;
 		}
 	}
 
 	echo '<div class="notice notice-info"><p>';
-	echo esc_html__( 'Some items on this screen are managed by Enterprise API Importer and may be read-only.', 'enterprise-api-importer' );
+	echo esc_html__( 'Some items on this screen are managed by OmniFetch - REST API ETL Importer and may be read-only.', 'enterprise-api-importer' );
 	echo '</p></div>';
 }
 add_action( 'admin_notices', 'eai_render_imported_items_read_only_notice' );
