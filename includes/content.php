@@ -175,7 +175,7 @@ function eai_render_imported_items_read_only_notice() {
 	}
 
 	echo '<div class="notice notice-info"><p>';
-	echo esc_html__( 'Some items on this screen are managed by OmniFetch - REST API ETL Importer and may be read-only.', 'enterprise-api-importer' );
+	echo esc_html__( 'Some items on this screen are managed by tporret API Data Importer and may be read-only.', 'enterprise-api-importer' );
 	echo '</p></div>';
 }
 add_action( 'admin_notices', 'eai_render_imported_items_read_only_notice' );

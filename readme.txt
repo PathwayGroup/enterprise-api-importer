@@ -1,6 +1,6 @@
-=== OmniFetch - REST API ETL Importer ===
+=== tporret API Data Importer ===
 Contributors: tporret
-Donate link: https://github.com/sponsors/tporret
+Donate link: https://porretto.com/donate
 Tags: api, import, etl, json, cron
 Requires at least: 6.3
 Tested up to: 6.9
@@ -12,11 +12,11 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Enterprise ETL importer for WordPress that turns complex API payloads into reliable, automation-ready content workflows.
 
 == Description ==
-OmniFetch - REST API ETL Importer gives WordPress teams an enterprise-grade ETL pipeline for importing external API data with confidence.
+tporret API Data Importer gives WordPress teams an enterprise-grade ETL pipeline for importing external API data with confidence.
 
 This readme is written for WordPress administrators and site owners evaluating or using the plugin from the Plugins screen.
 
-Use OmniFetch - REST API ETL Importer to run clean, repeatable import workflows without sacrificing flexibility:
+Use tporret API Data Importer to run clean, repeatable import workflows without sacrificing flexibility:
 
 - Multi-Connection Job Manager for organizing and scaling imports
 - React Tabbed Import Job Workspace (Source/Auth, Data Rules, Mapping/Templating, Automation)
@@ -49,7 +49,7 @@ Use OmniFetch - REST API ETL Importer to run clean, repeatable import workflows 
   - Twig strict variables mode enabled by default for better error visibility
   - Imported items locked read-only (no editing, deletion, or quick-edit)
 
-Whether you import catalogs, directory records, listings, events, or custom business data, OmniFetch - REST API ETL Importer provides a scalable framework for structured API-to-WordPress ETL.
+Whether you import catalogs, directory records, listings, events, or custom business data, tporret API Data Importer provides a scalable framework for structured API-to-WordPress ETL.
 
 Built for real-world production workflows:
 
@@ -137,7 +137,7 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 
 == Changelog ==
 = 1.2.5 =
-* Updated the public plugin name to OmniFetch - REST API ETL Importer for WordPress.org resubmission.
+* Updated the public plugin name to tporret API Data Importer for WordPress.org resubmission.
 
 = 1.2.4 =
 * Aligned Twig dry-run template normalization with save-time normalization so preview output matches persisted output.

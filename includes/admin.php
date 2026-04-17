@@ -72,7 +72,7 @@ function eai_add_admin_pages() {
 	}
 
 	add_menu_page(
-		__( 'OmniFetch - REST API ETL Importer', 'enterprise-api-importer' ),
+		__( 'tporret API Data Importer', 'enterprise-api-importer' ),
 		__( 'EAPI', 'enterprise-api-importer' ),
 		eai_get_manage_imports_capability(),
 		EAI_ADMIN_PAGE_MANAGE_SLUG,
@@ -130,7 +130,7 @@ function eai_add_network_admin_pages() {
 	}
 
 	add_menu_page(
-		__( 'OmniFetch - REST API ETL Importer Network', 'enterprise-api-importer' ),
+		__( 'tporret API Data Importer Network', 'enterprise-api-importer' ),
 		__( 'EAPI Network', 'enterprise-api-importer' ),
 		'manage_network_options',
 		EAI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG,
@@ -175,7 +175,7 @@ function eai_render_settings_page() {
 	$allow_internal = isset( $settings['allow_internal_endpoints'] ) ? (string) $settings['allow_internal_endpoints'] : '0';
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'OmniFetch - REST API ETL Importer Settings', 'enterprise-api-importer' ); ?></h1>
+		<h1><?php esc_html_e( 'tporret API Data Importer Settings', 'enterprise-api-importer' ); ?></h1>
 		<?php eai_render_admin_notices(); ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -357,14 +357,14 @@ function eai_render_admin_notices() {
 	$network_activation_reverted = (int) get_site_option( 'eai_network_activation_reverted', 0 );
 	if ( $network_activation_reverted > 0 && ( is_network_admin() || is_main_site() ) ) {
 		echo '<div class="notice notice-warning"><p>';
-		echo esc_html__( 'Multisite note: a network activation attempt was automatically reverted. Keep OmniFetch - REST API ETL Importer active on the primary site for the Network Admin dashboard, and activate it separately on each subsite that should run imports.', 'enterprise-api-importer' );
+		echo esc_html__( 'Multisite note: a network activation attempt was automatically reverted. Keep tporret API Data Importer active on the primary site for the Network Admin dashboard, and activate it separately on each subsite that should run imports.', 'enterprise-api-importer' );
 		echo '</p></div>';
 		delete_site_option( 'eai_network_activation_reverted' );
 	}
 
 	if ( eai_should_render_primary_site_dashboard_notice() ) {
 		echo '<div class="notice notice-warning"><p>';
-		echo esc_html__( 'Multisite note: the Network Admin dashboard appears only when OmniFetch - REST API ETL Importer is also active on the primary site. Keep this subsite active for local imports, and activate the plugin on the primary site if you want the network-level dashboard.', 'enterprise-api-importer' );
+		echo esc_html__( 'Multisite note: the Network Admin dashboard appears only when tporret API Data Importer is also active on the primary site. Keep this subsite active for local imports, and activate the plugin on the primary site if you want the network-level dashboard.', 'enterprise-api-importer' );
 		echo '</p></div>';
 	}
 
@@ -1871,8 +1871,8 @@ function eai_render_network_dashboard_page() {
 	);
 
 	echo '<div class="wrap">';
-	echo '<h1>' . esc_html__( 'OmniFetch - REST API ETL Importer Network Dashboard', 'enterprise-api-importer' ) . '</h1>';
-	echo '<p>' . esc_html__( 'This view summarizes every subsite where OmniFetch - REST API ETL Importer is activated. Site admins continue to manage and monitor imports from each subsite dashboard.', 'enterprise-api-importer' ) . '</p>';
+	echo '<h1>' . esc_html__( 'tporret API Data Importer Network Dashboard', 'enterprise-api-importer' ) . '</h1>';
+	echo '<p>' . esc_html__( 'This view summarizes every subsite where tporret API Data Importer is activated. Site admins continue to manage and monitor imports from each subsite dashboard.', 'enterprise-api-importer' ) . '</p>';
 	echo '<p><a href="' . esc_url( $refresh_url ) . '" class="button button-secondary">' . esc_html__( 'Refresh Network Snapshot', 'enterprise-api-importer' ) . '</a></p>';
 
 	echo '<div class="eai-network-summary">';

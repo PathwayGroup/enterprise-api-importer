@@ -22,7 +22,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 }
 
 /**
- * Runs OmniFetch - REST API ETL Importer garbage collection from WP-CLI.
+ * Runs tporret API Data Importer garbage collection from WP-CLI.
  *
  * ## EXAMPLES
  *
@@ -89,7 +89,7 @@ function eai_register_custom_cron_schedules( $schedules ) {
 			'interval' => $minutes * MINUTE_IN_SECONDS,
 			'display'  => sprintf(
 				/* translators: %d is number of minutes. */
-				__( 'Every %d minutes (OmniFetch - REST API ETL Importer)', 'enterprise-api-importer' ),
+				__( 'Every %d minutes (tporret API Data Importer)', 'enterprise-api-importer' ),
 				$minutes
 			),
 		);

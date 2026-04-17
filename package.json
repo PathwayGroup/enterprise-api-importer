@@ -2,7 +2,7 @@
 	"name": "enterprise-api-importer",
 	"version": "1.2.5",
 	"private": true,
-	"description": "Frontend assets for OmniFetch - REST API ETL Importer dashboard.",
+	"description": "Frontend assets for tporret API Data Importer dashboard.",
 	"scripts": {
 		"build": "wp-scripts build",
 		"start": "wp-scripts start"

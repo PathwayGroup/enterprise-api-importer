@@ -142,7 +142,7 @@ function eai_block_network_activation() {
 	deactivate_plugins( EAI_PLUGIN_BASENAME, true, true );
 
 	wp_die(
-		esc_html__( 'OmniFetch - REST API ETL Importer cannot be network-activated. Activate it on the primary site to expose the Network Admin dashboard, then activate it only on the subsites that should run imports.', 'enterprise-api-importer' ),
+		esc_html__( 'tporret API Data Importer cannot be network-activated. Activate it on the primary site to expose the Network Admin dashboard, then activate it only on the subsites that should run imports.', 'enterprise-api-importer' ),
 		esc_html__( 'Network activation is not supported', 'enterprise-api-importer' ),
 		array(
 			'back_link' => true,

@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: OmniFetch - REST API ETL Importer
+ * Plugin Name: tporret API Data Importer
  * Plugin URI:  https://github.com/tporret/enterprise-api-importer
  * Description: Highly secure enterprise ETL importer for WordPress.
  * Version:     1.2.5
@@ -113,7 +113,7 @@ function eai_enforce_supported_multisite_activation_mode() {
 	update_site_option( 'eai_network_activation_reverted', time() );
 
 	if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
-		WP_CLI::warning( 'OmniFetch - REST API ETL Importer cannot remain network-activated. The plugin has been automatically reverted to the supported per-site activation model.' );
+		WP_CLI::warning( 'tporret API Data Importer cannot remain network-activated. The plugin has been automatically reverted to the supported per-site activation model.' );
 	}
 
 	return true;
@@ -173,7 +173,7 @@ $eai_missing_files    = eai_get_missing_dependency_files();
 if ( ! empty( $eai_missing_files ) ) {
 	$eai_dependency_error = sprintf(
 		/* translators: %s: missing plugin dependency files. */
-		__( 'OmniFetch - REST API ETL Importer is missing required dependency files: %s. Rebuild/redeploy the plugin package including the full vendor directory.', 'enterprise-api-importer' ),
+		__( 'tporret API Data Importer is missing required dependency files: %s. Rebuild/redeploy the plugin package including the full vendor directory.', 'enterprise-api-importer' ),
 		implode( ', ', $eai_missing_files )
 	);
 } else {
@@ -182,7 +182,7 @@ if ( ! empty( $eai_missing_files ) ) {
 	} catch ( Throwable $e ) {
 		$eai_dependency_error = sprintf(
 			/* translators: %s: low-level dependency load error. */
-			__( 'OmniFetch - REST API ETL Importer failed to load dependencies: %s. Rebuild/redeploy the plugin package including composer vendor files.', 'enterprise-api-importer' ),
+			__( 'tporret API Data Importer failed to load dependencies: %s. Rebuild/redeploy the plugin package including composer vendor files.', 'enterprise-api-importer' ),
 			$e->getMessage()
 		);
 	}

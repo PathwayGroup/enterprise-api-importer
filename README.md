@@ -1,6 +1,6 @@
-# OmniFetch - REST API ETL Importer
+# tporret API Data Importer
 
-OmniFetch - REST API ETL Importer is a WordPress plugin for secure, repeatable API-to-WordPress ETL.
+tporret API Data Importer is a WordPress plugin for secure, repeatable API-to-WordPress ETL.
 It is built for teams that need enterprise-grade reliability without losing flexibility.
 
 This README is the technical overview for developers, maintainers, and operators working from the repository.
@@ -44,7 +44,7 @@ It gives you:
 
 ## Latest Release (1.2.5)
 
-- Plugin naming update for resubmission: the public plugin name is now OmniFetch - REST API ETL Importer.
+- Plugin naming update for resubmission: the public plugin name is now tporret API Data Importer.
 - No functional changes are bundled with this release.
 
 ## Multisite Operation
