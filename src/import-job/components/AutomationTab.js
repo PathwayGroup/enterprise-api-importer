@@ -2,11 +2,11 @@ import { SelectControl, TextControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 const RECURRENCE_OPTIONS = [
-	{ label: __( 'Off', 'enterprise-api-importer' ), value: 'off' },
-	{ label: __( 'Hourly', 'enterprise-api-importer' ), value: 'hourly' },
-	{ label: __( 'Twice Daily', 'enterprise-api-importer' ), value: 'twicedaily' },
-	{ label: __( 'Daily', 'enterprise-api-importer' ), value: 'daily' },
-	{ label: __( 'Custom', 'enterprise-api-importer' ), value: 'custom' },
+	{ label: __( 'Off', 'tporret-api-data-importer' ), value: 'off' },
+	{ label: __( 'Hourly', 'tporret-api-data-importer' ), value: 'hourly' },
+	{ label: __( 'Twice Daily', 'tporret-api-data-importer' ), value: 'twicedaily' },
+	{ label: __( 'Daily', 'tporret-api-data-importer' ), value: 'daily' },
+	{ label: __( 'Custom', 'tporret-api-data-importer' ), value: 'custom' },
 ];
 
 export default function AutomationTab( { job, updateField } ) {
@@ -15,18 +15,18 @@ export default function AutomationTab( { job, updateField } ) {
 			<SelectControl
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
-				label={ __( 'Recurrence', 'enterprise-api-importer' ) }
+				label={ __( 'Recurrence', 'tporret-api-data-importer' ) }
 				value={ job.recurrence }
 				options={ RECURRENCE_OPTIONS }
 				onChange={ ( val ) => updateField( 'recurrence', val ) }
-				help={ __( 'When set to Custom, the import runs every N minutes. Use Off to disable recurring automation.', 'enterprise-api-importer' ) }
+				help={ __( 'When set to Custom, the import runs every N minutes. Use Off to disable recurring automation.', 'tporret-api-data-importer' ) }
 			/>
 
 			{ job.recurrence === 'custom' && (
 				<TextControl
 					__next40pxDefaultSize
 					__nextHasNoMarginBottom
-					label={ __( 'Custom Interval (minutes)', 'enterprise-api-importer' ) }
+					label={ __( 'Custom Interval (minutes)', 'tporret-api-data-importer' ) }
 					type="number"
 					min={ 1 }
 					step={ 1 }

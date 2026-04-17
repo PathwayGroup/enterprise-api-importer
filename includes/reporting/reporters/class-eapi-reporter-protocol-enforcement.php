@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports configured endpoint protocol compliance.
  */
-class EAPI_Reporter_Protocol_Enforcement extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_Protocol_Enforcement extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_Protocol_Enforcement extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$imports_table = eai_db_imports_table();
+		$imports_table = tporapdi_db_imports_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$urls = $wpdb->get_col(

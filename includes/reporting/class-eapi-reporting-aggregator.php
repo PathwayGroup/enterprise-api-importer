@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Aggregates results from all registered reporter modules.
  */
-class EAPI_Reporting_Aggregator {
+class TPORAPDI_Reporting_Aggregator {
 
 	/**
 	 * Singleton instance.
@@ -25,7 +25,7 @@ class EAPI_Reporting_Aggregator {
 	/**
 	 * Registered reporter modules keyed by reporter ID.
 	 *
-	 * @var EAPI_Reporter_Base[]
+	 * @var TPORAPDI_Reporter_Base[]
 	 */
 	private array $reporters = array();
 
@@ -47,11 +47,11 @@ class EAPI_Reporting_Aggregator {
 	/**
 	 * Register a reporter module.
 	 *
-	 * @param EAPI_Reporter_Base $reporter Reporter instance.
+	 * @param TPORAPDI_Reporter_Base $reporter Reporter instance.
 	 *
 	 * @return void
 	 */
-	public function register_reporter( EAPI_Reporter_Base $reporter ): void {
+	public function register_reporter( TPORAPDI_Reporter_Base $reporter ): void {
 		$this->reporters[ $reporter->get_id() ] = $reporter;
 	}
 

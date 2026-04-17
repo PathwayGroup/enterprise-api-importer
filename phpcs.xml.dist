@@ -8,7 +8,7 @@
 
 	<rule ref="WordPress"/>
 
-	<file>enterprise-api-importer.php</file>
+	<file>tporret-api-data-importer.php</file>
 	<file>includes</file>
 	<file>uninstall.php</file>
 </ruleset>

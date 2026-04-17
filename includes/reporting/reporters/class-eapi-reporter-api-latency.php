@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports recent API processing latency.
  */
-class EAPI_Reporter_API_Latency extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_API_Latency extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_API_Latency extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$logs_table = eai_db_logs_table();
+		$logs_table = tporapdi_db_logs_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$rows = $wpdb->get_col(

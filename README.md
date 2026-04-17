@@ -117,11 +117,11 @@ Implementation details:
 
 A new static helper is available in the processing layer:
 
-- `EAI_Import_Processor::sideload_image( $image_url, $post_id, $is_featured = false )`
+- `TPORAPDI_Import_Processor::sideload_image( $image_url, $post_id, $is_featured = false )`
 
 Design goals:
 
-- Idempotent media handling using `_eapi_source_url` matching.
+- Idempotent media handling using `_tporapdi_source_url` matching.
 - Secure download flow via `download_url()` and WP media APIs.
 - Safe error handling with logs in `wp_custom_import_logs`.
 - Optional featured image assignment via `set_post_thumbnail()`.
@@ -136,14 +136,14 @@ A pluggable, high-performance reporting aggregator with real-time operational me
 
 **Three-Tier Design:**
 
-1. **Reporter Base Class** (`EAPI_Reporter_Base`)
+1. **Reporter Base Class** (`TPORAPDI_Reporter_Base`)
    - Abstract base with transient-backed caching (600s TTL default)
    - Formatting helpers: `format_percentage()`, `format_time_ago()`, `get_status_color()`
    - Each reporter implements `calculate_metrics(): array` for domain logic
 
-2. **Singleton Aggregator** (`EAPI_Reporting_Aggregator`)
+2. **Singleton Aggregator** (`TPORAPDI_Reporting_Aggregator`)
    - Registry pattern for reporter instances
-   - `register_reporter( EAPI_Reporter_Base $reporter )`
+   - `register_reporter( TPORAPDI_Reporter_Base $reporter )`
    - `get_dashboard_data()` returns nested array grouped by category (Health, Security, Performance)
 
 3. **Nine Metric Modules (Out of the Box)**
@@ -222,7 +222,7 @@ GET /wp-json/eapi/v1/dashboard?refresh=1
 **Add a custom reporter:**
 
 ```php
-class My_Custom_Reporter extends EAPI_Reporter_Base {
+class My_Custom_Reporter extends TPORAPDI_Reporter_Base {
   protected string $id = 'my_metric';
   protected string $category = 'Performance';
   protected string $label = 'My Custom KPI';
@@ -243,9 +243,9 @@ class My_Custom_Reporter extends EAPI_Reporter_Base {
 
 // Register on init
 add_action( 'init', function() {
-  $aggregator = EAPI_Reporting_Aggregator::get_instance();
+  $aggregator = TPORAPDI_Reporting_Aggregator::get_instance();
   $aggregator->register_reporter( new My_Custom_Reporter() );
-}, 20 ); // Run after eai_init_reporting (priority 10)
+}, 20 ); // Run after tporapdi_init_reporting (priority 10)
 ```
 
 **Customize thresholds:**
@@ -255,19 +255,19 @@ All status-to-color logic uses `get_status_color( $value, ['green' => X, 'yellow
 **Clear reporting cache:**
 
 ```php
-eai_flush_reporting_transients(); // Clears all 9 reporter transients + history
+tporapdi_flush_reporting_transients(); // Clears all 9 reporter transients + history
 ```
 
 **Monitoring via WP-Cron:** All metrics are calculated on-demand and cached, so no background jobs required. Transient eviction is natural.
 
 ### 6) Security Hardening — Credential Encryption & Data Sanitization
 
-Credential fields (`auth_token`, `auth_password`) are now encrypted at rest using AES-256-CBC with a key derived from `wp_salt('auth')`. Encrypted values are prefixed with `eai_enc:` for identification — legacy plaintext values are handled gracefully during the transition.
+Credential fields (`auth_token`, `auth_password`) are now encrypted at rest using AES-256-CBC with a key derived from `wp_salt('auth')`. Encrypted values are prefixed with `tporapdi_enc:` for identification — legacy plaintext values are handled gracefully during the transition.
 
 - **REST GET masking**: Credential values are replaced with empty strings in API responses. Boolean flags (`has_auth_token`, `has_auth_password`) indicate whether a credential is stored.
 - **Credential preservation on update**: When the frontend sends blank credential fields (because they were masked), the server preserves the existing encrypted values instead of overwriting with blanks.
 - **React UI indicators**: Auth credential fields show "Credential saved. Leave blank to keep existing value." with a `••••••••` placeholder when a credential is already stored.
-- **Filter safety**: `apply_filters( 'eai_remote_request_args', $args, $auth_method )` now passes the auth method string instead of the raw token.
+- **Filter safety**: `apply_filters( 'tporapdi_remote_request_args', $args, $auth_method )` now passes the auth method string instead of the raw token.
 - **Post content sanitization**: Twig-rendered content is passed through `wp_kses_post()` before `wp_insert_post()` to prevent stored XSS from untrusted API payloads.
 - **Custom meta sanitization**: Twig-compiled meta values are sanitized with `sanitize_text_field()` before `update_post_meta()`.
 - **Admin menu capability**: Menu pages now require `manage_options` instead of `read`, preventing subscriber-level access.
@@ -276,8 +276,8 @@ Credential fields (`auth_token`, `auth_password`) are now encrypted at rest usin
 
 #### ✅ Dedicated Template Management Capability
 
-- New capability: `eai_manage_templates` (assigned to Administrator role).
-- Permission check: `eai_manage_templates` OR `manage_options` OR `is_super_admin()` on multisite.
+- New capability: `tporapdi_manage_templates` (assigned to Administrator role).
+- Permission check: `tporapdi_manage_templates` OR `manage_options` OR `is_super_admin()` on multisite.
 - Imported content becomes read-only (no editing, deletion, or quick-edit allowed).
 - Template configuration is locked to the new capability across:
   - Form save in wp-admin
@@ -287,25 +287,25 @@ Credential fields (`auth_token`, `auth_password`) are now encrypted at rest usin
 **Extend capability assignment:**
 ```php
 // Allow custom roles to manage templates
-wp_cap_map_meta_cap( 'eai_manage_templates', $user_id );
-add_role( 'api_manager', 'API Manager', array( 'eai_manage_templates' => true ) );
+wp_cap_map_meta_cap( 'tporapdi_manage_templates', $user_id );
+add_role( 'api_manager', 'API Manager', array( 'tporapdi_manage_templates' => true ) );
 ```
 
 #### ✅ Twig Template Security Validation
 
 - Pre-save and pre-render validation prevents dangerous Twig features.
 - Enforcement rules:
-  - Max template size: 50 KB (mappings), 2 KB (titles) — filterable via `eai_template_max_bytes`
-  - Max expression count: 250 — filterable via `eai_template_max_expressions`
+  - Max template size: 50 KB (mappings), 2 KB (titles) — filterable via `tporapdi_template_max_bytes`
+  - Max expression count: 250 — filterable via `tporapdi_template_max_expressions`
   - Disallowed tags: `include`, `source`, `import`, `from`, `embed`, `extends`, `use`, `macro` (prevents SSTI/file inclusion)
-  - Max nesting depth: 12 levels — filterable via `eai_template_max_nesting_depth`
+  - Max nesting depth: 12 levels — filterable via `tporapdi_template_max_nesting_depth`
   - Syntax validation: parsed via Twig tokenizer at save time
 
 **Customize limits:**
 ```php
-add_filter( 'eai_template_max_bytes', function() { return 100 * 1024; } ); // 100 KB
-add_filter( 'eai_template_max_expressions', function() { return 500; } );
-add_filter( 'eai_template_max_nesting_depth', function() { return 15; } );
+add_filter( 'tporapdi_template_max_bytes', function() { return 100 * 1024; } ); // 100 KB
+add_filter( 'tporapdi_template_max_expressions', function() { return 500; } );
+add_filter( 'tporapdi_template_max_nesting_depth', function() { return 15; } );
 ```
 
 #### ✅ Template Change Audit Logging
@@ -330,26 +330,26 @@ ORDER BY timestamp DESC LIMIT 10;
 - Endpoints are validated against hostname and CIDR allowlists.
 - Available in: **Settings → Allowed Endpoint Hosts** and **Allowed Endpoint CIDR Blocks**.
 - Validation flow:
-  1. HTTPS required (opt-out via `eai_skip_https_check` filter)
+  1. HTTPS required (opt-out via `tporapdi_skip_https_check` filter)
   2. Private/internal IPs blocked by default (opt-in via settings checkbox)
   3. Hostname allowlist matching (exact + `*.example.com` wildcards)
   4. CIDR allowlist matching (IPv4 and IPv6 support)
 
 **Programmatic allowlist configuration:**
 ```php
-apply_filters( 'eai_allowed_endpoint_hosts', array( 'api.example.com', '*.internal.local' ) );
-apply_filters( 'eai_allowed_endpoint_cidrs', array( '192.168.1.0/24', '10.0.0.0/8' ) );
-apply_filters( 'eai_allow_internal_endpoints', false ); // default: block RFC1918/loopback
+apply_filters( 'tporapdi_allowed_endpoint_hosts', array( 'api.example.com', '*.internal.local' ) );
+apply_filters( 'tporapdi_allowed_endpoint_cidrs', array( '192.168.1.0/24', '10.0.0.0/8' ) );
+apply_filters( 'tporapdi_allow_internal_endpoints', false ); // default: block RFC1918/loopback
 ```
 
 #### ✅ Twig Strict Variables by Default
 
 - Strict variables mode enabled on Twig environment to prevent undefined variable silently rendering as empty.
 - Missing variable access now raises `Twig\Error\RuntimeError` (caught and logged).
-- Filterable via `eai_twig_strict_variables`:
+- Filterable via `tporapdi_twig_strict_variables`:
 
 ```php
-add_filter( 'eai_twig_strict_variables', function() { return false; } ); // permissive mode
+add_filter( 'tporapdi_twig_strict_variables', function() { return false; } ); // permissive mode
 ```
 
 ### 8) React Import Job Workspace + REST CRUD
@@ -374,7 +374,7 @@ You can now control edit behavior per import job from Mapping & Templating.
 - New setting: `lock_editing` (stored on the import config).
 - When enabled, imported posts from that job are read-only in wp-admin (edit/delete/quick-edit restricted).
 - When disabled, imported posts remain fully editable by normal WordPress permissions.
-- Applies to all imported post types (not only the `imported_item` CPT).
+- Applies to all imported post types (not only the `tporapdi_item` CPT).
 
 ## Data Flow (ETL)
 
@@ -398,7 +398,7 @@ You can now control edit behavior per import job from Mapping & Templating.
 - Optional Twig title template renders post title.
 
 5. Load
-- Upsert logic identifies records by `_my_custom_api_id` + `_eai_import_id`.
+- Upsert logic identifies records by `_my_custom_api_id` + `_tporapdi_import_id`.
 - Records are inserted/updated in the selected post type.
 - Sync timestamp and ownership metadata are maintained.
 
@@ -467,11 +467,11 @@ Recommended baseline:
 - **Transparent decryption**: Credentials are decrypted transparently at the DB read layer for import execution.
 - **REST API masking**: GET responses never expose credentials — fields are replaced with empty strings and `has_auth_token` / `has_auth_password` boolean flags.
 - **Credential preservation**: Blank credential fields on update are treated as "unchanged" — existing encrypted values are preserved.
-- **Filter safety**: `apply_filters( 'eai_remote_request_args' )` no longer passes raw credentials to third-party hooks.
+- **Filter safety**: `apply_filters( 'tporapdi_remote_request_args' )` no longer passes raw credentials to third-party hooks.
 
 ### Capability-Based Access Control
 - **Admin menu access**: Restricted to `manage_options` capability (administrators only).
-- **Template management**: Restricted to `eai_manage_templates` capability (or `manage_options` / multisite super-admin).
+- **Template management**: Restricted to `tporapdi_manage_templates` capability (or `manage_options` / multisite super-admin).
 - **Import operations**: Guarded by permission checks on admin pages and REST endpoints.
 - **Imported content**: Read-only behavior is configurable per import job (`lock_editing`) via `map_meta_cap` filter.
 
@@ -483,7 +483,7 @@ Recommended baseline:
 - **Audit trail**: All template changes logged with before/after hashes and actor metadata.
 
 ### Network & SSRF Defense
-- **HTTPS enforcement**: All endpoints must use HTTPS (filterable via `eai_skip_https_check`).
+- **HTTPS enforcement**: All endpoints must use HTTPS (filterable via `tporapdi_skip_https_check`).
 - **Private IP blocking**: RFC1918 and loopback addresses blocked by default (opt-in via settings).
 - **Hostname allowlisting**: Exact matching and wildcard subdomain patterns (e.g., `*.internal.local`).
 - **CIDR allowlisting**: IPv4 and IPv6 network ranges supported and validated via `inet_pton()`.
@@ -502,7 +502,7 @@ Recommended baseline:
 
 ## Database Tables
 
-- `wp_eapi_imports`
+- `wp_tporapdi_imports`
   - import definitions and processing settings
   - includes fields such as:
     - endpoint/auth/paths
@@ -520,9 +520,9 @@ Recommended baseline:
 
 ## Scheduling Model
 
-- Recurring trigger hook: `eai_recurring_import_trigger`
+- Recurring trigger hook: `tporapdi_recurring_import_trigger`
 - Immediate trigger hook: `ncsu_api_importer_batch_hook`
-- Queue worker hook: `eai_process_import_queue`
+- Queue worker hook: `tporapdi_process_import_queue`
 
 Each run tracks trigger context (`manual`, `run_now`, `recurring`) for operational traceability.
 
@@ -591,7 +591,7 @@ composer require twig/twig
 
 ## File Map
 
-- `enterprise-api-importer.php` bootstrap
+- `tporret-api-data-importer.php` bootstrap
 - `includes/core.php` activation and schema migrations
 - `includes/content.php` CPT registration
 - `includes/import.php` ETL engine, queue, cron orchestration, media helper
@@ -602,7 +602,7 @@ composer require twig/twig
 ## Developer Quick Checks
 
 ```bash
-php -l enterprise-api-importer.php
+php -l tporret-api-data-importer.php
 php -l includes/core.php
 php -l includes/content.php
 php -l includes/db.php

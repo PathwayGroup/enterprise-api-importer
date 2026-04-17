@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports recent template audit-log activity.
  */
-class EAPI_Reporter_Audit_Integrity extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_Audit_Integrity extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_Audit_Integrity extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$logs_table = eai_db_logs_table();
+		$logs_table = tporapdi_db_logs_table();
 		$since      = gmdate( 'Y-m-d H:i:s', time() - ( 7 * DAY_IN_SECONDS ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery

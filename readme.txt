@@ -14,6 +14,8 @@ Enterprise ETL importer for WordPress that turns complex API payloads into relia
 == Description ==
 tporret API Data Importer gives WordPress teams an enterprise-grade ETL pipeline for importing external API data with confidence.
 
+The plugin ships readable source for its generated admin assets. JavaScript and CSS source files are included in the `src/` directory, compiled assets are in `build/`, and the maintained public source repository is available at https://github.com/tporret/enterprise-api-importer.
+
 This readme is written for WordPress administrators and site owners evaluating or using the plugin from the Plugins screen.
 
 Use tporret API Data Importer to run clean, repeatable import workflows without sacrificing flexibility:
@@ -70,6 +72,13 @@ Built for real-world production workflows:
 
 Multisite note: activate the plugin on each subsite that should run imports. If you also want the Network Admin summary dashboard, activate it on the primary site too. Do not use Network Activate; that mode is intentionally not supported.
 
+== Development ==
+To rebuild generated admin assets from source, install the repository dependencies and run the standard build tools from the plugin root.
+
+- JavaScript/CSS source lives in `src/`
+- Production assets are generated into `build/`
+- The public source repository is https://github.com/tporret/enterprise-api-importer
+
 == Frequently Asked Questions ==
 = Does this require WP-CLI? =
 No. It uses native WP-Cron scheduling, but supports CLI triggers.
@@ -93,7 +102,7 @@ Each subsite keeps its own import jobs, schedules, settings, and dashboard. A se
 The plugin includes a secure media sideload helper foundation with source URL deduplication. Full field-level media mapping workflows can be added on top of this helper.
 
 = Who can edit imported items and templates? =
-Template configuration requires the `eai_manage_templates` capability or `manage_options` role. Multisite super admins always have access. Imported item editing can now be controlled per import job with the "Lock editing of imported posts" setting.
+Template configuration requires the `tporapdi_manage_templates` capability or `manage_options` role. Multisite super admins always have access. Imported item editing can now be controlled per import job with the "Lock editing of imported posts" setting.
 
 = What Twig features are blocked for security? =
 The following Twig tags are disallowed to prevent file inclusion and code injection: `include`, `source`, `import`, `from`, `embed`, `extends`, `use`, `macro`.
@@ -156,7 +165,7 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 * Encrypted credential storage at rest for auth_token and auth_password.
 * REST import-job GET now masks credentials and returns has_auth_token / has_auth_password flags.
 * Update handlers preserve existing encrypted credentials when masked fields are submitted blank.
-* Removed raw token exposure from eai_remote_request_args filter context.
+* Removed raw token exposure from tporapdi_remote_request_args filter context.
 * Added post-content sanitization with wp_kses_post before post insert/update.
 * Added custom-meta sanitization with sanitize_text_field before update_post_meta.
 * Tightened admin menu capability from read to manage_options.
@@ -204,13 +213,13 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
   - REST GET responses mask credential values and expose boolean has_auth_token / has_auth_password flags.
   - Credential preservation on update: blank credential fields retain existing encrypted values.
   - React auth fields show "Credential saved" indicators with placeholder text for stored credentials.
-  - apply_filters('eai_remote_request_args') no longer passes raw token — passes auth_method instead.
+  - apply_filters('tporapdi_remote_request_args') no longer passes raw token — passes auth_method instead.
   - Twig-rendered post content now passes through wp_kses_post() before wp_insert_post() (stored XSS prevention).
   - Twig-compiled custom meta values now pass through sanitize_text_field() before update_post_meta().
   - Admin menu pages capability changed from 'read' to 'manage_options' (subscriber access blocked).
 * **Enhanced Security Hardening (Enterprise-Grade)**
-  - Added dedicated `eai_manage_templates` capability for template configuration access (separate from `manage_options`).
-  - Implemented multisite-aware permission system: `eai_manage_templates` OR `manage_options` OR `is_super_admin()`.
+  - Added dedicated `tporapdi_manage_templates` capability for template configuration access (separate from `manage_options`).
+  - Implemented multisite-aware permission system: `tporapdi_manage_templates` OR `manage_options` OR `is_super_admin()`.
   - Locked imported items as read-only (no editing, deletion, or quick-edit permissions via `map_meta_cap`).
   - Added comprehensive Twig template security validator:
     - Disallowed tags: include, source, import, from, embed, extends, use, macro (prevents SSTI and file inclusion).

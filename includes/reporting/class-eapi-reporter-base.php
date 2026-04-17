@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Base reporter implementation shared by dashboard metric modules.
  */
-abstract class EAPI_Reporter_Base {
+abstract class TPORAPDI_Reporter_Base {
 
 	/**
 	 * Unique reporter identifier.
@@ -70,7 +70,7 @@ abstract class EAPI_Reporter_Base {
 	 * @return array<string, mixed>
 	 */
 	public function get_cached_results(): array {
-		$transient_key = 'eapi_report_' . $this->id;
+		$transient_key = 'tporapdi_report_' . $this->id;
 		$cached        = get_transient( $transient_key );
 
 		if ( false !== $cached ) {

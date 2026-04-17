@@ -16,9 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return bool
  */
-function eai_current_user_can_manage_imports() {
+function tporapdi_current_user_can_manage_imports() {
 	// phpcs:ignore WordPress.WP.Capabilities.Unknown -- Custom capability is registered for administrators during activation and admin bootstrap.
-	if ( current_user_can( 'eai_manage_templates' ) || current_user_can( 'manage_options' ) ) {
+	if ( current_user_can( 'tporapdi_manage_templates' ) || current_user_can( 'manage_options' ) ) {
 		return true;
 	}
 
@@ -34,8 +34,8 @@ function eai_current_user_can_manage_imports() {
  *
  * @return string
  */
-function eai_get_manage_imports_capability() {
-	return 'eai_manage_templates';
+function tporapdi_get_manage_imports_capability() {
+	return 'tporapdi_manage_templates';
 }
 
 /**
@@ -59,115 +59,115 @@ function eai_get_manage_imports_capability() {
  *
  * @return bool
  */
-function eai_current_user_can_manage_network_imports() {
+function tporapdi_current_user_can_manage_network_imports() {
 	return is_multisite() && current_user_can( 'manage_network_options' );
 }
 
 /**
  * Registers admin menu pages.
  */
-function eai_add_admin_pages() {
-	if ( ! eai_current_user_can_manage_imports() ) {
+function tporapdi_add_admin_pages() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
 		return;
 	}
 
 	add_menu_page(
-		__( 'tporret API Data Importer', 'enterprise-api-importer' ),
-		__( 'EAPI', 'enterprise-api-importer' ),
-		eai_get_manage_imports_capability(),
-		EAI_ADMIN_PAGE_MANAGE_SLUG,
-		'eai_render_manage_imports_page',
+		__( 'tporret API Data Importer', 'tporret-api-data-importer' ),
+		__( 'EAPI', 'tporret-api-data-importer' ),
+		tporapdi_get_manage_imports_capability(),
+		TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+		'tporapdi_render_manage_imports_page',
 		'dashicons-database-import',
 		58
 	);
 
 	add_submenu_page(
-		EAI_ADMIN_PAGE_MANAGE_SLUG,
-		__( 'Manage Imports', 'enterprise-api-importer' ),
-		__( 'Manage Imports', 'enterprise-api-importer' ),
-		eai_get_manage_imports_capability(),
-		EAI_ADMIN_PAGE_MANAGE_SLUG,
-		'eai_render_manage_imports_page'
+		TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+		__( 'Manage Imports', 'tporret-api-data-importer' ),
+		__( 'Manage Imports', 'tporret-api-data-importer' ),
+		tporapdi_get_manage_imports_capability(),
+		TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+		'tporapdi_render_manage_imports_page'
 	);
 
 	add_submenu_page(
-		EAI_ADMIN_PAGE_MANAGE_SLUG,
-		__( 'Schedules', 'enterprise-api-importer' ),
-		__( 'Schedules', 'enterprise-api-importer' ),
-		eai_get_manage_imports_capability(),
-		EAI_ADMIN_PAGE_SCHEDULES_SLUG,
-		'eai_render_schedules_page'
+		TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+		__( 'Schedules', 'tporret-api-data-importer' ),
+		__( 'Schedules', 'tporret-api-data-importer' ),
+		tporapdi_get_manage_imports_capability(),
+		TPORAPDI_ADMIN_PAGE_SCHEDULES_SLUG,
+		'tporapdi_render_schedules_page'
 	);
 
 	add_submenu_page(
-		EAI_ADMIN_PAGE_MANAGE_SLUG,
-		__( 'Settings', 'enterprise-api-importer' ),
-		__( 'Settings', 'enterprise-api-importer' ),
-		eai_get_manage_imports_capability(),
-		EAI_ADMIN_PAGE_SETTINGS_SLUG,
-		'eai_render_settings_page'
+		TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+		__( 'Settings', 'tporret-api-data-importer' ),
+		__( 'Settings', 'tporret-api-data-importer' ),
+		tporapdi_get_manage_imports_capability(),
+		TPORAPDI_ADMIN_PAGE_SETTINGS_SLUG,
+		'tporapdi_render_settings_page'
 	);
 
 	add_submenu_page(
-		EAI_ADMIN_PAGE_MANAGE_SLUG,
-		__( 'Dashboard', 'enterprise-api-importer' ),
-		__( 'Dashboard', 'enterprise-api-importer' ),
-		eai_get_manage_imports_capability(),
-		EAI_ADMIN_PAGE_DASHBOARD_SLUG,
-		'eai_render_dashboard_page'
+		TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+		__( 'Dashboard', 'tporret-api-data-importer' ),
+		__( 'Dashboard', 'tporret-api-data-importer' ),
+		tporapdi_get_manage_imports_capability(),
+		TPORAPDI_ADMIN_PAGE_DASHBOARD_SLUG,
+		'tporapdi_render_dashboard_page'
 	);
 }
-add_action( 'admin_menu', 'eai_add_admin_pages' );
+add_action( 'admin_menu', 'tporapdi_add_admin_pages' );
 
 /**
  * Registers multisite-only Network Admin pages.
  *
  * @return void
  */
-function eai_add_network_admin_pages() {
-	if ( ! eai_current_user_can_manage_network_imports() ) {
+function tporapdi_add_network_admin_pages() {
+	if ( ! tporapdi_current_user_can_manage_network_imports() ) {
 		return;
 	}
 
 	add_menu_page(
-		__( 'tporret API Data Importer Network', 'enterprise-api-importer' ),
-		__( 'EAPI Network', 'enterprise-api-importer' ),
+		__( 'tporret API Data Importer Network', 'tporret-api-data-importer' ),
+		__( 'EAPI Network', 'tporret-api-data-importer' ),
 		'manage_network_options',
-		EAI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG,
-		'eai_render_network_dashboard_page',
+		TPORAPDI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG,
+		'tporapdi_render_network_dashboard_page',
 		'dashicons-database-import',
 		58
 	);
 }
-add_action( 'network_admin_menu', 'eai_add_network_admin_pages' );
+add_action( 'network_admin_menu', 'tporapdi_add_network_admin_pages' );
 
 /**
  * Registers admin post handlers.
  */
-function eai_register_admin_post_handlers() {
-	add_action( 'admin_post_eai_save_import', 'eai_handle_save_import' );
-	add_action( 'admin_post_eai_delete_import', 'eai_handle_delete_import' );
-	add_action( 'admin_post_eai_run_import', 'eai_handle_manual_import_run' );
-	add_action( 'admin_post_eai_test_import_endpoint', 'eai_handle_test_import_endpoint' );
-	add_action( 'admin_post_eai_schedule_run_now', 'eai_handle_schedule_run_now_action' );
-	add_action( 'admin_post_eai_save_settings', 'eai_handle_save_settings' );
+function tporapdi_register_admin_post_handlers() {
+	add_action( 'admin_post_tporapdi_save_import', 'tporapdi_handle_save_import' );
+	add_action( 'admin_post_tporapdi_delete_import', 'tporapdi_handle_delete_import' );
+	add_action( 'admin_post_tporapdi_run_import', 'tporapdi_handle_manual_import_run' );
+	add_action( 'admin_post_tporapdi_test_import_endpoint', 'tporapdi_handle_test_import_endpoint' );
+	add_action( 'admin_post_tporapdi_schedule_run_now', 'tporapdi_handle_schedule_run_now_action' );
+	add_action( 'admin_post_tporapdi_save_settings', 'tporapdi_handle_save_settings' );
 }
-add_action( 'admin_init', 'eai_register_admin_post_handlers' );
-add_action( 'admin_init', 'eai_sync_template_management_capabilities' );
+add_action( 'admin_init', 'tporapdi_register_admin_post_handlers' );
+add_action( 'admin_init', 'tporapdi_sync_template_management_capabilities' );
 
 /**
  * Renders plugin settings page.
  */
-function eai_render_settings_page() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to access this page.', 'enterprise-api-importer' ) );
+function tporapdi_render_settings_page() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to access this page.', 'tporret-api-data-importer' ) );
 	}
 
-	$settings = wp_parse_args( get_option( 'eai_settings', array() ), eai_get_default_settings() );
+	$settings = wp_parse_args( get_option( 'tporapdi_settings', array() ), tporapdi_get_default_settings() );
 
 	// Ensure the settings array has the necessary keys.
 	if ( ! is_array( $settings ) ) {
-		$settings = eai_get_default_settings();
+		$settings = tporapdi_get_default_settings();
 	}
 
 	$hosts          = isset( $settings['allowed_endpoint_hosts'] ) ? (string) $settings['allowed_endpoint_hosts'] : '';
@@ -175,56 +175,56 @@ function eai_render_settings_page() {
 	$allow_internal = isset( $settings['allow_internal_endpoints'] ) ? (string) $settings['allow_internal_endpoints'] : '0';
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'tporret API Data Importer Settings', 'enterprise-api-importer' ); ?></h1>
-		<?php eai_render_admin_notices(); ?>
+		<h1><?php esc_html_e( 'tporret API Data Importer Settings', 'tporret-api-data-importer' ); ?></h1>
+		<?php tporapdi_render_admin_notices(); ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="eai_save_settings" />
-			<?php wp_nonce_field( 'eai_save_settings', 'eai_settings_nonce' ); ?>
+			<input type="hidden" name="action" value="tporapdi_save_settings" />
+			<?php wp_nonce_field( 'tporapdi_save_settings', 'tporapdi_settings_nonce' ); ?>
 
 			<table class="form-table" role="presentation">
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="eai_allowed_endpoint_hosts">
-								<?php esc_html_e( 'Allowed Endpoint Hosts', 'enterprise-api-importer' ); ?>
+							<label for="tporapdi_allowed_endpoint_hosts">
+								<?php esc_html_e( 'Allowed Endpoint Hosts', 'tporret-api-data-importer' ); ?>
 							</label>
 						</th>
 						<td>
 							<textarea
 								name="allowed_endpoint_hosts"
-								id="eai_allowed_endpoint_hosts"
+								id="tporapdi_allowed_endpoint_hosts"
 								rows="6"
 								class="large-text code"
 								placeholder="api.example.com&#10;*.internal.example.com"
 							><?php echo esc_textarea( $hosts ); ?></textarea>
 							<p class="description">
-								<?php esc_html_e( 'Comma or newline-separated list of allowed hostnames. Use *.example.com for wildcard subdomains. Leave empty to allow any HTTPS host.', 'enterprise-api-importer' ); ?>
+								<?php esc_html_e( 'Comma or newline-separated list of allowed hostnames. Use *.example.com for wildcard subdomains. Leave empty to allow any HTTPS host.', 'tporret-api-data-importer' ); ?>
 							</p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="eai_allowed_endpoint_cidrs">
-								<?php esc_html_e( 'Allowed Endpoint CIDR Blocks', 'enterprise-api-importer' ); ?>
+							<label for="tporapdi_allowed_endpoint_cidrs">
+								<?php esc_html_e( 'Allowed Endpoint CIDR Blocks', 'tporret-api-data-importer' ); ?>
 							</label>
 						</th>
 						<td>
 							<textarea
 								name="allowed_endpoint_cidrs"
-								id="eai_allowed_endpoint_cidrs"
+								id="tporapdi_allowed_endpoint_cidrs"
 								rows="6"
 								class="large-text code"
 								placeholder="192.168.1.0/24&#10;10.0.0.0/8"
 							><?php echo esc_textarea( $cidrs ); ?></textarea>
 							<p class="description">
-								<?php esc_html_e( 'Comma or newline-separated list of CIDR blocks. Apply only when a corresponding hostname is in the allowed hosts list. Leave empty to disable CIDR-based filtering.', 'enterprise-api-importer' ); ?>
+								<?php esc_html_e( 'Comma or newline-separated list of CIDR blocks. Apply only when a corresponding hostname is in the allowed hosts list. Leave empty to disable CIDR-based filtering.', 'tporret-api-data-importer' ); ?>
 							</p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<?php esc_html_e( 'Allow Internal Endpoints', 'enterprise-api-importer' ); ?>
+							<?php esc_html_e( 'Allow Internal Endpoints', 'tporret-api-data-importer' ); ?>
 						</th>
 						<td>
 							<label>
@@ -234,17 +234,17 @@ function eai_render_settings_page() {
 									value="1"
 									<?php checked( '1' === $allow_internal, true ); ?>
 								/>
-								<?php esc_html_e( 'Allow connections to private/internal IP addresses and localhost.', 'enterprise-api-importer' ); ?>
+								<?php esc_html_e( 'Allow connections to private/internal IP addresses and localhost.', 'tporret-api-data-importer' ); ?>
 							</label>
 							<p class="description">
-								<?php esc_html_e( 'For controlled/development environments only. Production should leave unchecked.', 'enterprise-api-importer' ); ?>
+								<?php esc_html_e( 'For controlled/development environments only. Production should leave unchecked.', 'tporret-api-data-importer' ); ?>
 							</p>
 						</td>
 					</tr>
 				</tbody>
 			</table>
 
-			<?php submit_button( __( 'Save Settings', 'enterprise-api-importer' ) ); ?>
+			<?php submit_button( __( 'Save Settings', 'tporret-api-data-importer' ) ); ?>
 		</form>
 	</div>
 	<?php
@@ -253,17 +253,17 @@ function eai_render_settings_page() {
 /**
  * Handles plugin settings form submission.
  */
-function eai_handle_save_settings() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to perform this action.', 'enterprise-api-importer' ) );
+function tporapdi_handle_save_settings() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to perform this action.', 'tporret-api-data-importer' ) );
 	}
 
-	if ( ! isset( $_POST['eai_settings_nonce'] ) ) {
+	if ( ! isset( $_POST['tporapdi_settings_nonce'] ) ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_SETTINGS_SLUG,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_SETTINGS_SLUG,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -271,19 +271,17 @@ function eai_handle_save_settings() {
 		exit;
 	}
 
-	check_admin_referer( 'eai_save_settings', 'eai_settings_nonce' );
+	check_admin_referer( 'tporapdi_save_settings', 'tporapdi_settings_nonce' );
 
-	$post_data = wp_unslash( $_POST );
-	$post_data = is_array( $post_data ) ? $post_data : array();
+	$allowed_endpoint_hosts = isset( $_POST['allowed_endpoint_hosts'] ) ? sanitize_textarea_field( (string) wp_unslash( $_POST['allowed_endpoint_hosts'] ) ) : '';
+	$allowed_endpoint_cidrs = isset( $_POST['allowed_endpoint_cidrs'] ) ? sanitize_textarea_field( (string) wp_unslash( $_POST['allowed_endpoint_cidrs'] ) ) : '';
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Reduced to a strict 1/0 toggle immediately after unslashing.
+	$allow_internal_endpoints = isset( $_POST['allow_internal_endpoints'] ) && '1' === (string) wp_unslash( $_POST['allow_internal_endpoints'] ) ? '1' : '0';
 
-	$allowed_endpoint_hosts   = isset( $post_data['allowed_endpoint_hosts'] ) ? sanitize_textarea_field( (string) $post_data['allowed_endpoint_hosts'] ) : '';
-	$allowed_endpoint_cidrs   = isset( $post_data['allowed_endpoint_cidrs'] ) ? sanitize_textarea_field( (string) $post_data['allowed_endpoint_cidrs'] ) : '';
-	$allow_internal_endpoints = ! empty( $post_data['allow_internal_endpoints'] ) && '1' === (string) $post_data['allow_internal_endpoints'] ? '1' : '0';
-
-	$current_settings = get_option( 'eai_settings', array() );
+	$current_settings = get_option( 'tporapdi_settings', array() );
 	$current_settings = is_array( $current_settings ) ? $current_settings : array();
 
-	$defaults = eai_get_default_settings();
+	$defaults = tporapdi_get_default_settings();
 	$defaults = is_array( $defaults ) ? $defaults : array();
 
 	$settings = wp_parse_args( $current_settings, $defaults );
@@ -292,12 +290,12 @@ function eai_handle_save_settings() {
 	$settings['allowed_endpoint_cidrs']   = $allowed_endpoint_cidrs;
 	$settings['allow_internal_endpoints'] = $allow_internal_endpoints;
 
-	$updated = update_option( 'eai_settings', $settings );
+	$updated = update_option( 'tporapdi_settings', $settings );
 
 	$redirect_url = add_query_arg(
 		array(
-			'page'       => EAI_ADMIN_PAGE_SETTINGS_SLUG,
-			'eai_notice' => 'settings_saved',
+			'page'            => TPORAPDI_ADMIN_PAGE_SETTINGS_SLUG,
+			'tporapdi_notice' => 'settings_saved',
 		),
 		admin_url( 'admin.php' )
 	);
@@ -315,10 +313,10 @@ function eai_handle_save_settings() {
  * @param array<string, mixed> &$data      Sanitized save data (modified by reference).
  * @param int                  $import_id  Existing import job ID.
  */
-function eai_preserve_unchanged_credentials( array &$data, int $import_id ) {
+function tporapdi_preserve_unchanged_credentials( array &$data, int $import_id ) {
 	global $wpdb;
 
-	$table = eai_db_imports_table();
+	$table = tporapdi_db_imports_table();
 
 	// Read raw (encrypted) values directly — do NOT decrypt.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -335,7 +333,7 @@ function eai_preserve_unchanged_credentials( array &$data, int $import_id ) {
 		return;
 	}
 
-	foreach ( eai_get_credential_field_names() as $field ) {
+	foreach ( tporapdi_get_credential_field_names() as $field ) {
 		if ( isset( $data[ $field ] ) && '' === (string) $data[ $field ] && isset( $existing_raw[ $field ] ) ) {
 			$data[ $field ] = $existing_raw[ $field ];
 		}
@@ -353,36 +351,36 @@ function eai_preserve_unchanged_credentials( array &$data, int $import_id ) {
 /**
  * Renders admin notices for this plugin.
  */
-function eai_render_admin_notices() {
-	$network_activation_reverted = (int) get_site_option( 'eai_network_activation_reverted', 0 );
+function tporapdi_render_admin_notices() {
+	$network_activation_reverted = (int) get_site_option( 'tporapdi_network_activation_reverted', 0 );
 	if ( $network_activation_reverted > 0 && ( is_network_admin() || is_main_site() ) ) {
 		echo '<div class="notice notice-warning"><p>';
-		echo esc_html__( 'Multisite note: a network activation attempt was automatically reverted. Keep tporret API Data Importer active on the primary site for the Network Admin dashboard, and activate it separately on each subsite that should run imports.', 'enterprise-api-importer' );
+		echo esc_html__( 'Multisite note: a network activation attempt was automatically reverted. Keep tporret API Data Importer active on the primary site for the Network Admin dashboard, and activate it separately on each subsite that should run imports.', 'tporret-api-data-importer' );
 		echo '</p></div>';
-		delete_site_option( 'eai_network_activation_reverted' );
+		delete_site_option( 'tporapdi_network_activation_reverted' );
 	}
 
-	if ( eai_should_render_primary_site_dashboard_notice() ) {
+	if ( tporapdi_should_render_primary_site_dashboard_notice() ) {
 		echo '<div class="notice notice-warning"><p>';
-		echo esc_html__( 'Multisite note: the Network Admin dashboard appears only when tporret API Data Importer is also active on the primary site. Keep this subsite active for local imports, and activate the plugin on the primary site if you want the network-level dashboard.', 'enterprise-api-importer' );
+		echo esc_html__( 'Multisite note: the Network Admin dashboard appears only when tporret API Data Importer is also active on the primary site. Keep this subsite active for local imports, and activate the plugin on the primary site if you want the network-level dashboard.', 'tporret-api-data-importer' );
 		echo '</p></div>';
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice code for admin UI messaging.
-	$notice_code = isset( $_GET['eai_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['eai_notice'] ) ) : '';
+	$notice_code = isset( $_GET['tporapdi_notice'] ) ? sanitize_key( (string) wp_unslash( $_GET['tporapdi_notice'] ) ) : '';
 	if ( '' === $notice_code ) {
 		return;
 	}
 
 	$messages = array(
-		'import_saved'          => array( 'success', __( 'Import job saved.', 'enterprise-api-importer' ) ),
-		'import_deleted'        => array( 'success', __( 'Import job deleted.', 'enterprise-api-importer' ) ),
-		'import_started'        => array( 'success', __( 'Import queued successfully.', 'enterprise-api-importer' ) ),
-		'template_sync_started' => array( 'success', __( 'Template sync started. Existing imported items will be re-rendered for this import job.', 'enterprise-api-importer' ) ),
-		'schedule_now'          => array( 'success', __( 'Import scheduled to run now.', 'enterprise-api-importer' ) ),
-		'import_error'          => array( 'error', __( 'The import request failed. Please review your inputs and try again.', 'enterprise-api-importer' ) ),
-		'schedule_error'        => array( 'error', __( 'Unable to schedule this import right now.', 'enterprise-api-importer' ) ),
-		'settings_saved'        => array( 'success', __( 'Settings saved.', 'enterprise-api-importer' ) ),
+		'import_saved'          => array( 'success', __( 'Import job saved.', 'tporret-api-data-importer' ) ),
+		'import_deleted'        => array( 'success', __( 'Import job deleted.', 'tporret-api-data-importer' ) ),
+		'import_started'        => array( 'success', __( 'Import queued successfully.', 'tporret-api-data-importer' ) ),
+		'template_sync_started' => array( 'success', __( 'Template sync started. Existing imported items will be re-rendered for this import job.', 'tporret-api-data-importer' ) ),
+		'schedule_now'          => array( 'success', __( 'Import scheduled to run now.', 'tporret-api-data-importer' ) ),
+		'import_error'          => array( 'error', __( 'The import request failed. Please review your inputs and try again.', 'tporret-api-data-importer' ) ),
+		'schedule_error'        => array( 'error', __( 'Unable to schedule this import right now.', 'tporret-api-data-importer' ) ),
+		'settings_saved'        => array( 'success', __( 'Settings saved.', 'tporret-api-data-importer' ) ),
 	);
 
 	if ( ! isset( $messages[ $notice_code ] ) ) {
@@ -396,10 +394,10 @@ function eai_render_admin_notices() {
 	echo '<div class="' . esc_attr( $class ) . '"><p>' . esc_html( $message ) . '</p></div>';
 
 	if ( 'import_error' === $notice_code ) {
-		$save_error = get_transient( 'eai_last_import_save_error' );
+		$save_error = get_transient( 'tporapdi_last_import_save_error' );
 		if ( is_string( $save_error ) && '' !== $save_error ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( $save_error ) . '</p></div>';
-			delete_transient( 'eai_last_import_save_error' );
+			delete_transient( 'tporapdi_last_import_save_error' );
 		}
 	}
 }
@@ -409,7 +407,7 @@ function eai_render_admin_notices() {
  *
  * @return bool
  */
-function eai_should_render_primary_site_dashboard_notice() {
+function tporapdi_should_render_primary_site_dashboard_notice() {
 	if ( ! is_multisite() || is_network_admin() || is_main_site() ) {
 		return false;
 	}
@@ -422,20 +420,20 @@ function eai_should_render_primary_site_dashboard_notice() {
 
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-	if ( is_plugin_active_for_network( EAI_PLUGIN_BASENAME ) ) {
+	if ( is_plugin_active_for_network( TPORAPDI_PLUGIN_BASENAME ) ) {
 		return false;
 	}
 
 	$active_plugins = (array) get_blog_option( $main_site_id, 'active_plugins', array() );
 
-	return ! in_array( EAI_PLUGIN_BASENAME, $active_plugins, true );
+	return ! in_array( TPORAPDI_PLUGIN_BASENAME, $active_plugins, true );
 }
 
 /**
  * Renders manage imports page.
  */
-function eai_render_manage_imports_page() {
-	if ( ! eai_current_user_can_manage_imports() ) {
+function tporapdi_render_manage_imports_page() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
 		return;
 	}
 
@@ -443,21 +441,21 @@ function eai_render_manage_imports_page() {
 	$action = isset( $_GET['action'] ) ? sanitize_key( (string) wp_unslash( $_GET['action'] ) ) : '';
 
 	if ( 'edit' === $action ) {
-		eai_render_import_edit_page();
+		tporapdi_render_import_edit_page();
 		return;
 	}
 
-	eai_render_imports_list_page();
+	tporapdi_render_imports_list_page();
 }
 
 /**
  * Renders list view using WP_List_Table.
  */
-function eai_render_imports_list_page() {
-	$list_table = new EAI_Imports_List_Table();
+function tporapdi_render_imports_list_page() {
+	$list_table = new TPORAPDI_Imports_List_Table();
 	$list_table->prepare_items();
-	$total_imports     = count( eai_db_get_import_configs() );
-	$ownership_counts  = eai_get_import_post_ownership_counts();
+	$total_imports     = count( tporapdi_db_get_import_configs() );
+	$ownership_counts  = tporapdi_get_import_post_ownership_counts();
 	$total_owned_posts = 0;
 	foreach ( $ownership_counts as $ownership_row ) {
 		$total_owned_posts += isset( $ownership_row['post_count'] ) ? (int) $ownership_row['post_count'] : 0;
@@ -465,35 +463,35 @@ function eai_render_imports_list_page() {
 
 	$new_url = add_query_arg(
 		array(
-			'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+			'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 			'action' => 'edit',
 		),
 		admin_url( 'admin.php' )
 	);
 
-	$active_state = eai_get_active_run_state();
+	$active_state = tporapdi_get_active_run_state();
 	?>
 	<div class="wrap eapi-manage-shell">
 
 		<div class="eapi-manage-topbar">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Imports', 'enterprise-api-importer' ); ?></h1>
-			<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'enterprise-api-importer' ); ?></a>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Imports', 'tporret-api-data-importer' ); ?></h1>
+			<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'tporret-api-data-importer' ); ?></a>
 		</div>
 
 		<hr class="wp-header-end" />
-		<?php eai_render_admin_notices(); ?>
+		<?php tporapdi_render_admin_notices(); ?>
 
 		<div class="eapi-manage-kpis">
 			<div class="eapi-manage-kpi">
-				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Import Jobs', 'enterprise-api-importer' ); ?></div>
+				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Import Jobs', 'tporret-api-data-importer' ); ?></div>
 				<div class="eapi-manage-kpi-value"><?php echo esc_html( (string) (int) $total_imports ); ?></div>
 			</div>
 			<div class="eapi-manage-kpi">
-				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Imported Posts Linked', 'enterprise-api-importer' ); ?></div>
+				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Imported Posts Linked', 'tporret-api-data-importer' ); ?></div>
 				<div class="eapi-manage-kpi-value"><?php echo esc_html( (string) (int) $total_owned_posts ); ?></div>
 			</div>
 			<div class="eapi-manage-kpi">
-				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Queue State', 'enterprise-api-importer' ); ?></div>
+				<div class="eapi-manage-kpi-label"><?php esc_html_e( 'Queue State', 'tporret-api-data-importer' ); ?></div>
 				<div class="eapi-manage-kpi-value">
 					<?php if ( ! empty( $active_state['run_id'] ) ) : ?>
 						<span class="eapi-manage-running">
@@ -501,14 +499,14 @@ function eai_render_imports_list_page() {
 							echo esc_html(
 								sprintf(
 									/* translators: %d is the active import job ID. */
-									__( 'Running #%d', 'enterprise-api-importer' ),
+									__( 'Running #%d', 'tporret-api-data-importer' ),
 									isset( $active_state['import_id'] ) ? (int) $active_state['import_id'] : 0
 								)
 							);
 							?>
 						</span>
 					<?php else : ?>
-						<?php esc_html_e( 'Idle', 'enterprise-api-importer' ); ?>
+						<?php esc_html_e( 'Idle', 'tporret-api-data-importer' ); ?>
 					<?php endif; ?>
 				</div>
 			</div>
@@ -516,7 +514,7 @@ function eai_render_imports_list_page() {
 
 		<div class="eapi-manage-card">
 			<div class="eapi-manage-card-header">
-				<h2 class="eapi-manage-card-title"><?php esc_html_e( 'Import Jobs Table', 'enterprise-api-importer' ); ?></h2>
+				<h2 class="eapi-manage-card-title"><?php esc_html_e( 'Import Jobs Table', 'tporret-api-data-importer' ); ?></h2>
 			</div>
 			<div class="eapi-manage-card-body">
 				<form method="post">
@@ -527,15 +525,15 @@ function eai_render_imports_list_page() {
 
 		<div class="eapi-manage-card">
 			<div class="eapi-manage-card-header">
-				<h2 class="eapi-manage-card-title"><?php esc_html_e( 'Debug: Imported Post Ownership', 'enterprise-api-importer' ); ?></h2>
+				<h2 class="eapi-manage-card-title"><?php esc_html_e( 'Debug: Imported Post Ownership', 'tporret-api-data-importer' ); ?></h2>
 			</div>
 			<div class="eapi-manage-card-body">
 				<p>
 					<?php
 					echo esc_html(
 						sprintf(
-							/* translators: %d is total number of imported posts linked to any import job via _eai_import_id meta. */
-							__( 'Total imported posts linked to import jobs (_eai_import_id): %d', 'enterprise-api-importer' ),
+							/* translators: %d is total number of imported posts linked to any import job via _tporapdi_import_id meta. */
+							__( 'Total imported posts linked to import jobs (_tporapdi_import_id): %d', 'tporret-api-data-importer' ),
 							(int) $total_owned_posts
 						)
 					);
@@ -545,15 +543,15 @@ function eai_render_imports_list_page() {
 				<table class="widefat striped eapi-admin-table eapi-ownership-table">
 					<thead>
 						<tr>
-							<th><?php esc_html_e( 'Import ID Meta Value', 'enterprise-api-importer' ); ?></th>
-							<th><?php esc_html_e( 'Matched Import Job', 'enterprise-api-importer' ); ?></th>
-							<th><?php esc_html_e( 'Imported Post Count', 'enterprise-api-importer' ); ?></th>
+							<th><?php esc_html_e( 'Import ID Meta Value', 'tporret-api-data-importer' ); ?></th>
+							<th><?php esc_html_e( 'Matched Import Job', 'tporret-api-data-importer' ); ?></th>
+							<th><?php esc_html_e( 'Imported Post Count', 'tporret-api-data-importer' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
 					<?php if ( empty( $ownership_counts ) ) : ?>
 						<tr>
-							<td colspan="3"><?php esc_html_e( 'No imported posts with _eai_import_id found.', 'enterprise-api-importer' ); ?></td>
+							<td colspan="3"><?php esc_html_e( 'No imported posts with _tporapdi_import_id found.', 'tporret-api-data-importer' ); ?></td>
 						</tr>
 					<?php else : ?>
 						<?php foreach ( $ownership_counts as $ownership_row ) : ?>
@@ -567,7 +565,7 @@ function eai_render_imports_list_page() {
 										echo esc_html(
 											sprintf(
 												/* translators: %d is the matched import job ID. */
-												__( '(ID #%d)', 'enterprise-api-importer' ),
+												__( '(ID #%d)', 'tporret-api-data-importer' ),
 												(int) $ownership_row['import_id']
 											)
 										);
@@ -587,11 +585,11 @@ function eai_render_imports_list_page() {
 }
 
 /**
- * Gets imported post ownership grouped by _eai_import_id.
+ * Gets imported post ownership grouped by _tporapdi_import_id.
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_get_import_post_ownership_counts() {
+function tporapdi_get_import_post_ownership_counts() {
 	global $wpdb;
 
 	$postmeta_table = $wpdb->postmeta;
@@ -611,8 +609,8 @@ function eai_get_import_post_ownership_counts() {
 			ORDER BY post_count DESC, pm.meta_value ASC",
 			$postmeta_table,
 			$posts_table,
-			'_eai_import_id',
-			'imported_item'
+			'_tporapdi_import_id',
+			'tporapdi_item'
 		),
 		ARRAY_A
 	);
@@ -621,7 +619,7 @@ function eai_get_import_post_ownership_counts() {
 		return array();
 	}
 
-	$import_rows  = eai_db_get_import_configs();
+	$import_rows  = tporapdi_db_get_import_configs();
 	$import_names = array();
 	foreach ( $import_rows as $import_row ) {
 		$import_id = isset( $import_row['id'] ) ? absint( $import_row['id'] ) : 0;
@@ -635,7 +633,7 @@ function eai_get_import_post_ownership_counts() {
 		$import_id_raw = isset( $row['import_id_raw'] ) ? trim( (string) $row['import_id_raw'] ) : '';
 		$import_id     = absint( $import_id_raw );
 		$has_match     = $import_id > 0 && isset( $import_names[ $import_id ] );
-		$import_name   = $has_match ? (string) $import_names[ $import_id ] : __( 'Unknown import job', 'enterprise-api-importer' );
+		$import_name   = $has_match ? (string) $import_names[ $import_id ] : __( 'Unknown import job', 'tporret-api-data-importer' );
 
 		$ownership[] = array(
 			'import_id_raw' => $import_id_raw,
@@ -654,13 +652,13 @@ function eai_get_import_post_ownership_counts() {
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_get_dashboard_metrics() {
-	$rows          = eai_db_get_import_configs();
-	$latest_logs   = eai_db_get_latest_logs_indexed_by_import_id();
-	$pending_index = eai_db_get_pending_counts_by_import_id();
+function tporapdi_get_dashboard_metrics() {
+	$rows          = tporapdi_db_get_import_configs();
+	$latest_logs   = tporapdi_db_get_latest_logs_indexed_by_import_id();
+	$pending_index = tporapdi_db_get_pending_counts_by_import_id();
 
 	$metrics      = array();
-	$active_state = eai_get_active_run_state();
+	$active_state = tporapdi_get_active_run_state();
 
 	foreach ( $rows as $row ) {
 		$import_id = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
@@ -670,9 +668,9 @@ function eai_get_dashboard_metrics() {
 
 		$pending_count = isset( $pending_index[ $import_id ] ) ? (int) $pending_index[ $import_id ] : 0;
 
-		$next_scheduled = wp_next_scheduled( 'eai_recurring_import_trigger', array( $import_id, 'recurring' ) );
+		$next_scheduled = wp_next_scheduled( 'tporapdi_recurring_import_trigger', array( $import_id, 'recurring' ) );
 		if ( false === $next_scheduled ) {
-			$next_scheduled = wp_next_scheduled( 'eai_recurring_import_trigger', array( $import_id ) );
+			$next_scheduled = wp_next_scheduled( 'tporapdi_recurring_import_trigger', array( $import_id ) );
 		}
 
 		$status = 'idle';
@@ -717,15 +715,15 @@ function eai_get_dashboard_metrics() {
 
 		if ( '' === $details_summary ) {
 			if ( 'processing' === $status ) {
-				$details_summary = __( 'Import has staged rows waiting for worker processing.', 'enterprise-api-importer' );
+				$details_summary = __( 'Import has staged rows waiting for worker processing.', 'tporret-api-data-importer' );
 			} elseif ( ! empty( $latest_logs[ $import_id ]['status'] ) ) {
 				$details_summary = sprintf(
 				/* translators: %s is the latest log status. */
-					__( 'Last status: %s', 'enterprise-api-importer' ),
+					__( 'Last status: %s', 'tporret-api-data-importer' ),
 					sanitize_text_field( (string) $latest_logs[ $import_id ]['status'] )
 				);
 			} else {
-				$details_summary = __( 'No execution details available yet.', 'enterprise-api-importer' );
+				$details_summary = __( 'No execution details available yet.', 'tporret-api-data-importer' );
 			}
 		}
 
@@ -745,7 +743,7 @@ function eai_get_dashboard_metrics() {
 			'details_summary'   => $details_summary,
 			'pending_count'     => $pending_count,
 			'next_scheduled_ts' => false !== $next_scheduled ? (int) $next_scheduled : 0,
-			'next_scheduled'    => false !== $next_scheduled ? wp_date( 'Y-m-d H:i:s', (int) $next_scheduled ) : __( 'Not scheduled', 'enterprise-api-importer' ),
+			'next_scheduled'    => false !== $next_scheduled ? wp_date( 'Y-m-d H:i:s', (int) $next_scheduled ) : __( 'Not scheduled', 'tporret-api-data-importer' ),
 		);
 	}
 
@@ -759,33 +757,33 @@ function eai_get_dashboard_metrics() {
  *
  * @return array{class:string,label:string}
  */
-function eai_get_status_badge_data( $status ) {
+function tporapdi_get_status_badge_data( $status ) {
 	$status = strtolower( (string) $status );
 
 	if ( 'processing' === $status ) {
 		return array(
 			'class' => 'eai-badge is-processing',
-			'label' => __( 'Processing', 'enterprise-api-importer' ),
+			'label' => __( 'Processing', 'tporret-api-data-importer' ),
 		);
 	}
 
 	if ( 'success' === $status ) {
 		return array(
 			'class' => 'eai-badge is-success',
-			'label' => __( 'Success', 'enterprise-api-importer' ),
+			'label' => __( 'Success', 'tporret-api-data-importer' ),
 		);
 	}
 
 	if ( 'failed' === $status || 'completed_with_errors' === $status ) {
 		return array(
 			'class' => 'eai-badge is-failed',
-			'label' => __( 'Failed', 'enterprise-api-importer' ),
+			'label' => __( 'Failed', 'tporret-api-data-importer' ),
 		);
 	}
 
 	return array(
 		'class' => 'eai-badge is-idle',
-		'label' => __( 'Idle', 'enterprise-api-importer' ),
+		'label' => __( 'Idle', 'tporret-api-data-importer' ),
 	);
 }
 
@@ -796,22 +794,22 @@ function eai_get_status_badge_data( $status ) {
  *
  * @return string
  */
-function eai_get_trigger_source_label( $trigger_source ) {
+function tporapdi_get_trigger_source_label( $trigger_source ) {
 	$trigger_source = sanitize_key( (string) $trigger_source );
 
 	if ( 'manual' === $trigger_source ) {
-		return __( 'Manual Run', 'enterprise-api-importer' );
+		return __( 'Manual Run', 'tporret-api-data-importer' );
 	}
 
 	if ( 'run_now' === $trigger_source ) {
-		return __( 'Run Now', 'enterprise-api-importer' );
+		return __( 'Run Now', 'tporret-api-data-importer' );
 	}
 
 	if ( 'recurring' === $trigger_source ) {
-		return __( 'Recurring Schedule', 'enterprise-api-importer' );
+		return __( 'Recurring Schedule', 'tporret-api-data-importer' );
 	}
 
-	return __( 'Unknown', 'enterprise-api-importer' );
+	return __( 'Unknown', 'tporret-api-data-importer' );
 }
 
 /**
@@ -819,7 +817,7 @@ function eai_get_trigger_source_label( $trigger_source ) {
  *
  * @return void
  */
-function eai_render_shared_tableau_admin_styles() {
+function tporapdi_render_shared_tableau_admin_styles() {
 	static $printed = false;
 
 	if ( $printed ) {
@@ -827,7 +825,7 @@ function eai_render_shared_tableau_admin_styles() {
 	}
 
 	$printed = true;
-	// CSS is now enqueued via eai_enqueue_admin_page_styles().
+	// CSS is now enqueued via tporapdi_enqueue_admin_page_styles().
 }
 
 /**
@@ -835,7 +833,7 @@ function eai_render_shared_tableau_admin_styles() {
  *
  * @return array{orderby:string,order:string}
  */
-function eai_get_dashboard_sorting_args() {
+function tporapdi_get_dashboard_sorting_args() {
 	$allowed_orderby = array( 'name', 'status', 'trigger_source', 'last_run_at', 'rows_created', 'rows_updated', 'rows_trashed', 'error_count', 'next_scheduled' );
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sorting parameters.
@@ -866,7 +864,7 @@ function eai_get_dashboard_sorting_args() {
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_sort_dashboard_metrics( array $metrics, $orderby, $order ) {
+function tporapdi_sort_dashboard_metrics( array $metrics, $orderby, $order ) {
 	usort(
 		$metrics,
 		static function ( $left, $right ) use ( $orderby, $order ) {
@@ -928,13 +926,13 @@ function eai_sort_dashboard_metrics( array $metrics, $orderby, $order ) {
  *
  * @return void
  */
-function eai_render_dashboard_sortable_header( $label, $column_orderby, $current_orderby, $current_order ) {
+function tporapdi_render_dashboard_sortable_header( $label, $column_orderby, $current_orderby, $current_order ) {
 	$is_active  = $column_orderby === $current_orderby;
 	$next_order = ( $is_active && 'asc' === $current_order ) ? 'desc' : 'asc';
 
 	$url = add_query_arg(
 		array(
-			'page'    => EAI_ADMIN_PAGE_SCHEDULES_SLUG,
+			'page'    => TPORAPDI_ADMIN_PAGE_SCHEDULES_SLUG,
 			'orderby' => $column_orderby,
 			'order'   => $next_order,
 		),
@@ -952,57 +950,57 @@ function eai_render_dashboard_sortable_header( $label, $column_orderby, $current
 /**
  * Renders schedules dashboard page.
  */
-function eai_render_schedules_page() {
-	if ( ! eai_current_user_can_manage_imports() ) {
+function tporapdi_render_schedules_page() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
 		return;
 	}
 
-	$metrics = eai_get_dashboard_metrics();
-	$sorting = eai_get_dashboard_sorting_args();
-	$metrics = eai_sort_dashboard_metrics( $metrics, $sorting['orderby'], $sorting['order'] );
+	$metrics = tporapdi_get_dashboard_metrics();
+	$sorting = tporapdi_get_dashboard_sorting_args();
+	$metrics = tporapdi_sort_dashboard_metrics( $metrics, $sorting['orderby'], $sorting['order'] );
 	?>
 <div class="wrap">
-<h1><?php esc_html_e( 'Schedules & Health Dashboard', 'enterprise-api-importer' ); ?></h1>
-	<?php eai_render_admin_notices(); ?>
+<h1><?php esc_html_e( 'Schedules & Health Dashboard', 'tporret-api-data-importer' ); ?></h1>
+	<?php tporapdi_render_admin_notices(); ?>
 
 <table class="widefat striped eapi-admin-table eai-schedules-table">
 <thead>
 <tr>
-<th><?php eai_render_dashboard_sortable_header( __( 'Import Name & ID', 'enterprise-api-importer' ), 'name', $sorting['orderby'], $sorting['order'] ); ?></th>
-<th class="column-status"><?php eai_render_dashboard_sortable_header( __( 'Status', 'enterprise-api-importer' ), 'status', $sorting['orderby'], $sorting['order'] ); ?></th>
-<th><?php eai_render_dashboard_sortable_header( __( 'Trigger Source', 'enterprise-api-importer' ), 'trigger_source', $sorting['orderby'], $sorting['order'] ); ?></th>
-<th><?php eai_render_dashboard_sortable_header( __( 'Last Run Time', 'enterprise-api-importer' ), 'last_run_at', $sorting['orderby'], $sorting['order'] ); ?></th>
-<th><?php esc_html_e( 'Last Run Metrics', 'enterprise-api-importer' ); ?></th>
-<th><?php esc_html_e( 'Details', 'enterprise-api-importer' ); ?></th>
-<th><?php eai_render_dashboard_sortable_header( __( 'Next Scheduled Run', 'enterprise-api-importer' ), 'next_scheduled', $sorting['orderby'], $sorting['order'] ); ?></th>
-<th class="column-actions"><?php esc_html_e( 'Actions', 'enterprise-api-importer' ); ?></th>
+<th><?php tporapdi_render_dashboard_sortable_header( __( 'Import Name & ID', 'tporret-api-data-importer' ), 'name', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th class="column-status"><?php tporapdi_render_dashboard_sortable_header( __( 'Status', 'tporret-api-data-importer' ), 'status', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th><?php tporapdi_render_dashboard_sortable_header( __( 'Trigger Source', 'tporret-api-data-importer' ), 'trigger_source', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th><?php tporapdi_render_dashboard_sortable_header( __( 'Last Run Time', 'tporret-api-data-importer' ), 'last_run_at', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th><?php esc_html_e( 'Last Run Metrics', 'tporret-api-data-importer' ); ?></th>
+<th><?php esc_html_e( 'Details', 'tporret-api-data-importer' ); ?></th>
+<th><?php tporapdi_render_dashboard_sortable_header( __( 'Next Scheduled Run', 'tporret-api-data-importer' ), 'next_scheduled', $sorting['orderby'], $sorting['order'] ); ?></th>
+<th class="column-actions"><?php esc_html_e( 'Actions', 'tporret-api-data-importer' ); ?></th>
 </tr>
 </thead>
 <tbody>
 	<?php if ( empty( $metrics ) ) : ?>
-<tr><td colspan="8"><?php esc_html_e( 'No import jobs found.', 'enterprise-api-importer' ); ?></td></tr>
+<tr><td colspan="8"><?php esc_html_e( 'No import jobs found.', 'tporret-api-data-importer' ); ?></td></tr>
 <?php else : ?>
 	<?php foreach ( $metrics as $metric ) : ?>
-		<?php $badge = eai_get_status_badge_data( isset( $metric['status'] ) ? (string) $metric['status'] : 'idle' ); ?>
+		<?php $badge = tporapdi_get_status_badge_data( isset( $metric['status'] ) ? (string) $metric['status'] : 'idle' ); ?>
 <tr>
 <td>
 <strong><?php echo esc_html( isset( $metric['name'] ) ? (string) $metric['name'] : '' ); ?></strong><br />
 <span>
 		<?php
 		/* translators: %d is the import job ID. */
-		echo esc_html( sprintf( __( 'ID: %d', 'enterprise-api-importer' ), isset( $metric['id'] ) ? (int) $metric['id'] : 0 ) );
+		echo esc_html( sprintf( __( 'ID: %d', 'tporret-api-data-importer' ), isset( $metric['id'] ) ? (int) $metric['id'] : 0 ) );
 		?>
 </span>
 </td>
 <td class="column-status"><span class="<?php echo esc_attr( $badge['class'] ); ?>"><?php echo esc_html( $badge['label'] ); ?></span></td>
-<td><?php echo esc_html( eai_get_trigger_source_label( isset( $metric['trigger_source'] ) ? (string) $metric['trigger_source'] : 'unknown' ) ); ?></td>
-<td><?php echo esc_html( ! empty( $metric['last_run_at'] ) ? (string) $metric['last_run_at'] : __( 'Never', 'enterprise-api-importer' ) ); ?></td>
+<td><?php echo esc_html( tporapdi_get_trigger_source_label( isset( $metric['trigger_source'] ) ? (string) $metric['trigger_source'] : 'unknown' ) ); ?></td>
+<td><?php echo esc_html( ! empty( $metric['last_run_at'] ) ? (string) $metric['last_run_at'] : __( 'Never', 'tporret-api-data-importer' ) ); ?></td>
 <td>
 		<?php
 		echo esc_html(
 			sprintf(
 			/* translators: 1: rows created, 2: rows updated, 3: rows trashed, 4: error count. */
-				__( 'Created: %1$d | Updated: %2$d | Trashed: %3$d | Errors: %4$d', 'enterprise-api-importer' ),
+				__( 'Created: %1$d | Updated: %2$d | Trashed: %3$d | Errors: %4$d', 'tporret-api-data-importer' ),
 				isset( $metric['rows_created'] ) ? (int) $metric['rows_created'] : 0,
 				isset( $metric['rows_updated'] ) ? (int) $metric['rows_updated'] : 0,
 				isset( $metric['rows_trashed'] ) ? (int) $metric['rows_trashed'] : 0,
@@ -1012,13 +1010,13 @@ function eai_render_schedules_page() {
 		?>
 </td>
 <td><?php echo esc_html( isset( $metric['details_summary'] ) ? substr( (string) $metric['details_summary'], 0, 280 ) : '' ); ?></td>
-<td><?php echo esc_html( isset( $metric['next_scheduled'] ) ? (string) $metric['next_scheduled'] : __( 'Not scheduled', 'enterprise-api-importer' ) ); ?></td>
+<td><?php echo esc_html( isset( $metric['next_scheduled'] ) ? (string) $metric['next_scheduled'] : __( 'Not scheduled', 'tporret-api-data-importer' ) ); ?></td>
 <td class="column-actions">
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-<input type="hidden" name="action" value="eai_schedule_run_now" />
+<input type="hidden" name="action" value="tporapdi_schedule_run_now" />
 <input type="hidden" name="import_id" value="<?php echo esc_attr( (string) ( isset( $metric['id'] ) ? (int) $metric['id'] : 0 ) ); ?>" />
-		<?php wp_nonce_field( 'eai_schedule_run_now_' . (int) $metric['id'], 'eai_schedule_run_now_nonce' ); ?>
-		<?php submit_button( __( 'Run Now', 'enterprise-api-importer' ), 'secondary', 'submit', false ); ?>
+		<?php wp_nonce_field( 'tporapdi_schedule_run_now_' . (int) $metric['id'], 'tporapdi_schedule_run_now_nonce' ); ?>
+		<?php submit_button( __( 'Run Now', 'tporret-api-data-importer' ), 'secondary', 'submit', false ); ?>
 </form>
 </td>
 </tr>
@@ -1035,65 +1033,65 @@ function eai_render_schedules_page() {
  *
  * @return array<string, string>
  */
-function eai_get_filter_operator_options() {
+function tporapdi_get_filter_operator_options() {
 	return array(
-		'equals'       => __( 'Equals', 'enterprise-api-importer' ),
-		'not_equals'   => __( 'Not Equals', 'enterprise-api-importer' ),
-		'contains'     => __( 'Contains', 'enterprise-api-importer' ),
-		'not_contains' => __( 'Not Contains', 'enterprise-api-importer' ),
-		'is_empty'     => __( 'Is Empty', 'enterprise-api-importer' ),
-		'not_empty'    => __( 'Not Empty', 'enterprise-api-importer' ),
-		'greater_than' => __( 'Greater Than', 'enterprise-api-importer' ),
-		'less_than'    => __( 'Less Than', 'enterprise-api-importer' ),
+		'equals'       => __( 'Equals', 'tporret-api-data-importer' ),
+		'not_equals'   => __( 'Not Equals', 'tporret-api-data-importer' ),
+		'contains'     => __( 'Contains', 'tporret-api-data-importer' ),
+		'not_contains' => __( 'Not Contains', 'tporret-api-data-importer' ),
+		'is_empty'     => __( 'Is Empty', 'tporret-api-data-importer' ),
+		'not_empty'    => __( 'Not Empty', 'tporret-api-data-importer' ),
+		'greater_than' => __( 'Greater Than', 'tporret-api-data-importer' ),
+		'less_than'    => __( 'Less Than', 'tporret-api-data-importer' ),
 	);
 }
 
 /**
  * Renders create/edit import page (React-powered workspace).
  */
-function eai_render_import_edit_page() {
-	echo '<div class="wrap"><div id="' . esc_attr( EAI_ADMIN_IMPORT_JOB_ROOT_ID ) . '"></div></div>';
+function tporapdi_render_import_edit_page() {
+	echo '<div class="wrap"><div id="' . esc_attr( TPORAPDI_ADMIN_IMPORT_JOB_ROOT_ID ) . '"></div></div>';
 }
 
 /**
  * Handles create/update import form submits.
  */
-function eai_handle_save_import() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to manage imports.', 'enterprise-api-importer' ) );
+function tporapdi_handle_save_import() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to manage imports.', 'tporret-api-data-importer' ) );
 	}
 
-	check_admin_referer( 'eai_save_import', 'eai_save_import_nonce' );
+	check_admin_referer( 'tporapdi_save_import', 'tporapdi_save_import_nonce' );
 
-	$post_data = wp_unslash( $_POST );
-	$post_data = is_array( $post_data ) ? $post_data : array();
+	$import_id       = isset( $_POST['import_id'] ) ? absint( wp_unslash( $_POST['import_id'] ) ) : 0;
+	$previous_import = $import_id > 0 ? tporapdi_db_get_import_config( $import_id ) : null;
 
-	$import_id       = isset( $post_data['import_id'] ) ? absint( $post_data['import_id'] ) : 0;
-	$previous_import = $import_id > 0 ? eai_db_get_import_config( $import_id ) : null;
-
-	$name             = isset( $post_data['name'] ) ? sanitize_text_field( (string) $post_data['name'] ) : '';
-	$endpoint_url     = isset( $post_data['endpoint_url'] ) ? esc_url_raw( trim( (string) $post_data['endpoint_url'] ) ) : '';
-	$auth_method      = isset( $post_data['auth_method'] ) ? sanitize_key( (string) $post_data['auth_method'] ) : 'none';
-	$auth_header_name = isset( $post_data['auth_header_name'] ) ? sanitize_text_field( (string) $post_data['auth_header_name'] ) : '';
-	$auth_username    = isset( $post_data['auth_username'] ) ? sanitize_text_field( (string) $post_data['auth_username'] ) : '';
-	$auth_password    = isset( $post_data['auth_password'] ) ? (string) $post_data['auth_password'] : '';
+	$name = isset( $_POST['name'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['name'] ) ) : '';
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized with esc_url_raw() after unslashing.
+	$endpoint_url     = isset( $_POST['endpoint_url'] ) ? esc_url_raw( trim( (string) wp_unslash( $_POST['endpoint_url'] ) ) ) : '';
+	$auth_method      = isset( $_POST['auth_method'] ) ? sanitize_key( (string) wp_unslash( $_POST['auth_method'] ) ) : 'none';
+	$auth_header_name = isset( $_POST['auth_header_name'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['auth_header_name'] ) ) : '';
+	$auth_username    = isset( $_POST['auth_username'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['auth_username'] ) ) : '';
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are unslashed verbatim, validated by auth mode, then encrypted before storage.
+	$auth_password = isset( $_POST['auth_password'] ) ? (string) wp_unslash( $_POST['auth_password'] ) : '';
 
 	// Resolve the token value from the correct form field per method.
 	$auth_token = '';
 	if ( 'bearer' === $auth_method ) {
-		$auth_token = isset( $post_data['auth_token'] ) ? sanitize_text_field( (string) $post_data['auth_token'] ) : '';
+		$auth_token = isset( $_POST['auth_token'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['auth_token'] ) ) : '';
 	} elseif ( 'api_key_custom' === $auth_method ) {
-		$auth_token = isset( $post_data['auth_token_apikey'] ) ? sanitize_text_field( (string) $post_data['auth_token_apikey'] ) : '';
+		$auth_token = isset( $_POST['auth_token_apikey'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['auth_token_apikey'] ) ) : '';
 	}
-	$array_path              = isset( $post_data['array_path'] ) ? sanitize_text_field( (string) $post_data['array_path'] ) : '';
-	$unique_id_path          = isset( $post_data['unique_id_path'] ) ? sanitize_text_field( (string) $post_data['unique_id_path'] ) : 'id';
-	$recurrence              = isset( $post_data['recurrence'] ) ? sanitize_key( (string) $post_data['recurrence'] ) : 'off';
-	$custom_interval_minutes = isset( $post_data['custom_interval_minutes'] ) ? absint( $post_data['custom_interval_minutes'] ) : 0;
-	$target_post_type        = isset( $post_data['target_post_type'] ) ? sanitize_key( (string) $post_data['target_post_type'] ) : 'post';
-	$title_template          = isset( $post_data['title_template'] ) ? sanitize_text_field( (string) $post_data['title_template'] ) : '';
-	$template_raw            = isset( $post_data['mapping_template'] ) ? (string) $post_data['mapping_template'] : '';
-	$unique_id_path          = trim( (string) $unique_id_path );
-	$target_post_type        = trim( (string) $target_post_type );
+	$array_path              = isset( $_POST['array_path'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['array_path'] ) ) : '';
+	$unique_id_path          = isset( $_POST['unique_id_path'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['unique_id_path'] ) ) : 'id';
+	$recurrence              = isset( $_POST['recurrence'] ) ? sanitize_key( (string) wp_unslash( $_POST['recurrence'] ) ) : 'off';
+	$custom_interval_minutes = isset( $_POST['custom_interval_minutes'] ) ? absint( wp_unslash( $_POST['custom_interval_minutes'] ) ) : 0;
+	$target_post_type        = isset( $_POST['target_post_type'] ) ? sanitize_key( (string) wp_unslash( $_POST['target_post_type'] ) ) : 'post';
+	$title_template          = isset( $_POST['title_template'] ) ? sanitize_text_field( (string) wp_unslash( $_POST['title_template'] ) ) : '';
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Template content must remain raw until Twig validation and wp_kses filtering run.
+	$template_raw     = isset( $_POST['mapping_template'] ) ? (string) wp_unslash( $_POST['mapping_template'] ) : '';
+	$unique_id_path   = trim( (string) $unique_id_path );
+	$target_post_type = trim( (string) $target_post_type );
 	if ( '' === $target_post_type || 'attachment' === $target_post_type ) {
 		$target_post_type = 'post';
 	}
@@ -1123,8 +1121,8 @@ function eai_handle_save_import() {
 	}
 
 	// Encrypt credential fields before storage.
-	$auth_token    = eai_encrypt_credential( $auth_token );
-	$auth_password = eai_encrypt_credential( $auth_password );
+	$auth_token    = tporapdi_encrypt_credential( $auth_token );
+	$auth_password = tporapdi_encrypt_credential( $auth_password );
 
 	if ( 'custom' === $recurrence ) {
 		$custom_interval_minutes = $custom_interval_minutes > 0 ? $custom_interval_minutes : 30;
@@ -1166,15 +1164,15 @@ function eai_handle_save_import() {
 	);
 	$mapping_template     = wp_kses( (string) $template_raw, $allowed_mapping_html );
 
-	$title_template_validation = eai_validate_twig_template_security( $title_template, 'title' );
+	$title_template_validation = tporapdi_validate_twig_template_security( $title_template, 'title' );
 	if ( is_wp_error( $title_template_validation ) ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'     => 'edit',
-					'id'         => $import_id,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'action'          => 'edit',
+					'id'              => $import_id,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1190,15 +1188,15 @@ function eai_handle_save_import() {
 	if ( $requires_templates || ( $is_new_import && $mapping_template_missing && $title_template_missing ) ) {
 		// Only validate if template is provided.
 		if ( '' !== $mapping_template ) {
-			$mapping_template_validation = eai_validate_twig_template_security( $mapping_template, 'mapping' );
+			$mapping_template_validation = tporapdi_validate_twig_template_security( $mapping_template, 'mapping' );
 			if ( is_wp_error( $mapping_template_validation ) ) {
 				wp_safe_redirect(
 					add_query_arg(
 						array(
-							'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-							'action'     => 'edit',
-							'id'         => $import_id,
-							'eai_notice' => 'import_error',
+							'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+							'action'          => 'edit',
+							'id'              => $import_id,
+							'tporapdi_notice' => 'import_error',
 						),
 						admin_url( 'admin.php' )
 					)
@@ -1208,15 +1206,16 @@ function eai_handle_save_import() {
 		}
 	}
 
-	$filter_operator_options = eai_get_filter_operator_options();
+	$filter_operator_options = tporapdi_get_filter_operator_options();
 	$allowed_operators       = array_keys( $filter_operator_options );
 	$filter_rules            = array();
 
-	if ( isset( $post_data['filter_rules'] ) && is_array( $post_data['filter_rules'] ) ) {
-		$raw_filter_rules = $post_data['filter_rules'];
-		$rule_keys        = isset( $raw_filter_rules['key'] ) && is_array( $raw_filter_rules['key'] ) ? $raw_filter_rules['key'] : array();
-		$rule_operators   = isset( $raw_filter_rules['operator'] ) && is_array( $raw_filter_rules['operator'] ) ? $raw_filter_rules['operator'] : array();
-		$rule_values      = isset( $raw_filter_rules['value'] ) && is_array( $raw_filter_rules['value'] ) ? $raw_filter_rules['value'] : array();
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Filter rule arrays are unslashed first, then each member is sanitized per field below.
+	$raw_filter_rules = isset( $_POST['filter_rules'] ) ? wp_unslash( $_POST['filter_rules'] ) : array();
+	if ( ! empty( $raw_filter_rules ) ) {
+		$rule_keys      = isset( $raw_filter_rules['key'] ) && is_array( $raw_filter_rules['key'] ) ? $raw_filter_rules['key'] : array();
+		$rule_operators = isset( $raw_filter_rules['operator'] ) && is_array( $raw_filter_rules['operator'] ) ? $raw_filter_rules['operator'] : array();
+		$rule_values    = isset( $raw_filter_rules['value'] ) && is_array( $raw_filter_rules['value'] ) ? $raw_filter_rules['value'] : array();
 
 		$rule_count = max( count( $rule_keys ), count( $rule_operators ), count( $rule_values ) );
 		for ( $index = 0; $index < $rule_count; $index++ ) {
@@ -1245,10 +1244,10 @@ function eai_handle_save_import() {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'     => 'edit',
-					'id'         => $import_id,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'action'          => 'edit',
+					'id'              => $import_id,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1277,19 +1276,19 @@ function eai_handle_save_import() {
 
 	// Preserve existing encrypted credentials when blank values are submitted for an existing import.
 	if ( $import_id > 0 ) {
-		eai_preserve_unchanged_credentials( $data, $import_id );
+		tporapdi_preserve_unchanged_credentials( $data, $import_id );
 	}
 
-	$persisted_import_id = eai_db_save_import_config( $import_id, $data, $formats );
+	$persisted_import_id = tporapdi_db_save_import_config( $import_id, $data, $formats );
 	if ( is_wp_error( $persisted_import_id ) ) {
-		set_transient( 'eai_last_import_save_error', $persisted_import_id->get_error_message(), 5 * MINUTE_IN_SECONDS );
+		set_transient( 'tporapdi_last_import_save_error', $persisted_import_id->get_error_message(), 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'     => 'edit',
-					'id'         => $import_id,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'action'          => 'edit',
+					'id'              => $import_id,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1299,17 +1298,17 @@ function eai_handle_save_import() {
 
 	$import_id = (int) $persisted_import_id;
 
-	eai_audit_template_configuration_change( $import_id, $previous_import, $data );
+	tporapdi_audit_template_configuration_change( $import_id, $previous_import, $data );
 
-	$schedule_synced = eai_sync_import_recurrence_schedule( $import_id, $recurrence, $custom_interval_minutes );
+	$schedule_synced = tporapdi_sync_import_recurrence_schedule( $import_id, $recurrence, $custom_interval_minutes );
 	if ( ! $schedule_synced ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'     => 'edit',
-					'id'         => $import_id,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'action'          => 'edit',
+					'id'              => $import_id,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1320,10 +1319,10 @@ function eai_handle_save_import() {
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-				'action'     => 'edit',
-				'id'         => $import_id,
-				'eai_notice' => 'import_saved',
+				'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+				'action'          => 'edit',
+				'id'              => $import_id,
+				'tporapdi_notice' => 'import_saved',
 			),
 			admin_url( 'admin.php' )
 		)
@@ -1339,7 +1338,7 @@ function eai_handle_save_import() {
  * @param array<string, mixed>      $new_data       New import data payload.
  * @return void
  */
-function eai_audit_template_configuration_change( $import_id, $previous_import, $new_data ) {
+function tporapdi_audit_template_configuration_change( $import_id, $previous_import, $new_data ) {
 	$previous_import = is_array( $previous_import ) ? $previous_import : array();
 	$new_data        = is_array( $new_data ) ? $new_data : array();
 
@@ -1377,7 +1376,7 @@ function eai_audit_template_configuration_change( $import_id, $previous_import, 
 		'new_mapping_length'       => strlen( $new_mapping ),
 	);
 
-	eai_write_import_log(
+	tporapdi_write_import_log(
 		0,
 		wp_generate_uuid4(),
 		'template_audit',
@@ -1392,9 +1391,9 @@ function eai_audit_template_configuration_change( $import_id, $previous_import, 
 /**
  * Handles delete import action.
  */
-function eai_handle_delete_import() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to manage imports.', 'enterprise-api-importer' ) );
+function tporapdi_handle_delete_import() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to manage imports.', 'tporret-api-data-importer' ) );
 	}
 
 	$import_id = isset( $_GET['import_id'] ) ? absint( wp_unslash( $_GET['import_id'] ) ) : 0;
@@ -1402,8 +1401,8 @@ function eai_handle_delete_import() {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1411,17 +1410,17 @@ function eai_handle_delete_import() {
 		exit;
 	}
 
-	check_admin_referer( 'eai_delete_import_' . $import_id, 'eai_delete_nonce' );
+	check_admin_referer( 'tporapdi_delete_import_' . $import_id, 'tporapdi_delete_nonce' );
 
-	eai_clear_import_scheduled_hooks( $import_id );
+	tporapdi_clear_import_scheduled_hooks( $import_id );
 
-	$deleted = eai_db_delete_import_config( $import_id );
+	$deleted = tporapdi_db_delete_import_config( $import_id );
 
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-				'eai_notice' => false === $deleted ? 'import_error' : 'import_deleted',
+				'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+				'tporapdi_notice' => false === $deleted ? 'import_error' : 'import_deleted',
 			),
 			admin_url( 'admin.php' )
 		)
@@ -1432,20 +1431,20 @@ function eai_handle_delete_import() {
 /**
  * Handles manual import execution for a specific import job.
  */
-function eai_handle_manual_import_run() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to run imports.', 'enterprise-api-importer' ) );
+function tporapdi_handle_manual_import_run() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to run imports.', 'tporret-api-data-importer' ) );
 	}
 
-	check_admin_referer( 'eai_manual_run', 'eai_manual_run_nonce' );
+	check_admin_referer( 'tporapdi_manual_run', 'tporapdi_manual_run_nonce' );
 
 	$import_id = isset( $_POST['import_id'] ) ? absint( wp_unslash( $_POST['import_id'] ) ) : 0;
 	if ( $import_id <= 0 ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1453,15 +1452,15 @@ function eai_handle_manual_import_run() {
 		exit;
 	}
 
-	$active_state = eai_get_active_run_state();
+	$active_state = tporapdi_get_active_run_state();
 	if ( ! empty( $active_state['run_id'] ) ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'     => 'edit',
-					'id'         => $import_id,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'action'          => 'edit',
+					'id'              => $import_id,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1469,15 +1468,15 @@ function eai_handle_manual_import_run() {
 		exit;
 	}
 
-	$extract_result = eai_extract_and_stage_data( $import_id );
+	$extract_result = tporapdi_extract_and_stage_data( $import_id );
 	if ( is_wp_error( $extract_result ) ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'     => 'edit',
-					'id'         => $import_id,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'action'          => 'edit',
+					'id'              => $import_id,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1485,7 +1484,7 @@ function eai_handle_manual_import_run() {
 		exit;
 	}
 
-	eai_set_active_run_state(
+	tporapdi_set_active_run_state(
 		array(
 			'run_id'              => wp_generate_uuid4(),
 			'import_id'           => $import_id,
@@ -1503,11 +1502,11 @@ function eai_handle_manual_import_run() {
 	);
 
 	// Process one slice immediately; remaining slices will self-schedule if needed.
-	eai_handle_scheduled_import_batch();
+	tporapdi_handle_scheduled_import_batch();
 
 	$notice_code   = 'import_started';
-	$template_sync = isset( $_POST['eai_template_sync'] )
-		? sanitize_text_field( (string) wp_unslash( $_POST['eai_template_sync'] ) )
+	$template_sync = isset( $_POST['tporapdi_template_sync'] )
+		? sanitize_text_field( (string) wp_unslash( $_POST['tporapdi_template_sync'] ) )
 		: '';
 
 	if ( '1' === $template_sync ) {
@@ -1517,10 +1516,10 @@ function eai_handle_manual_import_run() {
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-				'action'     => 'edit',
-				'id'         => $import_id,
-				'eai_notice' => $notice_code,
+				'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+				'action'          => 'edit',
+				'id'              => $import_id,
+				'tporapdi_notice' => $notice_code,
 			),
 			admin_url( 'admin.php' )
 		)
@@ -1531,20 +1530,20 @@ function eai_handle_manual_import_run() {
 /**
  * Handles endpoint test and payload preview for a specific import job.
  */
-function eai_handle_test_import_endpoint() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to test endpoints.', 'enterprise-api-importer' ) );
+function tporapdi_handle_test_import_endpoint() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to test endpoints.', 'tporret-api-data-importer' ) );
 	}
 
-	check_admin_referer( 'eai_test_import_endpoint', 'eai_test_import_endpoint_nonce' );
+	check_admin_referer( 'tporapdi_test_import_endpoint', 'tporapdi_test_import_endpoint_nonce' );
 
 	$import_id = isset( $_POST['import_id'] ) ? absint( wp_unslash( $_POST['import_id'] ) ) : 0;
 	if ( $import_id <= 0 ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_MANAGE_SLUG,
-					'eai_notice' => 'import_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
+					'tporapdi_notice' => 'import_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1552,17 +1551,17 @@ function eai_handle_test_import_endpoint() {
 		exit;
 	}
 
-	$preview_mode = isset( $_POST['eai_preview_mode'] ) ? sanitize_key( (string) wp_unslash( $_POST['eai_preview_mode'] ) ) : 'structure';
+	$preview_mode = isset( $_POST['tporapdi_preview_mode'] ) ? sanitize_key( (string) wp_unslash( $_POST['tporapdi_preview_mode'] ) ) : 'structure';
 	if ( 'mapping' !== $preview_mode ) {
 		$preview_mode = 'structure';
 	}
 
-	$import_job = eai_db_get_import_config( $import_id );
+	$import_job = tporapdi_db_get_import_config( $import_id );
 
-	$result_key     = 'eai_endpoint_test_result_' . $import_id;
+	$result_key     = 'tporapdi_endpoint_test_result_' . $import_id;
 	$preview_result = array(
 		'type'         => 'error',
-		'message'      => __( 'Endpoint test failed.', 'enterprise-api-importer' ),
+		'message'      => __( 'Endpoint test failed.', 'tporret-api-data-importer' ),
 		'http_code'    => 0,
 		'used_cache'   => false,
 		'json_path'    => '',
@@ -1570,12 +1569,12 @@ function eai_handle_test_import_endpoint() {
 	);
 
 	if ( ! is_array( $import_job ) ) {
-		$preview_result['message'] = __( 'Import job could not be found.', 'enterprise-api-importer' );
+		$preview_result['message'] = __( 'Import job could not be found.', 'tporret-api-data-importer' );
 		set_transient( $result_key, $preview_result, 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+					'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 					'action' => 'edit',
 					'id'     => $import_id,
 				),
@@ -1594,12 +1593,12 @@ function eai_handle_test_import_endpoint() {
 	$json_path        = trim( (string) $import_job['array_path'] );
 
 	if ( '' === $endpoint ) {
-		$preview_result['message'] = __( 'No endpoint URL available to test.', 'enterprise-api-importer' );
+		$preview_result['message'] = __( 'No endpoint URL available to test.', 'tporret-api-data-importer' );
 		set_transient( $result_key, $preview_result, 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+					'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 					'action' => 'edit',
 					'id'     => $import_id,
 				),
@@ -1609,14 +1608,14 @@ function eai_handle_test_import_endpoint() {
 		exit;
 	}
 
-	$response = eai_fetch_api_payload( $endpoint, $auth_method, $token, $auth_header_name, $auth_username, $auth_password, true );
+	$response = tporapdi_fetch_api_payload( $endpoint, $auth_method, $token, $auth_header_name, $auth_username, $auth_password, true );
 	if ( is_wp_error( $response ) ) {
 		$preview_result['message'] = $response->get_error_message();
 		set_transient( $result_key, $preview_result, 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+					'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 					'action' => 'edit',
 					'id'     => $import_id,
 				),
@@ -1629,12 +1628,12 @@ function eai_handle_test_import_endpoint() {
 	$decoded_json = json_decode( (string) $response['body'], true );
 	if ( JSON_ERROR_NONE !== json_last_error() ) {
 		/* translators: %s is the JSON parser error message. */
-		$preview_result['message'] = sprintf( __( 'Endpoint responded but JSON decode failed: %s', 'enterprise-api-importer' ), json_last_error_msg() );
+		$preview_result['message'] = sprintf( __( 'Endpoint responded but JSON decode failed: %s', 'tporret-api-data-importer' ), json_last_error_msg() );
 		set_transient( $result_key, $preview_result, 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+					'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 					'action' => 'edit',
 					'id'     => $import_id,
 				),
@@ -1644,14 +1643,14 @@ function eai_handle_test_import_endpoint() {
 		exit;
 	}
 
-	$selected_payload = '' === $json_path ? $decoded_json : eai_resolve_json_array_path( $decoded_json, $json_path );
+	$selected_payload = '' === $json_path ? $decoded_json : tporapdi_resolve_json_array_path( $decoded_json, $json_path );
 	if ( is_wp_error( $selected_payload ) ) {
 		$preview_result['message'] = $selected_payload->get_error_message();
 		set_transient( $result_key, $preview_result, 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+					'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 					'action' => 'edit',
 					'id'     => $import_id,
 				),
@@ -1663,7 +1662,7 @@ function eai_handle_test_import_endpoint() {
 
 	$sample_item = null;
 	if ( is_array( $selected_payload ) ) {
-		$sample_item = eai_array_is_list( $selected_payload ) && ! empty( $selected_payload ) ? $selected_payload[0] : $selected_payload;
+		$sample_item = tporapdi_array_is_list( $selected_payload ) && ! empty( $selected_payload ) ? $selected_payload[0] : $selected_payload;
 	}
 
 	$sample_json = wp_json_encode( $sample_item, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
@@ -1673,12 +1672,12 @@ function eai_handle_test_import_endpoint() {
 
 	$normalized_preview = array();
 	if ( 'mapping' === $preview_mode && is_array( $selected_payload ) ) {
-		$normalized_items = eai_normalize_staged_items( $selected_payload );
+		$normalized_items = tporapdi_normalize_staged_items( $selected_payload );
 		$preview_items    = array_slice( $normalized_items, 0, 3 );
 		$record_number    = 0;
 		foreach ( $preview_items as $preview_item ) {
 			++$record_number;
-			$mapped_content = eai_render_mapping_template_for_item( $preview_item, (string) $import_job['mapping_template'] );
+			$mapped_content = tporapdi_render_mapping_template_for_item( $preview_item, (string) $import_job['mapping_template'] );
 			$mapping_error  = '';
 			if ( is_wp_error( $mapped_content ) ) {
 				$mapping_error  = $mapped_content->get_error_message();
@@ -1694,7 +1693,7 @@ function eai_handle_test_import_endpoint() {
 
 	$preview_result = array(
 		'type'               => 'success',
-		'message'            => __( 'Endpoint test passed and payload preview generated.', 'enterprise-api-importer' ),
+		'message'            => __( 'Endpoint test passed and payload preview generated.', 'tporret-api-data-importer' ),
 		'http_code'          => isset( $response['status_code'] ) ? (int) $response['status_code'] : 0,
 		'used_cache'         => ! empty( $response['used_cache'] ),
 		'json_path'          => $json_path,
@@ -1710,7 +1709,7 @@ function eai_handle_test_import_endpoint() {
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+				'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 				'action' => 'edit',
 				'id'     => $import_id,
 			),
@@ -1723,21 +1722,18 @@ function eai_handle_test_import_endpoint() {
 /**
  * Handles scheduling an immediate cron run for one import.
  */
-function eai_handle_schedule_run_now_action() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to schedule imports.', 'enterprise-api-importer' ) );
+function tporapdi_handle_schedule_run_now_action() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to schedule imports.', 'tporret-api-data-importer' ) );
 	}
 
-	$post_data = wp_unslash( $_POST );
-	$post_data = is_array( $post_data ) ? $post_data : array();
-
-	$import_id = isset( $post_data['import_id'] ) ? absint( $post_data['import_id'] ) : 0;
+	$import_id = isset( $_POST['import_id'] ) ? absint( wp_unslash( $_POST['import_id'] ) ) : 0;
 	if ( $import_id <= 0 ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'       => EAI_ADMIN_PAGE_SCHEDULES_SLUG,
-					'eai_notice' => 'schedule_error',
+					'page'            => TPORAPDI_ADMIN_PAGE_SCHEDULES_SLUG,
+					'tporapdi_notice' => 'schedule_error',
 				),
 				admin_url( 'admin.php' )
 			)
@@ -1745,19 +1741,19 @@ function eai_handle_schedule_run_now_action() {
 		exit;
 	}
 
-	check_admin_referer( 'eai_schedule_run_now_' . $import_id, 'eai_schedule_run_now_nonce' );
+	check_admin_referer( 'tporapdi_schedule_run_now_' . $import_id, 'tporapdi_schedule_run_now_nonce' );
 
 	// Execute immediately so updates/deletes happen even when WP-Cron is delayed.
-	eai_handle_import_batch_hook( $import_id, 'run_now' );
+	tporapdi_handle_import_batch_hook( $import_id, 'run_now' );
 
-	$active_state = eai_get_active_run_state();
+	$active_state = tporapdi_get_active_run_state();
 	$scheduled    = empty( $active_state['run_id'] ) || ( isset( $active_state['import_id'] ) && (int) $active_state['import_id'] === $import_id );
 
 	wp_safe_redirect(
 		add_query_arg(
 			array(
-				'page'       => EAI_ADMIN_PAGE_SCHEDULES_SLUG,
-				'eai_notice' => $scheduled ? 'schedule_now' : 'schedule_error',
+				'page'            => TPORAPDI_ADMIN_PAGE_SCHEDULES_SLUG,
+				'tporapdi_notice' => $scheduled ? 'schedule_now' : 'schedule_error',
 			),
 			admin_url( 'admin.php' )
 		)
@@ -1768,11 +1764,11 @@ function eai_handle_schedule_run_now_action() {
 /**
  * Renders the React dashboard page.
  */
-function eai_render_dashboard_page() {
-	if ( ! eai_current_user_can_manage_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to access this page.', 'enterprise-api-importer' ) );
+function tporapdi_render_dashboard_page() {
+	if ( ! tporapdi_current_user_can_manage_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to access this page.', 'tporret-api-data-importer' ) );
 	}
-	echo '<div id="' . esc_attr( EAI_ADMIN_DASHBOARD_ROOT_ID ) . '" class="wrap"></div>';
+	echo '<div id="' . esc_attr( TPORAPDI_ADMIN_DASHBOARD_ROOT_ID ) . '" class="wrap"></div>';
 }
 
 /**
@@ -1781,26 +1777,26 @@ function eai_render_dashboard_page() {
  * @param string $status Status key.
  * @return string
  */
-function eai_get_network_dashboard_status_badge( string $status ): string {
+function tporapdi_get_network_dashboard_status_badge( string $status ): string {
 	$status = sanitize_key( $status );
 	$map    = array(
 		'green'  => array(
-			'label' => __( 'Healthy', 'enterprise-api-importer' ),
+			'label' => __( 'Healthy', 'tporret-api-data-importer' ),
 			'bg'    => '#dcfce7',
 			'fg'    => '#166534',
 		),
 		'yellow' => array(
-			'label' => __( 'Warning', 'enterprise-api-importer' ),
+			'label' => __( 'Warning', 'tporret-api-data-importer' ),
 			'bg'    => '#fef3c7',
 			'fg'    => '#92400e',
 		),
 		'red'    => array(
-			'label' => __( 'Critical', 'enterprise-api-importer' ),
+			'label' => __( 'Critical', 'tporret-api-data-importer' ),
 			'bg'    => '#fee2e2',
 			'fg'    => '#991b1b',
 		),
 		'gray'   => array(
-			'label' => __( 'Unknown', 'enterprise-api-importer' ),
+			'label' => __( 'Unknown', 'tporret-api-data-importer' ),
 			'bg'    => '#e5e7eb',
 			'fg'    => '#374151',
 		),
@@ -1822,20 +1818,20 @@ function eai_get_network_dashboard_status_badge( string $status ): string {
  *
  * @return void
  */
-function eai_render_network_dashboard_page() {
-	if ( ! eai_current_user_can_manage_network_imports() ) {
-		wp_die( esc_html__( 'You are not allowed to access this page.', 'enterprise-api-importer' ) );
+function tporapdi_render_network_dashboard_page() {
+	if ( ! tporapdi_current_user_can_manage_network_imports() ) {
+		wp_die( esc_html__( 'You are not allowed to access this page.', 'tporret-api-data-importer' ) );
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Refresh action validates a dedicated nonce.
-	$refresh = isset( $_GET['eai_refresh_network'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['eai_refresh_network'] ) );
+	$refresh = isset( $_GET['tporapdi_refresh_network'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['tporapdi_refresh_network'] ) );
 	if ( $refresh ) {
-		check_admin_referer( 'eai_refresh_network_dashboard' );
+		check_admin_referer( 'tporapdi_refresh_network_dashboard' );
 	}
 
-	$snapshots = eai_db_get_network_snapshots();
+	$snapshots = tporapdi_db_get_network_snapshots();
 	if ( $refresh || empty( $snapshots ) ) {
-		$snapshots = eai_refresh_network_dashboard_snapshots( $refresh );
+		$snapshots = tporapdi_refresh_network_dashboard_snapshots( $refresh );
 	}
 
 	$summary = array(
@@ -1862,62 +1858,62 @@ function eai_render_network_dashboard_page() {
 	$refresh_url = wp_nonce_url(
 		add_query_arg(
 			array(
-				'page'                => EAI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG,
-				'eai_refresh_network' => '1',
+				'page'                     => TPORAPDI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG,
+				'tporapdi_refresh_network' => '1',
 			),
 			network_admin_url( 'admin.php' )
 		),
-		'eai_refresh_network_dashboard'
+		'tporapdi_refresh_network_dashboard'
 	);
 
 	echo '<div class="wrap">';
-	echo '<h1>' . esc_html__( 'tporret API Data Importer Network Dashboard', 'enterprise-api-importer' ) . '</h1>';
-	echo '<p>' . esc_html__( 'This view summarizes every subsite where tporret API Data Importer is activated. Site admins continue to manage and monitor imports from each subsite dashboard.', 'enterprise-api-importer' ) . '</p>';
-	echo '<p><a href="' . esc_url( $refresh_url ) . '" class="button button-secondary">' . esc_html__( 'Refresh Network Snapshot', 'enterprise-api-importer' ) . '</a></p>';
+	echo '<h1>' . esc_html__( 'tporret API Data Importer Network Dashboard', 'tporret-api-data-importer' ) . '</h1>';
+	echo '<p>' . esc_html__( 'This view summarizes every subsite where tporret API Data Importer is activated. Site admins continue to manage and monitor imports from each subsite dashboard.', 'tporret-api-data-importer' ) . '</p>';
+	echo '<p><a href="' . esc_url( $refresh_url ) . '" class="button button-secondary">' . esc_html__( 'Refresh Network Snapshot', 'tporret-api-data-importer' ) . '</a></p>';
 
 	echo '<div class="eai-network-summary">';
-	echo '<div class="eai-network-summary-card"><strong class="eai-network-summary-card-title">' . esc_html__( 'Sites Monitored', 'enterprise-api-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['total'] ) ) . '</div></div>';
-	echo '<div class="eai-network-summary-card eai-network-summary-card--healthy"><strong class="eai-network-summary-card-title">' . esc_html__( 'Healthy Sites', 'enterprise-api-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['healthy'] ) ) . '</div></div>';
-	echo '<div class="eai-network-summary-card eai-network-summary-card--warning"><strong class="eai-network-summary-card-title">' . esc_html__( 'Warnings', 'enterprise-api-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['warning'] ) ) . '</div></div>';
-	echo '<div class="eai-network-summary-card eai-network-summary-card--critical"><strong class="eai-network-summary-card-title">' . esc_html__( 'Critical Sites', 'enterprise-api-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['critical'] ) ) . '</div></div>';
+	echo '<div class="eai-network-summary-card"><strong class="eai-network-summary-card-title">' . esc_html__( 'Sites Monitored', 'tporret-api-data-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['total'] ) ) . '</div></div>';
+	echo '<div class="eai-network-summary-card eai-network-summary-card--healthy"><strong class="eai-network-summary-card-title">' . esc_html__( 'Healthy Sites', 'tporret-api-data-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['healthy'] ) ) . '</div></div>';
+	echo '<div class="eai-network-summary-card eai-network-summary-card--warning"><strong class="eai-network-summary-card-title">' . esc_html__( 'Warnings', 'tporret-api-data-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['warning'] ) ) . '</div></div>';
+	echo '<div class="eai-network-summary-card eai-network-summary-card--critical"><strong class="eai-network-summary-card-title">' . esc_html__( 'Critical Sites', 'tporret-api-data-importer' ) . '</strong><div class="eai-network-summary-card-value">' . esc_html( number_format_i18n( $summary['critical'] ) ) . '</div></div>';
 	echo '</div>';
 
 	if ( empty( $snapshots ) ) {
-		echo '<div class="notice notice-info inline"><p>' . esc_html__( 'No multisite snapshots are available yet. Activate the plugin on at least one subsite, or refresh after a site dashboard has loaded.', 'enterprise-api-importer' ) . '</p></div>';
+		echo '<div class="notice notice-info inline"><p>' . esc_html__( 'No multisite snapshots are available yet. Activate the plugin on at least one subsite, or refresh after a site dashboard has loaded.', 'tporret-api-data-importer' ) . '</p></div>';
 		echo '</div>';
 		return;
 	}
 
 	echo '<table class="widefat striped">';
 	echo '<thead><tr>';
-	echo '<th>' . esc_html__( 'Site', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Overall', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Health', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Security', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Performance', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Import Jobs', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Updated', 'enterprise-api-importer' ) . '</th>';
-	echo '<th>' . esc_html__( 'Actions', 'enterprise-api-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Site', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Overall', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Health', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Security', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Performance', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Import Jobs', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Updated', 'tporret-api-data-importer' ) . '</th>';
+	echo '<th>' . esc_html__( 'Actions', 'tporret-api-data-importer' ) . '</th>';
 	echo '</tr></thead><tbody>';
 
 	foreach ( $snapshots as $snapshot ) {
 		$blog_id        = absint( $snapshot['blog_id'] ?? 0 );
 		$site_name      = (string) ( $snapshot['site_name'] ?? '' );
 		$site_url       = (string) ( $snapshot['site_url'] ?? '' );
-		$dashboard_link = $blog_id > 0 ? get_admin_url( $blog_id, 'admin.php?page=' . EAI_ADMIN_PAGE_DASHBOARD_SLUG ) : '';
+		$dashboard_link = $blog_id > 0 ? get_admin_url( $blog_id, 'admin.php?page=' . TPORAPDI_ADMIN_PAGE_DASHBOARD_SLUG ) : '';
 		$updated_at     = isset( $snapshot['updated_at'] ) ? mysql2date( get_option( 'date_format', 'F j, Y' ) . ' ' . get_option( 'time_format', 'g:i a' ), (string) $snapshot['updated_at'], false ) : '';
 
 		echo '<tr>';
 		echo '<td><strong>' . esc_html( $site_name ) . '</strong><br /><a href="' . esc_url( $site_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $site_url ) . '</a></td>';
-		echo '<td>' . wp_kses_post( eai_get_network_dashboard_status_badge( (string) ( $snapshot['overall_status'] ?? 'gray' ) ) ) . '</td>';
-		echo '<td>' . wp_kses_post( eai_get_network_dashboard_status_badge( (string) ( $snapshot['health_status'] ?? 'gray' ) ) ) . '</td>';
-		echo '<td>' . wp_kses_post( eai_get_network_dashboard_status_badge( (string) ( $snapshot['security_status'] ?? 'gray' ) ) ) . '</td>';
-		echo '<td>' . wp_kses_post( eai_get_network_dashboard_status_badge( (string) ( $snapshot['performance_status'] ?? 'gray' ) ) ) . '</td>';
+		echo '<td>' . wp_kses_post( tporapdi_get_network_dashboard_status_badge( (string) ( $snapshot['overall_status'] ?? 'gray' ) ) ) . '</td>';
+		echo '<td>' . wp_kses_post( tporapdi_get_network_dashboard_status_badge( (string) ( $snapshot['health_status'] ?? 'gray' ) ) ) . '</td>';
+		echo '<td>' . wp_kses_post( tporapdi_get_network_dashboard_status_badge( (string) ( $snapshot['security_status'] ?? 'gray' ) ) ) . '</td>';
+		echo '<td>' . wp_kses_post( tporapdi_get_network_dashboard_status_badge( (string) ( $snapshot['performance_status'] ?? 'gray' ) ) ) . '</td>';
 		echo '<td>' . esc_html( number_format_i18n( absint( $snapshot['import_count'] ?? 0 ) ) ) . '</td>';
 		echo '<td>' . esc_html( $updated_at ) . '</td>';
 		echo '<td>';
 		if ( '' !== $dashboard_link ) {
-			echo '<a class="button button-small" href="' . esc_url( $dashboard_link ) . '">' . esc_html__( 'Open Site Dashboard', 'enterprise-api-importer' ) . '</a>';
+			echo '<a class="button button-small" href="' . esc_url( $dashboard_link ) . '">' . esc_html__( 'Open Site Dashboard', 'tporret-api-data-importer' ) . '</a>';
 		}
 		echo '</td>';
 		echo '</tr>';
@@ -1935,10 +1931,10 @@ function eai_render_network_dashboard_page() {
  *
  * @param string $hook_suffix Current admin page hook suffix.
  */
-function eai_enqueue_admin_page_styles( string $hook_suffix ): void {
-	$is_manage            = 'toplevel_page_' . EAI_ADMIN_PAGE_MANAGE_SLUG === $hook_suffix;
-	$is_schedules         = EAI_ADMIN_PAGE_MANAGE_SLUG . '_page_' . EAI_ADMIN_PAGE_SCHEDULES_SLUG === $hook_suffix;
-	$is_network_dashboard = 'toplevel_page_' . EAI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG === $hook_suffix;
+function tporapdi_enqueue_admin_page_styles( string $hook_suffix ): void {
+	$is_manage            = 'toplevel_page_' . TPORAPDI_ADMIN_PAGE_MANAGE_SLUG === $hook_suffix;
+	$is_schedules         = TPORAPDI_ADMIN_PAGE_MANAGE_SLUG . '_page_' . TPORAPDI_ADMIN_PAGE_SCHEDULES_SLUG === $hook_suffix;
+	$is_network_dashboard = 'toplevel_page_' . TPORAPDI_ADMIN_PAGE_NETWORK_DASHBOARD_SLUG === $hook_suffix;
 
 	if ( ! $is_manage && ! $is_schedules && ! $is_network_dashboard ) {
 		return;
@@ -2257,10 +2253,10 @@ function eai_enqueue_admin_page_styles( string $hook_suffix ): void {
 			}
 		";
 
-		wp_register_style( EAI_ADMIN_STYLE_MANAGE_HANDLE, false, array(), EAI_PLUGIN_VERSION );
-		wp_enqueue_style( EAI_ADMIN_STYLE_MANAGE_HANDLE );
-		wp_add_inline_style( EAI_ADMIN_STYLE_MANAGE_HANDLE, $shared_css );
-		wp_add_inline_style( EAI_ADMIN_STYLE_MANAGE_HANDLE, $manage_css );
+		wp_register_style( TPORAPDI_ADMIN_STYLE_MANAGE_HANDLE, false, array(), TPORAPDI_PLUGIN_VERSION );
+		wp_enqueue_style( TPORAPDI_ADMIN_STYLE_MANAGE_HANDLE );
+		wp_add_inline_style( TPORAPDI_ADMIN_STYLE_MANAGE_HANDLE, $shared_css );
+		wp_add_inline_style( TPORAPDI_ADMIN_STYLE_MANAGE_HANDLE, $manage_css );
 	}
 
 	if ( $is_schedules ) {
@@ -2271,10 +2267,10 @@ function eai_enqueue_admin_page_styles( string $hook_suffix ): void {
 			}
 		';
 
-		wp_register_style( EAI_ADMIN_STYLE_SCHEDULES_HANDLE, false, array(), EAI_PLUGIN_VERSION );
-		wp_enqueue_style( EAI_ADMIN_STYLE_SCHEDULES_HANDLE );
-		wp_add_inline_style( EAI_ADMIN_STYLE_SCHEDULES_HANDLE, $shared_css );
-		wp_add_inline_style( EAI_ADMIN_STYLE_SCHEDULES_HANDLE, $schedules_css );
+		wp_register_style( TPORAPDI_ADMIN_STYLE_SCHEDULES_HANDLE, false, array(), TPORAPDI_PLUGIN_VERSION );
+		wp_enqueue_style( TPORAPDI_ADMIN_STYLE_SCHEDULES_HANDLE );
+		wp_add_inline_style( TPORAPDI_ADMIN_STYLE_SCHEDULES_HANDLE, $shared_css );
+		wp_add_inline_style( TPORAPDI_ADMIN_STYLE_SCHEDULES_HANDLE, $schedules_css );
 	}
 
 	if ( $is_network_dashboard ) {
@@ -2337,20 +2333,25 @@ function eai_enqueue_admin_page_styles( string $hook_suffix ): void {
 			}
 		';
 
-		wp_register_style( EAI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE, false, array(), EAI_PLUGIN_VERSION );
-		wp_enqueue_style( EAI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE );
-		wp_add_inline_style( EAI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE, $network_dashboard_css );
+		wp_register_style( TPORAPDI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE, false, array(), TPORAPDI_PLUGIN_VERSION );
+		wp_enqueue_style( TPORAPDI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE );
+		wp_add_inline_style( TPORAPDI_ADMIN_STYLE_NETWORK_DASHBOARD_HANDLE, $network_dashboard_css );
 	}
 }
-add_action( 'admin_enqueue_scripts', 'eai_enqueue_admin_page_styles' );
+add_action( 'admin_enqueue_scripts', 'tporapdi_enqueue_admin_page_styles' );
 
 /**
  * Enqueue dashboard assets on the dashboard admin page only.
  *
  * @param string $hook_suffix Current admin page hook suffix.
  */
-function eai_enqueue_dashboard_assets( string $hook_suffix ): void {
-	if ( EAI_ADMIN_PAGE_MANAGE_SLUG . '_page_' . EAI_ADMIN_PAGE_DASHBOARD_SLUG !== $hook_suffix ) {
+function tporapdi_enqueue_dashboard_assets( string $hook_suffix ): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page routing check.
+	$current_page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+	$is_dashboard = TPORAPDI_ADMIN_PAGE_MANAGE_SLUG . '_page_' . TPORAPDI_ADMIN_PAGE_DASHBOARD_SLUG === $hook_suffix
+		|| TPORAPDI_ADMIN_PAGE_DASHBOARD_SLUG === $current_page;
+
+	if ( ! $is_dashboard ) {
 		return;
 	}
 
@@ -2362,38 +2363,43 @@ function eai_enqueue_dashboard_assets( string $hook_suffix ): void {
 	$asset = require $asset_file;
 
 	wp_enqueue_script(
-		EAI_ADMIN_SCRIPT_DASHBOARD_HANDLE,
-		plugins_url( 'build/dashboard.js', __DIR__ ),
+		TPORAPDI_ADMIN_SCRIPT_DASHBOARD_HANDLE,
+		plugins_url( 'build/dashboard.js', TPORAPDI_PLUGIN_FILE ),
 		$asset['dependencies'],
 		$asset['version'],
 		true
 	);
 
 	wp_enqueue_style(
-		EAI_ADMIN_SCRIPT_DASHBOARD_HANDLE,
-		plugins_url( 'build/style-dashboard.css', __DIR__ ),
+		TPORAPDI_ADMIN_SCRIPT_DASHBOARD_HANDLE,
+		plugins_url( 'build/style-dashboard.css', TPORAPDI_PLUGIN_FILE ),
 		array(),
 		$asset['version']
 	);
 
 	wp_localize_script(
-		EAI_ADMIN_SCRIPT_DASHBOARD_HANDLE,
-		'enterpriseApiImporterDashboard',
+		TPORAPDI_ADMIN_SCRIPT_DASHBOARD_HANDLE,
+		'tporapdiDashboard',
 		array(
-			'restUrl' => esc_url_raw( rest_url( EAI_ADMIN_REST_NAMESPACE . '/dashboard' ) ),
+			'restUrl' => esc_url_raw( rest_url( TPORAPDI_ADMIN_REST_NAMESPACE . '/dashboard' ) ),
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
 		)
 	);
 }
-add_action( 'admin_enqueue_scripts', 'eai_enqueue_dashboard_assets' );
+add_action( 'admin_enqueue_scripts', 'tporapdi_enqueue_dashboard_assets' );
 
 /**
  * Enqueue import job workspace assets on the manage imports edit page only.
  *
  * @param string $hook_suffix Current admin page hook suffix.
  */
-function eai_enqueue_import_job_assets( string $hook_suffix ): void {
-	if ( 'toplevel_page_' . EAI_ADMIN_PAGE_MANAGE_SLUG !== $hook_suffix ) {
+function tporapdi_enqueue_import_job_assets( string $hook_suffix ): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page routing check.
+	$current_page = isset( $_GET['page'] ) ? sanitize_key( (string) wp_unslash( $_GET['page'] ) ) : '';
+	$is_manage    = 'toplevel_page_' . TPORAPDI_ADMIN_PAGE_MANAGE_SLUG === $hook_suffix
+		|| TPORAPDI_ADMIN_PAGE_MANAGE_SLUG === $current_page;
+
+	if ( ! $is_manage ) {
 		return;
 	}
 
@@ -2411,16 +2417,16 @@ function eai_enqueue_import_job_assets( string $hook_suffix ): void {
 	$asset = require $asset_file;
 
 	wp_enqueue_script(
-		EAI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE,
-		plugins_url( 'build/import-job.js', __DIR__ ),
+		TPORAPDI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE,
+		plugins_url( 'build/import-job.js', TPORAPDI_PLUGIN_FILE ),
 		$asset['dependencies'],
 		$asset['version'],
 		true
 	);
 
 	wp_enqueue_style(
-		EAI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE,
-		plugins_url( 'build/style-import-job.css', __DIR__ ),
+		TPORAPDI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE,
+		plugins_url( 'build/style-import-job.css', TPORAPDI_PLUGIN_FILE ),
 		array( 'wp-components' ),
 		$asset['version']
 	);
@@ -2455,8 +2461,8 @@ function eai_enqueue_import_job_assets( string $hook_suffix ): void {
 	}
 
 	wp_localize_script(
-		EAI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE,
-		'enterpriseApiImporterImportJob',
+		TPORAPDI_ADMIN_SCRIPT_IMPORT_JOB_HANDLE,
+		'tporapdiImportJob',
 		array(
 			'importId'  => $import_id,
 			'postTypes' => $post_types,
@@ -2465,4 +2471,4 @@ function eai_enqueue_import_job_assets( string $hook_suffix ): void {
 		)
 	);
 }
-add_action( 'admin_enqueue_scripts', 'eai_enqueue_import_job_assets' );
+add_action( 'admin_enqueue_scripts', 'tporapdi_enqueue_import_job_assets' );

@@ -16,15 +16,15 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 /**
  * Displays import jobs in wp-admin.
  */
-class EAI_Imports_List_Table extends WP_List_Table {
+class TPORAPDI_Imports_List_Table extends WP_List_Table {
 	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		parent::__construct(
 			array(
-				'singular' => 'eapi_import',
-				'plural'   => 'eapi_imports',
+				'singular' => 'tporapdi_import',
+				'plural'   => 'tporapdi_imports',
 				'ajax'     => false,
 			)
 		);
@@ -37,12 +37,12 @@ class EAI_Imports_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-			'id'       => __( 'ID', 'enterprise-api-importer' ),
-			'status'   => __( 'Status', 'enterprise-api-importer' ),
-			'health'   => __( 'Endpoint', 'enterprise-api-importer' ),
-			'trend'    => __( 'Trend (Blue = Created, Teal = Updated)', 'enterprise-api-importer' ),
-			'endpoint' => __( 'API URL', 'enterprise-api-importer' ),
-			'actions'  => __( 'Actions', 'enterprise-api-importer' ),
+			'id'       => __( 'ID', 'tporret-api-data-importer' ),
+			'status'   => __( 'Status', 'tporret-api-data-importer' ),
+			'health'   => __( 'Endpoint', 'tporret-api-data-importer' ),
+			'trend'    => __( 'Trend (Blue = Created, Teal = Updated)', 'tporret-api-data-importer' ),
+			'endpoint' => __( 'API URL', 'tporret-api-data-importer' ),
+			'actions'  => __( 'Actions', 'tporret-api-data-importer' ),
 		);
 	}
 
@@ -98,10 +98,10 @@ class EAI_Imports_List_Table extends WP_List_Table {
 		$per_page      = 20;
 		$current_page  = $this->get_pagenum();
 		$offset        = ( $current_page - 1 ) * $per_page;
-		$all_configs   = eai_db_get_import_configs();
-		$latest_logs   = eai_db_get_latest_logs_indexed_by_import_id();
-		$pending_index = eai_db_get_pending_counts_by_import_id();
-		$trend_index   = eai_db_get_recent_import_log_trends( 12 );
+		$all_configs   = tporapdi_db_get_import_configs();
+		$latest_logs   = tporapdi_db_get_latest_logs_indexed_by_import_id();
+		$pending_index = tporapdi_db_get_pending_counts_by_import_id();
+		$trend_index   = tporapdi_db_get_recent_import_log_trends( 12 );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sorting parameters.
 		$orderby = isset( $_GET['orderby'] ) ? sanitize_key( (string) wp_unslash( $_GET['orderby'] ) ) : 'id';
@@ -201,7 +201,7 @@ class EAI_Imports_List_Table extends WP_List_Table {
 	 */
 	private function render_status_column( $item ) {
 		$status = isset( $item['computed_status'] ) ? (string) $item['computed_status'] : 'idle';
-		$badge  = eai_get_status_badge_data( $status );
+		$badge  = tporapdi_get_status_badge_data( $status );
 
 		return '<span class="' . esc_attr( $badge['class'] ) . '">' . esc_html( $badge['label'] ) . '</span>';
 	}
@@ -218,14 +218,14 @@ class EAI_Imports_List_Table extends WP_List_Table {
 		$error_count = isset( $item['error_count'] ) ? (int) $item['error_count'] : 0;
 		$pending     = isset( $item['pending_count'] ) ? (int) $item['pending_count'] : 0;
 
-		$label = __( 'Healthy', 'enterprise-api-importer' );
+		$label = __( 'Healthy', 'tporret-api-data-importer' );
 		$class = 'eapi-health-chip is-good';
 
 		if ( $error_count > 0 || in_array( $status, array( 'failed', 'completed_with_errors', 'template syntax error' ), true ) ) {
-			$label = __( 'Degraded', 'enterprise-api-importer' );
+			$label = __( 'Degraded', 'tporret-api-data-importer' );
 			$class = 'eapi-health-chip is-bad';
 		} elseif ( $pending > 0 || 'processing' === $status ) {
-			$label = __( 'Active', 'enterprise-api-importer' );
+			$label = __( 'Active', 'tporret-api-data-importer' );
 			$class = 'eapi-health-chip is-warn';
 		}
 
@@ -243,7 +243,7 @@ class EAI_Imports_List_Table extends WP_List_Table {
 		$points = isset( $item['trend_points'] ) && is_array( $item['trend_points'] ) ? $item['trend_points'] : array();
 
 		if ( empty( $points ) ) {
-			return '<span class="eapi-trend-empty">' . esc_html__( 'No history', 'enterprise-api-importer' ) . '</span>';
+			return '<span class="eapi-trend-empty">' . esc_html__( 'No history', 'tporret-api-data-importer' ) . '</span>';
 		}
 
 		$max_value = 1;
@@ -253,7 +253,7 @@ class EAI_Imports_List_Table extends WP_List_Table {
 			$max_value = max( $max_value, $created, $updated );
 		}
 
-		$html = '<div class="eapi-sparkline" aria-label="' . esc_attr__( 'Created and updated trend', 'enterprise-api-importer' ) . '">';
+		$html = '<div class="eapi-sparkline" aria-label="' . esc_attr__( 'Created and updated trend', 'tporret-api-data-importer' ) . '">';
 
 		foreach ( $points as $point ) {
 			$created = isset( $point['created'] ) ? max( 0, (int) $point['created'] ) : 0;
@@ -288,7 +288,7 @@ class EAI_Imports_List_Table extends WP_List_Table {
 
 		$edit_url = add_query_arg(
 			array(
-				'page'   => EAI_ADMIN_PAGE_MANAGE_SLUG,
+				'page'   => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
 				'action' => 'edit',
 				'id'     => $import_id,
 			),
@@ -298,26 +298,26 @@ class EAI_Imports_List_Table extends WP_List_Table {
 		$delete_url = wp_nonce_url(
 			add_query_arg(
 				array(
-					'action'    => 'eai_delete_import',
+					'action'    => 'tporapdi_delete_import',
 					'import_id' => $import_id,
 				),
 				admin_url( 'admin-post.php' )
 			),
-			'eai_delete_import_' . $import_id,
-			'eai_delete_nonce'
+			'tporapdi_delete_import_' . $import_id,
+			'tporapdi_delete_nonce'
 		);
 
 		$edit_link = sprintf(
 			'<a class="eapi-action-btn is-edit" href="%s">%s</a>',
 			esc_url( $edit_url ),
-			esc_html__( 'Edit', 'enterprise-api-importer' )
+			esc_html__( 'Edit', 'tporret-api-data-importer' )
 		);
 
 		$delete_link = sprintf(
 			'<a class="eapi-action-btn is-delete" href="%s" onclick="return confirm(\'%s\');">%s</a>',
 			esc_url( $delete_url ),
-			esc_js( __( 'Are you sure you want to delete this import job?', 'enterprise-api-importer' ) ),
-			esc_html__( 'Delete', 'enterprise-api-importer' )
+			esc_js( __( 'Are you sure you want to delete this import job?', 'tporret-api-data-importer' ) ),
+			esc_html__( 'Delete', 'tporret-api-data-importer' )
 		);
 
 		return $edit_link . ' ' . $delete_link;

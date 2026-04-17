@@ -13,15 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Register the dashboard REST route.
  */
-function eai_register_dashboard_rest_route() {
+function tporapdi_register_dashboard_rest_route() {
 	register_rest_route(
-		EAI_ADMIN_REST_NAMESPACE,
+		TPORAPDI_ADMIN_REST_NAMESPACE,
 		'/dashboard',
 		array(
 			'methods'             => 'GET',
-			'callback'            => 'eai_rest_dashboard_callback',
+			'callback'            => 'tporapdi_rest_dashboard_callback',
 			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+				return tporapdi_current_user_can_manage_imports();
 			},
 			'args'                => array(
 				'refresh' => array(
@@ -34,18 +34,18 @@ function eai_register_dashboard_rest_route() {
 	);
 
 	register_rest_route(
-		EAI_ADMIN_REST_NAMESPACE,
+		TPORAPDI_ADMIN_REST_NAMESPACE,
 		'/dashboard/history',
 		array(
 			'methods'             => 'GET',
-			'callback'            => 'eai_rest_dashboard_history_callback',
+			'callback'            => 'tporapdi_rest_dashboard_history_callback',
 			'permission_callback' => static function () {
-				return eai_current_user_can_manage_imports();
+				return tporapdi_current_user_can_manage_imports();
 			},
 		)
 	);
 }
-add_action( 'rest_api_init', 'eai_register_dashboard_rest_route' );
+add_action( 'rest_api_init', 'tporapdi_register_dashboard_rest_route' );
 
 /**
  * Serve aggregated dashboard data.
@@ -53,14 +53,14 @@ add_action( 'rest_api_init', 'eai_register_dashboard_rest_route' );
  * @param WP_REST_Request $request REST request.
  * @return WP_REST_Response
  */
-function eai_rest_dashboard_callback( WP_REST_Request $request ): WP_REST_Response {
+function tporapdi_rest_dashboard_callback( WP_REST_Request $request ): WP_REST_Response {
 	if ( $request->get_param( 'refresh' ) ) {
-		eai_flush_reporting_transients();
+		tporapdi_flush_reporting_transients();
 	}
 
-	$aggregator = EAPI_Reporting_Aggregator::get_instance();
+	$aggregator = TPORAPDI_Reporting_Aggregator::get_instance();
 	$data       = $aggregator->get_dashboard_data();
-	eai_store_current_site_network_snapshot( $data );
+	tporapdi_store_current_site_network_snapshot( $data );
 
 	return new WP_REST_Response( $data, 200 );
 }
@@ -71,7 +71,7 @@ function eai_rest_dashboard_callback( WP_REST_Request $request ): WP_REST_Respon
  * @param array<int, string> $statuses Status values.
  * @return string
  */
-function eai_reduce_dashboard_statuses( array $statuses ): string {
+function tporapdi_reduce_dashboard_statuses( array $statuses ): string {
 	$rank_map     = array(
 		'green'  => 1,
 		'yellow' => 2,
@@ -102,7 +102,7 @@ function eai_reduce_dashboard_statuses( array $statuses ): string {
  * @param string                                             $category       Category key.
  * @return string
  */
-function eai_get_dashboard_category_status( array $dashboard_data, string $category ): string {
+function tporapdi_get_dashboard_category_status( array $dashboard_data, string $category ): string {
 	$statuses = array();
 	$items    = $dashboard_data[ $category ] ?? array();
 
@@ -114,7 +114,7 @@ function eai_get_dashboard_category_status( array $dashboard_data, string $categ
 		$statuses[] = (string) $item['metrics']['status'];
 	}
 
-	return eai_reduce_dashboard_statuses( $statuses );
+	return tporapdi_reduce_dashboard_statuses( $statuses );
 }
 
 /**
@@ -123,12 +123,12 @@ function eai_get_dashboard_category_status( array $dashboard_data, string $categ
  * @param array<string, array<string, array<string, mixed>>> $dashboard_data Dashboard payload.
  * @return string
  */
-function eai_get_dashboard_overall_status( array $dashboard_data ): string {
-	return eai_reduce_dashboard_statuses(
+function tporapdi_get_dashboard_overall_status( array $dashboard_data ): string {
+	return tporapdi_reduce_dashboard_statuses(
 		array(
-			eai_get_dashboard_category_status( $dashboard_data, 'Health' ),
-			eai_get_dashboard_category_status( $dashboard_data, 'Security' ),
-			eai_get_dashboard_category_status( $dashboard_data, 'Performance' ),
+			tporapdi_get_dashboard_category_status( $dashboard_data, 'Health' ),
+			tporapdi_get_dashboard_category_status( $dashboard_data, 'Security' ),
+			tporapdi_get_dashboard_category_status( $dashboard_data, 'Performance' ),
 		)
 	);
 }
@@ -139,7 +139,7 @@ function eai_get_dashboard_overall_status( array $dashboard_data ): string {
  * @param int $blog_id Blog ID.
  * @return bool
  */
-function eai_is_plugin_active_on_blog( int $blog_id ): bool {
+function tporapdi_is_plugin_active_on_blog( int $blog_id ): bool {
 	if ( ! is_multisite() ) {
 		return true;
 	}
@@ -148,11 +148,11 @@ function eai_is_plugin_active_on_blog( int $blog_id ): bool {
 	$network_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
 	$active_plugins  = (array) get_blog_option( $blog_id, 'active_plugins', array() );
 
-	if ( isset( $network_plugins[ EAI_PLUGIN_BASENAME ] ) ) {
+	if ( isset( $network_plugins[ TPORAPDI_PLUGIN_BASENAME ] ) ) {
 		return true;
 	}
 
-	return in_array( EAI_PLUGIN_BASENAME, $active_plugins, true );
+	return in_array( TPORAPDI_PLUGIN_BASENAME, $active_plugins, true );
 }
 
 /**
@@ -161,34 +161,34 @@ function eai_is_plugin_active_on_blog( int $blog_id ): bool {
  * @param array<string, array<string, array<string, mixed>>>|null $dashboard_data Optional dashboard payload.
  * @return void
  */
-function eai_store_current_site_network_snapshot( ?array $dashboard_data = null ): void {
+function tporapdi_store_current_site_network_snapshot( ?array $dashboard_data = null ): void {
 	if ( ! is_multisite() ) {
 		return;
 	}
 
 	$blog_id = get_current_blog_id();
-	if ( ! eai_is_plugin_active_on_blog( $blog_id ) ) {
+	if ( ! tporapdi_is_plugin_active_on_blog( $blog_id ) ) {
 		return;
 	}
 
 	if ( null === $dashboard_data ) {
-		$aggregator     = EAPI_Reporting_Aggregator::get_instance();
+		$aggregator     = TPORAPDI_Reporting_Aggregator::get_instance();
 		$dashboard_data = $aggregator->get_dashboard_data();
 	}
 
 	$site_name = (string) get_option( 'blogname', '' );
 	$site_url  = home_url( '/' );
 
-	eai_db_save_network_snapshot(
+	tporapdi_db_save_network_snapshot(
 		array(
 			'blog_id'            => $blog_id,
 			'site_url'           => $site_url,
 			'site_name'          => '' !== $site_name ? $site_name : wp_parse_url( $site_url, PHP_URL_HOST ),
-			'overall_status'     => eai_get_dashboard_overall_status( $dashboard_data ),
-			'health_status'      => eai_get_dashboard_category_status( $dashboard_data, 'Health' ),
-			'security_status'    => eai_get_dashboard_category_status( $dashboard_data, 'Security' ),
-			'performance_status' => eai_get_dashboard_category_status( $dashboard_data, 'Performance' ),
-			'import_count'       => count( eai_db_get_import_configs() ),
+			'overall_status'     => tporapdi_get_dashboard_overall_status( $dashboard_data ),
+			'health_status'      => tporapdi_get_dashboard_category_status( $dashboard_data, 'Health' ),
+			'security_status'    => tporapdi_get_dashboard_category_status( $dashboard_data, 'Security' ),
+			'performance_status' => tporapdi_get_dashboard_category_status( $dashboard_data, 'Performance' ),
+			'import_count'       => count( tporapdi_db_get_import_configs() ),
 			'dashboard_data'     => $dashboard_data,
 		)
 	);
@@ -200,7 +200,7 @@ function eai_store_current_site_network_snapshot( ?array $dashboard_data = null 
  * @param bool $force_refresh Whether to clear per-site reporter caches first.
  * @return array<int, array<string, mixed>>
  */
-function eai_refresh_network_dashboard_snapshots( bool $force_refresh = false ): array {
+function tporapdi_refresh_network_dashboard_snapshots( bool $force_refresh = false ): array {
 	if ( ! is_multisite() ) {
 		return array();
 	}
@@ -217,12 +217,12 @@ function eai_refresh_network_dashboard_snapshots( bool $force_refresh = false ):
 	);
 
 	if ( ! is_array( $site_ids ) ) {
-		return eai_db_get_network_snapshots();
+		return tporapdi_db_get_network_snapshots();
 	}
 
 	foreach ( $site_ids as $site_id ) {
 		$site_id = absint( $site_id );
-		if ( $site_id <= 0 || ! eai_is_plugin_active_on_blog( $site_id ) ) {
+		if ( $site_id <= 0 || ! tporapdi_is_plugin_active_on_blog( $site_id ) ) {
 			continue;
 		}
 
@@ -231,24 +231,24 @@ function eai_refresh_network_dashboard_snapshots( bool $force_refresh = false ):
 		switch_to_blog( $site_id );
 
 		if ( $force_refresh ) {
-			eai_flush_reporting_transients();
+			tporapdi_flush_reporting_transients();
 		}
 
-		eai_maybe_upgrade_schema();
-		eai_store_current_site_network_snapshot();
+		tporapdi_maybe_upgrade_schema();
+		tporapdi_store_current_site_network_snapshot();
 
 		restore_current_blog();
 	}
 
 	$active_site_ids = array_map( 'absint', $active_site_ids );
-	foreach ( eai_db_get_network_snapshots() as $snapshot ) {
+	foreach ( tporapdi_db_get_network_snapshots() as $snapshot ) {
 		$blog_id = absint( $snapshot['blog_id'] ?? 0 );
 		if ( $blog_id > 0 && ! in_array( $blog_id, $active_site_ids, true ) ) {
-			eai_db_delete_network_snapshot( $blog_id );
+			tporapdi_db_delete_network_snapshot( $blog_id );
 		}
 	}
 
-	return eai_db_get_network_snapshots();
+	return tporapdi_db_get_network_snapshots();
 }
 
 /**
@@ -256,12 +256,12 @@ function eai_refresh_network_dashboard_snapshots( bool $force_refresh = false ):
  *
  * @return WP_REST_Response
  */
-function eai_rest_dashboard_history_callback(): WP_REST_Response {
+function tporapdi_rest_dashboard_history_callback(): WP_REST_Response {
 	global $wpdb;
 
-	$logs_table = eai_db_logs_table();
+	$logs_table = tporapdi_db_logs_table();
 
-	$transient_key = 'eapi_dashboard_history';
+	$transient_key = 'tporapdi_dashboard_history';
 	$cached        = get_transient( $transient_key );
 	if ( false !== $cached ) {
 		return new WP_REST_Response( $cached, 200 );
@@ -387,7 +387,7 @@ function eai_rest_dashboard_history_callback(): WP_REST_Response {
 /**
  * Flush all reporting transients for a forced refresh.
  */
-function eai_flush_reporting_transients(): void {
+function tporapdi_flush_reporting_transients(): void {
 	$reporter_ids = array(
 		'cron_heartbeat',
 		'queue_depth',
@@ -401,8 +401,8 @@ function eai_flush_reporting_transients(): void {
 	);
 
 	foreach ( $reporter_ids as $id ) {
-		delete_transient( 'eapi_report_' . $id );
+		delete_transient( 'tporapdi_report_' . $id );
 	}
 
-	delete_transient( 'eapi_dashboard_history' );
+	delete_transient( 'tporapdi_dashboard_history' );
 }

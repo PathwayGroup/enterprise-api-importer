@@ -14,7 +14,7 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 
 		try {
 			const result = await apiFetch( {
-				path: '/enterprise-api-importer/v1/test-api-connection',
+				path: '/tporret-api-data-importer/v1/test-api-connection',
 				method: 'POST',
 				data: {
 					api_url: job.endpoint_url,
@@ -29,7 +29,7 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 
 			setTestResult( {
 				status: 'success',
-				message: result.message || __( 'Connection successful!', 'enterprise-api-importer' ),
+				message: result.message || __( 'Connection successful!', 'tporret-api-data-importer' ),
 				itemCount: result.item_count,
 				keys: result.available_keys,
 			} );
@@ -38,7 +38,7 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 		} catch ( err ) {
 			setTestResult( {
 				status: 'error',
-				message: err.message || __( 'Connection test failed.', 'enterprise-api-importer' ),
+				message: err.message || __( 'Connection test failed.', 'tporret-api-data-importer' ),
 			} );
 		} finally {
 			setTesting( false );
@@ -50,7 +50,7 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 			<TextControl
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
-				label={ __( 'Job Name', 'enterprise-api-importer' ) }
+				label={ __( 'Job Name', 'tporret-api-data-importer' ) }
 				value={ job.name }
 				onChange={ ( val ) => updateField( 'name', val ) }
 				required
@@ -59,7 +59,7 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 			<TextControl
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
-				label={ __( 'Endpoint URL', 'enterprise-api-importer' ) }
+				label={ __( 'Endpoint URL', 'tporret-api-data-importer' ) }
 				type="url"
 				value={ job.endpoint_url }
 				onChange={ ( val ) => updateField( 'endpoint_url', val ) }
@@ -76,8 +76,8 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 					onClick={ handleTestEndpoint }
 				>
 					{ testing
-						? __( 'Testing…', 'enterprise-api-importer' )
-						: __( 'Test Endpoint', 'enterprise-api-importer' ) }
+						? __( 'Testing…', 'tporret-api-data-importer' )
+						: __( 'Test Endpoint', 'tporret-api-data-importer' ) }
 				</Button>
 
 				{ testResult && (
@@ -91,12 +91,12 @@ export default function SourceAuthTab( { job, updateField, setNotice, setPreview
 						{ testResult.status === 'success' && (
 							<>
 								<p>
-									{ __( 'Items Found:', 'enterprise-api-importer' ) }{ ' ' }
+									{ __( 'Items Found:', 'tporret-api-data-importer' ) }{ ' ' }
 									<strong>{ testResult.itemCount }</strong>
 								</p>
 								{ testResult.keys && testResult.keys.length > 0 && (
 									<p>
-										{ __( 'Available Fields:', 'enterprise-api-importer' ) }{ ' ' }
+										{ __( 'Available Fields:', 'tporret-api-data-importer' ) }{ ' ' }
 										<code>
 											{ testResult.keys.map( ( k ) => `data.${ k }` ).join( ', ' ) }
 										</code>

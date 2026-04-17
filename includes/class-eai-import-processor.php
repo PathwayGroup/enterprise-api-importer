@@ -14,11 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Core import processing helpers.
  */
-class EAI_Import_Processor {
+class TPORAPDI_Import_Processor {
 	/**
 	 * Downloads and sideloads one remote image into the media library.
 	 *
-	 * Idempotency: if an attachment already exists with matching _eapi_source_url,
+	 * Idempotency: if an attachment already exists with matching _tporapdi_source_url,
 	 * the existing attachment ID is returned immediately and no new download occurs.
 	 *
 	 * @param mixed $image_url   Absolute image URL.
@@ -37,7 +37,7 @@ class EAI_Import_Processor {
 				'Invalid Media URL',
 				$image_url,
 				$post_id,
-				__( 'Invalid media URL or post ID supplied for sideload.', 'enterprise-api-importer' )
+				__( 'Invalid media URL or post ID supplied for sideload.', 'tporret-api-data-importer' )
 			);
 
 			return false;
@@ -57,7 +57,7 @@ class EAI_Import_Processor {
 				'update_post_term_cache' => false,
 				'meta_query'             => array(
 					array(
-						'key'     => '_eapi_source_url',
+						'key'     => '_tporapdi_source_url',
 						'value'   => $source_url,
 						'compare' => '=',
 					),
@@ -116,7 +116,7 @@ class EAI_Import_Processor {
 		}
 
 		$attachment_id = (int) $attachment_id;
-		update_post_meta( $attachment_id, '_eapi_source_url', $source_url );
+		update_post_meta( $attachment_id, '_tporapdi_source_url', $source_url );
 
 		if ( $is_featured ) {
 			set_post_thumbnail( $post_id, $attachment_id );
@@ -327,6 +327,6 @@ class EAI_Import_Processor {
 			$error_json = '{"media_error":true,"message":"JSON encoding failed"}';
 		}
 
-		eai_db_insert_import_log( 0, $run_id, $status, 0, 0, 0, (string) $error_json, $now );
+		tporapdi_db_insert_import_log( 0, $run_id, $status, 0, 0, 0, (string) $error_json, $now );
 	}
 }

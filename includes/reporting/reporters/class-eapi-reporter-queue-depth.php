@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports the current staging-queue depth.
  */
-class EAPI_Reporter_Queue_Depth extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_Queue_Depth extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_Queue_Depth extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$temp_table = eai_db_temp_table();
+		$temp_table = tporapdi_db_temp_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$count = (int) $wpdb->get_var(

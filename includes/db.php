@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! defined( 'EAI_CACHE_GROUP' ) ) {
-	define( 'EAI_CACHE_GROUP', 'eapi_plugin' );
+if ( ! defined( 'TPORAPDI_CACHE_GROUP' ) ) {
+	define( 'TPORAPDI_CACHE_GROUP', 'tporapdi_plugin' );
 }
 
 /**
@@ -20,10 +20,10 @@ if ( ! defined( 'EAI_CACHE_GROUP' ) ) {
  *
  * @return string
  */
-function eai_db_imports_table(): string {
+function tporapdi_db_imports_table(): string {
 	global $wpdb;
 
-	return $wpdb->prefix . 'eapi_imports';
+	return $wpdb->prefix . 'tporapdi_imports';
 }
 
 /**
@@ -31,7 +31,7 @@ function eai_db_imports_table(): string {
  *
  * @return string
  */
-function eai_db_temp_table(): string {
+function tporapdi_db_temp_table(): string {
 	global $wpdb;
 
 	return $wpdb->prefix . 'custom_import_temp';
@@ -42,7 +42,7 @@ function eai_db_temp_table(): string {
  *
  * @return string
  */
-function eai_db_logs_table(): string {
+function tporapdi_db_logs_table(): string {
 	global $wpdb;
 
 	return $wpdb->prefix . 'custom_import_logs';
@@ -53,10 +53,10 @@ function eai_db_logs_table(): string {
  *
  * @return string
  */
-function eai_db_network_dashboard_table(): string {
+function tporapdi_db_network_dashboard_table(): string {
 	global $wpdb;
 
-	return $wpdb->base_prefix . 'eapi_network_dashboard_sites';
+	return $wpdb->base_prefix . 'tporapdi_network_dashboard_sites';
 }
 
 /**
@@ -66,10 +66,10 @@ function eai_db_network_dashboard_table(): string {
  *
  * @return bool
  */
-function eai_db_save_network_snapshot( array $snapshot ): bool {
+function tporapdi_db_save_network_snapshot( array $snapshot ): bool {
 	global $wpdb;
 
-	$table = eai_db_network_dashboard_table();
+	$table = tporapdi_db_network_dashboard_table();
 	$data  = array(
 		'blog_id'            => absint( $snapshot['blog_id'] ?? 0 ),
 		'site_url'           => esc_url_raw( (string) ( $snapshot['site_url'] ?? '' ) ),
@@ -102,13 +102,13 @@ function eai_db_save_network_snapshot( array $snapshot ): bool {
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_db_get_network_snapshots(): array {
+function tporapdi_db_get_network_snapshots(): array {
 	if ( ! is_multisite() ) {
 		return array();
 	}
 
 	global $wpdb;
-	$table = eai_db_network_dashboard_table();
+	$table = tporapdi_db_network_dashboard_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
@@ -128,13 +128,13 @@ function eai_db_get_network_snapshots(): array {
  * @param int $blog_id Blog ID.
  * @return bool
  */
-function eai_db_delete_network_snapshot( int $blog_id ): bool {
+function tporapdi_db_delete_network_snapshot( int $blog_id ): bool {
 	if ( ! is_multisite() ) {
 		return false;
 	}
 
 	global $wpdb;
-	$table   = eai_db_network_dashboard_table();
+	$table   = tporapdi_db_network_dashboard_table();
 	$blog_id = absint( $blog_id );
 
 	if ( $blog_id <= 0 ) {
@@ -154,7 +154,7 @@ function eai_db_delete_network_snapshot( int $blog_id ): bool {
  *
  * @return string
  */
-function eai_db_import_config_cache_key( int $import_id ): string {
+function tporapdi_db_import_config_cache_key( int $import_id ): string {
 	return 'import_config:' . absint( $import_id );
 }
 
@@ -165,14 +165,14 @@ function eai_db_import_config_cache_key( int $import_id ): string {
  *
  * @return void
  */
-function eai_db_invalidate_imports_cache( int $import_id = 0 ): void {
+function tporapdi_db_invalidate_imports_cache( int $import_id = 0 ): void {
 	$import_id = absint( $import_id );
 
-	wp_cache_delete( 'import_configs:all', EAI_CACHE_GROUP );
-	wp_cache_delete( 'import_configs:custom_intervals', EAI_CACHE_GROUP );
+	wp_cache_delete( 'import_configs:all', TPORAPDI_CACHE_GROUP );
+	wp_cache_delete( 'import_configs:custom_intervals', TPORAPDI_CACHE_GROUP );
 
 	if ( $import_id > 0 ) {
-		wp_cache_delete( eai_db_import_config_cache_key( $import_id ), EAI_CACHE_GROUP );
+		wp_cache_delete( tporapdi_db_import_config_cache_key( $import_id ), TPORAPDI_CACHE_GROUP );
 	}
 }
 
@@ -181,16 +181,16 @@ function eai_db_invalidate_imports_cache( int $import_id = 0 ): void {
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_db_get_import_configs(): array {
+function tporapdi_db_get_import_configs(): array {
 	$cache_key = 'import_configs:all';
-	$cached    = wp_cache_get( $cache_key, EAI_CACHE_GROUP );
+	$cached    = wp_cache_get( $cache_key, TPORAPDI_CACHE_GROUP );
 
 	if ( false !== $cached && is_array( $cached ) ) {
 		return $cached;
 	}
 
 	global $wpdb;
-	$table = eai_db_imports_table();
+	$table = tporapdi_db_imports_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
@@ -208,9 +208,9 @@ function eai_db_get_import_configs(): array {
 	}
 
 	// Decrypt credentials transparently so consumers receive plaintext.
-	$rows = array_map( 'eai_decrypt_import_credentials', $rows );
+	$rows = array_map( 'tporapdi_decrypt_import_credentials', $rows );
 
-	wp_cache_set( $cache_key, $rows, EAI_CACHE_GROUP, 60 );
+	wp_cache_set( $cache_key, $rows, TPORAPDI_CACHE_GROUP, 60 );
 
 	return $rows;
 }
@@ -222,21 +222,21 @@ function eai_db_get_import_configs(): array {
  *
  * @return array<string, mixed>|null
  */
-function eai_db_get_import_config( int $import_id ): ?array {
+function tporapdi_db_get_import_config( int $import_id ): ?array {
 	$import_id = absint( $import_id );
 	if ( $import_id <= 0 ) {
 		return null;
 	}
 
-	$cache_key = eai_db_import_config_cache_key( $import_id );
-	$cached    = wp_cache_get( $cache_key, EAI_CACHE_GROUP );
+	$cache_key = tporapdi_db_import_config_cache_key( $import_id );
+	$cached    = wp_cache_get( $cache_key, TPORAPDI_CACHE_GROUP );
 
 	if ( false !== $cached && is_array( $cached ) ) {
 		return $cached;
 	}
 
 	global $wpdb;
-	$table = eai_db_imports_table();
+	$table = tporapdi_db_imports_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$row = $wpdb->get_row(
@@ -255,9 +255,9 @@ function eai_db_get_import_config( int $import_id ): ?array {
 	}
 
 	// Decrypt credentials transparently so consumers receive plaintext.
-	$row = eai_decrypt_import_credentials( $row );
+	$row = tporapdi_decrypt_import_credentials( $row );
 
-	wp_cache_set( $cache_key, $row, EAI_CACHE_GROUP, 60 );
+	wp_cache_set( $cache_key, $row, TPORAPDI_CACHE_GROUP, 60 );
 
 	return $row;
 }
@@ -267,16 +267,16 @@ function eai_db_get_import_config( int $import_id ): ?array {
  *
  * @return array<int, int>
  */
-function eai_db_get_custom_recurrence_minutes(): array {
+function tporapdi_db_get_custom_recurrence_minutes(): array {
 	$cache_key = 'import_configs:custom_intervals';
-	$cached    = wp_cache_get( $cache_key, EAI_CACHE_GROUP );
+	$cached    = wp_cache_get( $cache_key, TPORAPDI_CACHE_GROUP );
 
 	if ( false !== $cached && is_array( $cached ) ) {
 		return $cached;
 	}
 
 	global $wpdb;
-	$table = eai_db_imports_table();
+	$table = tporapdi_db_imports_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_col(
@@ -302,7 +302,7 @@ function eai_db_get_custom_recurrence_minutes(): array {
 	}
 
 	$minutes = array_values( array_unique( $minutes ) );
-	wp_cache_set( $cache_key, $minutes, EAI_CACHE_GROUP, 60 );
+	wp_cache_set( $cache_key, $minutes, TPORAPDI_CACHE_GROUP, 60 );
 
 	return $minutes;
 }
@@ -316,10 +316,10 @@ function eai_db_get_custom_recurrence_minutes(): array {
  *
  * @return int|WP_Error Persisted import ID or WP_Error on failure.
  */
-function eai_db_save_import_config( int $import_id, array $data, array $formats ) {
+function tporapdi_db_save_import_config( int $import_id, array $data, array $formats ) {
 	global $wpdb;
 
-	$table     = eai_db_imports_table();
+	$table     = tporapdi_db_imports_table();
 	$import_id = absint( $import_id );
 
 	if ( $import_id > 0 ) {
@@ -327,19 +327,19 @@ function eai_db_save_import_config( int $import_id, array $data, array $formats 
 		$updated = $wpdb->update( $table, $data, array( 'id' => $import_id ), $formats, array( '%d' ) );
 		if ( false === $updated ) {
 			$last_error = is_string( $wpdb->last_error ) ? trim( $wpdb->last_error ) : '';
-			$message    = __( 'Failed to update import configuration.', 'enterprise-api-importer' );
+			$message    = __( 'Failed to update import configuration.', 'tporret-api-data-importer' );
 			if ( '' !== $last_error ) {
 				$message .= ' ' . sprintf(
 					/* translators: %s is the SQL/database error message. */
-					__( 'Database error: %s', 'enterprise-api-importer' ),
+					__( 'Database error: %s', 'tporret-api-data-importer' ),
 					$last_error
 				);
 			}
 
-			return new WP_Error( 'eai_import_update_failed', $message );
+			return new WP_Error( 'tporapdi_import_update_failed', $message );
 		}
 
-		eai_db_invalidate_imports_cache( $import_id );
+		tporapdi_db_invalidate_imports_cache( $import_id );
 		return $import_id;
 	}
 
@@ -352,20 +352,20 @@ function eai_db_save_import_config( int $import_id, array $data, array $formats 
 
 	if ( false === $inserted ) {
 		$last_error = is_string( $wpdb->last_error ) ? trim( $wpdb->last_error ) : '';
-		$message    = __( 'Failed to create import configuration.', 'enterprise-api-importer' );
+		$message    = __( 'Failed to create import configuration.', 'tporret-api-data-importer' );
 		if ( '' !== $last_error ) {
 			$message .= ' ' . sprintf(
 				/* translators: %s is the SQL/database error message. */
-				__( 'Database error: %s', 'enterprise-api-importer' ),
+				__( 'Database error: %s', 'tporret-api-data-importer' ),
 				$last_error
 			);
 		}
 
-		return new WP_Error( 'eai_import_insert_failed', $message );
+		return new WP_Error( 'tporapdi_import_insert_failed', $message );
 	}
 
 	$new_import_id = (int) $wpdb->insert_id;
-	eai_db_invalidate_imports_cache( $new_import_id );
+	tporapdi_db_invalidate_imports_cache( $new_import_id );
 
 	return $new_import_id;
 }
@@ -377,7 +377,7 @@ function eai_db_save_import_config( int $import_id, array $data, array $formats 
  *
  * @return bool
  */
-function eai_db_delete_import_config( int $import_id ): bool {
+function tporapdi_db_delete_import_config( int $import_id ): bool {
 	global $wpdb;
 
 	$import_id = absint( $import_id );
@@ -385,7 +385,7 @@ function eai_db_delete_import_config( int $import_id ): bool {
 		return false;
 	}
 
-	$table = eai_db_imports_table();
+	$table = tporapdi_db_imports_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 	$deleted = $wpdb->delete( $table, array( 'id' => $import_id ), array( '%d' ) );
@@ -394,7 +394,7 @@ function eai_db_delete_import_config( int $import_id ): bool {
 		return false;
 	}
 
-	eai_db_invalidate_imports_cache( $import_id );
+	tporapdi_db_invalidate_imports_cache( $import_id );
 	return true;
 }
 
@@ -406,12 +406,12 @@ function eai_db_delete_import_config( int $import_id ): bool {
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_db_get_unprocessed_staging_rows( int $import_id, int $limit = 10 ): array {
+function tporapdi_db_get_unprocessed_staging_rows( int $import_id, int $limit = 10 ): array {
 	global $wpdb;
 
 	$import_id = absint( $import_id );
 	$limit     = absint( $limit );
-	$table     = eai_db_temp_table();
+	$table     = tporapdi_db_temp_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
@@ -439,10 +439,10 @@ function eai_db_get_unprocessed_staging_rows( int $import_id, int $limit = 10 ):
  *
  * @return int
  */
-function eai_db_count_unprocessed_staging_rows( int $import_id ): int {
+function tporapdi_db_count_unprocessed_staging_rows( int $import_id ): int {
 	global $wpdb;
 
-	$table = eai_db_temp_table();
+	$table = tporapdi_db_temp_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$count = $wpdb->get_var(
@@ -466,10 +466,10 @@ function eai_db_count_unprocessed_staging_rows( int $import_id ): int {
  *
  * @return bool
  */
-function eai_db_mark_staging_row_processed( int $row_id ): bool {
+function tporapdi_db_mark_staging_row_processed( int $row_id ): bool {
 	global $wpdb;
 
-	$table = eai_db_temp_table();
+	$table = tporapdi_db_temp_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$updated = $wpdb->update(
@@ -491,10 +491,10 @@ function eai_db_mark_staging_row_processed( int $row_id ): bool {
  *
  * @return int|WP_Error New row ID or WP_Error on failure.
  */
-function eai_db_insert_staging_payload( int $import_id, string $raw_json ) {
+function tporapdi_db_insert_staging_payload( int $import_id, string $raw_json ) {
 	global $wpdb;
 
-	$table = eai_db_temp_table();
+	$table = tporapdi_db_temp_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$inserted = $wpdb->insert(
@@ -509,7 +509,7 @@ function eai_db_insert_staging_payload( int $import_id, string $raw_json ) {
 	);
 
 	if ( false === $inserted ) {
-		return new WP_Error( 'eai_temp_insert_failed', __( 'Failed to insert staging payload.', 'enterprise-api-importer' ) );
+		return new WP_Error( 'tporapdi_temp_insert_failed', __( 'Failed to insert staging payload.', 'tporret-api-data-importer' ) );
 	}
 
 	return (int) $wpdb->insert_id;
@@ -529,10 +529,10 @@ function eai_db_insert_staging_payload( int $import_id, string $raw_json ) {
  *
  * @return bool
  */
-function eai_db_insert_import_log( int $import_id, string $import_run_id, string $status, int $rows_processed, int $rows_created, int $rows_updated, string $errors_json, string $created_at ): bool {
+function tporapdi_db_insert_import_log( int $import_id, string $import_run_id, string $status, int $rows_processed, int $rows_created, int $rows_updated, string $errors_json, string $created_at ): bool {
 	global $wpdb;
 
-	$table = eai_db_logs_table();
+	$table = tporapdi_db_logs_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$inserted = $wpdb->insert(
@@ -558,10 +558,10 @@ function eai_db_insert_import_log( int $import_id, string $import_run_id, string
  *
  * @return array<int, array<string, mixed>>
  */
-function eai_db_get_latest_logs_indexed_by_import_id(): array {
+function tporapdi_db_get_latest_logs_indexed_by_import_id(): array {
 	global $wpdb;
 
-	$logs_table = eai_db_logs_table();
+	$logs_table = tporapdi_db_logs_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
@@ -605,10 +605,10 @@ function eai_db_get_latest_logs_indexed_by_import_id(): array {
  *
  * @return array<int, array<int, array<string, int>>>
  */
-function eai_db_get_recent_import_log_trends( int $points_per_import = 12 ): array {
+function tporapdi_db_get_recent_import_log_trends( int $points_per_import = 12 ): array {
 	global $wpdb;
 
-	$logs_table         = eai_db_logs_table();
+	$logs_table         = tporapdi_db_logs_table();
 	$points_per_import  = max( 3, min( 30, absint( $points_per_import ) ) );
 	$global_sample_size = max( 150, $points_per_import * 250 );
 
@@ -665,10 +665,10 @@ function eai_db_get_recent_import_log_trends( int $points_per_import = 12 ): arr
  *
  * @return array<int, int>
  */
-function eai_db_get_pending_counts_by_import_id(): array {
+function tporapdi_db_get_pending_counts_by_import_id(): array {
 	global $wpdb;
 
-	$temp_table = eai_db_temp_table();
+	$temp_table = tporapdi_db_temp_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(

@@ -34,14 +34,14 @@ const DEFAULT_JOB = {
 };
 
 const TABS = [
-	{ name: 'source-auth', title: __( 'Source & Auth', 'enterprise-api-importer' ) },
-	{ name: 'data-rules', title: __( 'Data Rules', 'enterprise-api-importer' ) },
-	{ name: 'mapping', title: __( 'Mapping & Templating', 'enterprise-api-importer' ) },
-	{ name: 'automation', title: __( 'Automation', 'enterprise-api-importer' ) },
+	{ name: 'source-auth', title: __( 'Source & Auth', 'tporret-api-data-importer' ) },
+	{ name: 'data-rules', title: __( 'Data Rules', 'tporret-api-data-importer' ) },
+	{ name: 'mapping', title: __( 'Mapping & Templating', 'tporret-api-data-importer' ) },
+	{ name: 'automation', title: __( 'Automation', 'tporret-api-data-importer' ) },
 ];
 
 export default function ImportJobWorkspace() {
-	const config = window.enterpriseApiImporterImportJob || {};
+	const config = window.tporapdiImportJob || {};
 	const importId = config.importId || 0;
 	const postTypes = config.postTypes || [];
 	const authors = config.authors || [];
@@ -57,14 +57,14 @@ export default function ImportJobWorkspace() {
 		if ( ! isEdit ) {
 			return;
 		}
-		apiFetch( { path: `/enterprise-api-importer/v1/import-jobs/${ importId }` } )
+		apiFetch( { path: `/tporret-api-data-importer/v1/import-jobs/${ importId }` } )
 			.then( ( data ) => {
 				setJob( ( prev ) => ( { ...prev, ...data } ) );
 			} )
 			.catch( () => {
 				setNotice( {
 					status: 'error',
-					message: __( 'Failed to load import job.', 'enterprise-api-importer' ),
+					message: __( 'Failed to load import job.', 'tporret-api-data-importer' ),
 				} );
 			} )
 			.finally( () => setLoading( false ) );
@@ -80,8 +80,8 @@ export default function ImportJobWorkspace() {
 
 		const method = isEdit ? 'PUT' : 'POST';
 		const path = isEdit
-			? `/enterprise-api-importer/v1/import-jobs/${ importId }`
-			: '/enterprise-api-importer/v1/import-jobs';
+			? `/tporret-api-data-importer/v1/import-jobs/${ importId }`
+			: '/tporret-api-data-importer/v1/import-jobs';
 
 		try {
 			const result = await apiFetch( {
@@ -95,8 +95,8 @@ export default function ImportJobWorkspace() {
 			setNotice( {
 				status: 'success',
 				message: isEdit
-					? __( 'Import job updated.', 'enterprise-api-importer' )
-					: __( 'Import job created.', 'enterprise-api-importer' ),
+					? __( 'Import job updated.', 'tporret-api-data-importer' )
+					: __( 'Import job created.', 'tporret-api-data-importer' ),
 			} );
 
 			if ( ! isEdit && newId ) {
@@ -109,7 +109,7 @@ export default function ImportJobWorkspace() {
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Save failed.', 'enterprise-api-importer' ),
+				message: err.message || __( 'Save failed.', 'tporret-api-data-importer' ),
 			} );
 		} finally {
 			setSaving( false );
@@ -123,17 +123,17 @@ export default function ImportJobWorkspace() {
 		setNotice( null );
 		try {
 			await apiFetch( {
-				path: `/enterprise-api-importer/v1/import-jobs/${ importId }/run`,
+				path: `/tporret-api-data-importer/v1/import-jobs/${ importId }/run`,
 				method: 'POST',
 			} );
 			setNotice( {
 				status: 'success',
-				message: __( 'Import started.', 'enterprise-api-importer' ),
+				message: __( 'Import started.', 'tporret-api-data-importer' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Run failed.', 'enterprise-api-importer' ),
+				message: err.message || __( 'Run failed.', 'tporret-api-data-importer' ),
 			} );
 		}
 	}, [ isEdit, importId ] );
@@ -145,17 +145,17 @@ export default function ImportJobWorkspace() {
 		setNotice( null );
 		try {
 			await apiFetch( {
-				path: `/enterprise-api-importer/v1/import-jobs/${ importId }/template-sync`,
+				path: `/tporret-api-data-importer/v1/import-jobs/${ importId }/template-sync`,
 				method: 'POST',
 			} );
 			setNotice( {
 				status: 'success',
-				message: __( 'Template sync started.', 'enterprise-api-importer' ),
+				message: __( 'Template sync started.', 'tporret-api-data-importer' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Template sync failed.', 'enterprise-api-importer' ),
+				message: err.message || __( 'Template sync failed.', 'tporret-api-data-importer' ),
 			} );
 		}
 	}, [ isEdit, importId ] );
@@ -164,7 +164,7 @@ export default function ImportJobWorkspace() {
 		return (
 			<div className="eapi-ij-loading">
 				<span className="spinner is-active" />
-				{ __( 'Loading import job…', 'enterprise-api-importer' ) }
+				{ __( 'Loading import job…', 'tporret-api-data-importer' ) }
 			</div>
 		);
 	}
@@ -173,8 +173,8 @@ export default function ImportJobWorkspace() {
 		<div className="eapi-ij-workspace">
 			<h1 className="eapi-ij-title">
 				{ isEdit
-					? __( 'Edit Import Job', 'enterprise-api-importer' )
-					: __( 'Create Import Job', 'enterprise-api-importer' ) }
+					? __( 'Edit Import Job', 'tporret-api-data-importer' )
+					: __( 'Create Import Job', 'tporret-api-data-importer' ) }
 			</h1>
 
 			{ notice && (

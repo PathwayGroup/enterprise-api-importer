@@ -1,5 +1,5 @@
 {
-	"name": "enterprise-api-importer",
+	"name": "tporret-api-data-importer",
 	"version": "1.2.5",
 	"private": true,
 	"description": "Frontend assets for tporret API Data Importer dashboard.",

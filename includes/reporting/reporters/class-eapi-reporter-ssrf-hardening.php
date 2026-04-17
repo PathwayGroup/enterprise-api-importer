@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports the current SSRF allowlist posture.
  */
-class EAPI_Reporter_SSRF_Hardening extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_SSRF_Hardening extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -42,7 +42,7 @@ class EAPI_Reporter_SSRF_Hardening extends EAPI_Reporter_Base {
 	 * @return array<string, mixed>
 	 */
 	protected function calculate_metrics(): array {
-		$settings      = get_option( 'eai_settings', array() );
+		$settings      = get_option( 'tporapdi_settings', array() );
 		$allowed_hosts = isset( $settings['allowed_endpoint_hosts'] ) ? trim( (string) $settings['allowed_endpoint_hosts'] ) : '';
 		$allowed_cidrs = isset( $settings['allowed_endpoint_cidrs'] ) ? trim( (string) $settings['allowed_endpoint_cidrs'] ) : '';
 		$is_restricted = '' !== $allowed_hosts || '' !== $allowed_cidrs;

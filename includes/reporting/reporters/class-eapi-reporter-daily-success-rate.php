@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports the recent import success-to-error ratio.
  */
-class EAPI_Reporter_Daily_Success_Rate extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_Daily_Success_Rate extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_Daily_Success_Rate extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$logs_table = eai_db_logs_table();
+		$logs_table = tporapdi_db_logs_table();
 		$since      = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery

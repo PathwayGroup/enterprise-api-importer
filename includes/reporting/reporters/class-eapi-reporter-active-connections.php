@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports the number of unique configured API endpoints.
  */
-class EAPI_Reporter_Active_Connections extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_Active_Connections extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_Active_Connections extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$imports_table = eai_db_imports_table();
+		$imports_table = tporapdi_db_imports_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$count = (int) $wpdb->get_var(

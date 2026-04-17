@@ -19,10 +19,10 @@ export default function StickyFooter( {
 						onClick={ onSave }
 					>
 						{ saving
-							? __( 'Saving…', 'enterprise-api-importer' )
+							? __( 'Saving…', 'tporret-api-data-importer' )
 							: isEdit
-								? __( 'Update Import', 'enterprise-api-importer' )
-								: __( 'Create Import', 'enterprise-api-importer' ) }
+								? __( 'Update Import', 'tporret-api-data-importer' )
+								: __( 'Create Import', 'tporret-api-data-importer' ) }
 					</Button>
 				</FlexItem>
 
@@ -34,7 +34,7 @@ export default function StickyFooter( {
 								disabled={ saving }
 								onClick={ onRunImport }
 							>
-								{ __( 'Run Import Now', 'enterprise-api-importer' ) }
+								{ __( 'Run Import Now', 'tporret-api-data-importer' ) }
 							</Button>
 						</FlexItem>
 						<FlexItem>
@@ -43,7 +43,7 @@ export default function StickyFooter( {
 								disabled={ saving }
 								onClick={ onTemplateSync }
 							>
-								{ __( 'Update Existing Items', 'enterprise-api-importer' ) }
+								{ __( 'Update Existing Items', 'tporret-api-data-importer' ) }
 							</Button>
 						</FlexItem>
 					</>

@@ -9,12 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! defined( 'EAI_DB_SCHEMA_VERSION' ) ) {
-	define( 'EAI_DB_SCHEMA_VERSION', '20260410-1' );
+if ( ! defined( 'TPORAPDI_DB_SCHEMA_VERSION' ) ) {
+	define( 'TPORAPDI_DB_SCHEMA_VERSION', '20260410-1' );
 }
 
-if ( ! defined( 'EAI_NETWORK_DB_SCHEMA_VERSION' ) ) {
-	define( 'EAI_NETWORK_DB_SCHEMA_VERSION', '20260412-1' );
+if ( ! defined( 'TPORAPDI_NETWORK_DB_SCHEMA_VERSION' ) ) {
+	define( 'TPORAPDI_NETWORK_DB_SCHEMA_VERSION', '20260412-1' );
 }
 
 /**
@@ -22,11 +22,11 @@ if ( ! defined( 'EAI_NETWORK_DB_SCHEMA_VERSION' ) ) {
  *
  * @return void
  */
-function eai_sync_template_management_capabilities() {
+function tporapdi_sync_template_management_capabilities() {
 	$admin_role = get_role( 'administrator' );
 
 	if ( $admin_role instanceof WP_Role ) {
-		$admin_role->add_cap( 'eai_manage_templates' );
+		$admin_role->add_cap( 'tporapdi_manage_templates' );
 	}
 }
 
@@ -37,9 +37,9 @@ function eai_sync_template_management_capabilities() {
  *
  * @param bool $network_wide Whether activation was requested network-wide.
  */
-function eai_activate_plugin( $network_wide = false ) {
+function tporapdi_activate_plugin( $network_wide = false ) {
 	if ( is_multisite() && $network_wide ) {
-		eai_block_network_activation();
+		tporapdi_block_network_activation();
 	}
 
 	global $wpdb;
@@ -48,7 +48,7 @@ function eai_activate_plugin( $network_wide = false ) {
 
 	$charset_collate = $wpdb->get_charset_collate();
 
-	$imports_table = $wpdb->prefix . 'eapi_imports';
+	$imports_table = $wpdb->prefix . 'tporapdi_imports';
 	$logs_table    = $wpdb->prefix . 'custom_import_logs';
 	$temp_table    = $wpdb->prefix . 'custom_import_temp';
 
@@ -113,22 +113,22 @@ function eai_activate_plugin( $network_wide = false ) {
 	dbDelta( $sql_imports );
 	dbDelta( $sql_logs );
 	dbDelta( $sql_temp );
-	eai_ensure_imports_auth_columns();
-	eai_ensure_imports_featured_image_column();
-	eai_ensure_imports_post_status_columns();
-	eai_ensure_imports_custom_meta_mappings_column();
+	tporapdi_ensure_imports_auth_columns();
+	tporapdi_ensure_imports_featured_image_column();
+	tporapdi_ensure_imports_post_status_columns();
+	tporapdi_ensure_imports_custom_meta_mappings_column();
 
-	eai_sync_template_management_capabilities();
+	tporapdi_sync_template_management_capabilities();
 
-	if ( false === wp_next_scheduled( 'eapi_daily_garbage_collection' ) ) {
-		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'eapi_daily_garbage_collection' );
+	if ( false === wp_next_scheduled( 'tporapdi_daily_garbage_collection' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'tporapdi_daily_garbage_collection' );
 	}
 
 	if ( is_multisite() ) {
-		eai_activate_network_dashboard_storage();
+		tporapdi_activate_network_dashboard_storage();
 	}
 
-	update_option( 'eai_db_schema_version', EAI_DB_SCHEMA_VERSION );
+	update_option( 'tporapdi_db_schema_version', TPORAPDI_DB_SCHEMA_VERSION );
 }
 
 /**
@@ -136,14 +136,14 @@ function eai_activate_plugin( $network_wide = false ) {
  *
  * @return void
  */
-function eai_block_network_activation() {
+function tporapdi_block_network_activation() {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-	deactivate_plugins( EAI_PLUGIN_BASENAME, true, true );
+	deactivate_plugins( TPORAPDI_PLUGIN_BASENAME, true, true );
 
 	wp_die(
-		esc_html__( 'tporret API Data Importer cannot be network-activated. Activate it on the primary site to expose the Network Admin dashboard, then activate it only on the subsites that should run imports.', 'enterprise-api-importer' ),
-		esc_html__( 'Network activation is not supported', 'enterprise-api-importer' ),
+		esc_html__( 'tporret API Data Importer cannot be network-activated. Activate it on the primary site to expose the Network Admin dashboard, then activate it only on the subsites that should run imports.', 'tporret-api-data-importer' ),
+		esc_html__( 'Network activation is not supported', 'tporret-api-data-importer' ),
 		array(
 			'back_link' => true,
 		)
@@ -155,13 +155,13 @@ function eai_block_network_activation() {
  *
  * @return void
  */
-function eai_activate_network_dashboard_storage() {
+function tporapdi_activate_network_dashboard_storage() {
 	global $wpdb;
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 	$charset_collate = $wpdb->get_charset_collate();
-	$table           = eai_db_network_dashboard_table();
+	$table           = tporapdi_db_network_dashboard_table();
 	$sql             = "CREATE TABLE {$table} (
 		blog_id bigint(20) unsigned NOT NULL,
 		site_url varchar(255) NOT NULL,
@@ -179,7 +179,7 @@ function eai_activate_network_dashboard_storage() {
 	) {$charset_collate};";
 
 	dbDelta( $sql );
-	update_site_option( 'eai_network_db_schema_version', EAI_NETWORK_DB_SCHEMA_VERSION );
+	update_site_option( 'tporapdi_network_db_schema_version', TPORAPDI_NETWORK_DB_SCHEMA_VERSION );
 }
 
 /**
@@ -187,18 +187,18 @@ function eai_activate_network_dashboard_storage() {
  *
  * @return void
  */
-function eai_maybe_upgrade_network_schema() {
+function tporapdi_maybe_upgrade_network_schema() {
 	if ( ! is_multisite() ) {
 		return;
 	}
 
-	$installed_version = (string) get_site_option( 'eai_network_db_schema_version', '' );
+	$installed_version = (string) get_site_option( 'tporapdi_network_db_schema_version', '' );
 
-	if ( EAI_NETWORK_DB_SCHEMA_VERSION === $installed_version ) {
+	if ( TPORAPDI_NETWORK_DB_SCHEMA_VERSION === $installed_version ) {
 		return;
 	}
 
-	eai_activate_network_dashboard_storage();
+	tporapdi_activate_network_dashboard_storage();
 }
 
 /**
@@ -209,10 +209,10 @@ function eai_maybe_upgrade_network_schema() {
  *
  * @return void
  */
-function eai_ensure_imports_auth_columns() {
+function tporapdi_ensure_imports_auth_columns() {
 	global $wpdb;
 
-	$table = $wpdb->prefix . 'eapi_imports';
+	$table = $wpdb->prefix . 'tporapdi_imports';
 
 	// Migrate legacy auth_header_type → auth_method.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -273,10 +273,10 @@ function eai_ensure_imports_auth_columns() {
  *
  * @return void
  */
-function eai_ensure_imports_featured_image_column() {
+function tporapdi_ensure_imports_featured_image_column() {
 	global $wpdb;
 
-	$table = $wpdb->prefix . 'eapi_imports';
+	$table = $wpdb->prefix . 'tporapdi_imports';
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$featured_image_path_col = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'featured_image_source_path' ) );
@@ -292,10 +292,10 @@ function eai_ensure_imports_featured_image_column() {
  *
  * @return void
  */
-function eai_ensure_imports_post_status_columns() {
+function tporapdi_ensure_imports_post_status_columns() {
 	global $wpdb;
 
-	$table = $wpdb->prefix . 'eapi_imports';
+	$table = $wpdb->prefix . 'tporapdi_imports';
 
 	$columns = array(
 		'post_status'    => "varchar(20) NOT NULL DEFAULT 'draft'",
@@ -336,10 +336,10 @@ function eai_ensure_imports_post_status_columns() {
  *
  * @return void
  */
-function eai_ensure_imports_custom_meta_mappings_column() {
+function tporapdi_ensure_imports_custom_meta_mappings_column() {
 	global $wpdb;
 
-	$table = eai_db_imports_table();
+	$table = tporapdi_db_imports_table();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'custom_meta_mappings' ) );
@@ -356,11 +356,11 @@ function eai_ensure_imports_custom_meta_mappings_column() {
  *
  * @return void
  */
-function eai_deactivate_plugin() {
-	wp_clear_scheduled_hook( 'eapi_daily_garbage_collection' );
+function tporapdi_deactivate_plugin() {
+	wp_clear_scheduled_hook( 'tporapdi_daily_garbage_collection' );
 
 	if ( is_multisite() ) {
-		eai_db_delete_network_snapshot( get_current_blog_id() );
+		tporapdi_db_delete_network_snapshot( get_current_blog_id() );
 	}
 }
 
@@ -369,24 +369,24 @@ function eai_deactivate_plugin() {
  *
  * @return void
  */
-function eai_maybe_upgrade_schema() {
+function tporapdi_maybe_upgrade_schema() {
 	if ( is_multisite() ) {
-		eai_maybe_upgrade_network_schema();
+		tporapdi_maybe_upgrade_network_schema();
 	}
 
-	eai_sync_template_management_capabilities();
-	eai_ensure_imports_auth_columns();
-	eai_ensure_imports_featured_image_column();
-	eai_ensure_imports_post_status_columns();
-	eai_ensure_imports_custom_meta_mappings_column();
+	tporapdi_sync_template_management_capabilities();
+	tporapdi_ensure_imports_auth_columns();
+	tporapdi_ensure_imports_featured_image_column();
+	tporapdi_ensure_imports_post_status_columns();
+	tporapdi_ensure_imports_custom_meta_mappings_column();
 
-	$installed_version = (string) get_option( 'eai_db_schema_version', '' );
+	$installed_version = (string) get_option( 'tporapdi_db_schema_version', '' );
 
-	if ( EAI_DB_SCHEMA_VERSION === $installed_version ) {
+	if ( TPORAPDI_DB_SCHEMA_VERSION === $installed_version ) {
 		return;
 	}
 
-	eai_activate_plugin();
+	tporapdi_activate_plugin();
 }
 
 /**
@@ -394,7 +394,7 @@ function eai_maybe_upgrade_schema() {
  *
  * @return array<string, string>
  */
-function eai_get_default_settings() {
+function tporapdi_get_default_settings() {
 	return array(
 		'cron_initial_delay_seconds' => '5',
 		'cron_batch_delay_seconds'   => '15',
@@ -408,12 +408,12 @@ function eai_get_default_settings() {
 // Credential encryption helpers.
 // ---------------------------------------------------------------------------
 
-if ( ! defined( 'EAI_CIPHER_METHOD' ) ) {
-	define( 'EAI_CIPHER_METHOD', 'aes-256-cbc' );
+if ( ! defined( 'TPORAPDI_CIPHER_METHOD' ) ) {
+	define( 'TPORAPDI_CIPHER_METHOD', 'aes-256-cbc' );
 }
 
-if ( ! defined( 'EAI_ENCRYPTED_PREFIX' ) ) {
-	define( 'EAI_ENCRYPTED_PREFIX', 'eai_enc:' );
+if ( ! defined( 'TPORAPDI_ENCRYPTED_PREFIX' ) ) {
+	define( 'TPORAPDI_ENCRYPTED_PREFIX', 'tporapdi_enc:' );
 }
 
 /**
@@ -421,8 +421,8 @@ if ( ! defined( 'EAI_ENCRYPTED_PREFIX' ) ) {
  *
  * @return string Raw binary key (32 bytes).
  */
-function eai_get_encryption_key() {
-	return hash( 'sha256', wp_salt( 'auth' ) . 'eai_credential_encryption', true );
+function tporapdi_get_encryption_key() {
+	return hash( 'sha256', wp_salt( 'auth' ) . 'tporapdi_credential_encryption', true );
 }
 
 /**
@@ -433,9 +433,9 @@ function eai_get_encryption_key() {
  *
  * @param string $plaintext Credential to encrypt.
  *
- * @return string Encrypted string prefixed with EAI_ENCRYPTED_PREFIX, or original on failure.
+ * @return string Encrypted string prefixed with TPORAPDI_ENCRYPTED_PREFIX, or original on failure.
  */
-function eai_encrypt_credential( $plaintext ) {
+function tporapdi_encrypt_credential( $plaintext ) {
 	$plaintext = (string) $plaintext;
 
 	if ( '' === $plaintext ) {
@@ -443,7 +443,7 @@ function eai_encrypt_credential( $plaintext ) {
 	}
 
 	// Already encrypted.
-	if ( str_starts_with( $plaintext, EAI_ENCRYPTED_PREFIX ) ) {
+	if ( str_starts_with( $plaintext, TPORAPDI_ENCRYPTED_PREFIX ) ) {
 		return $plaintext;
 	}
 
@@ -451,8 +451,8 @@ function eai_encrypt_credential( $plaintext ) {
 		return $plaintext;
 	}
 
-	$key    = eai_get_encryption_key();
-	$iv_len = openssl_cipher_iv_length( EAI_CIPHER_METHOD );
+	$key    = tporapdi_get_encryption_key();
+	$iv_len = openssl_cipher_iv_length( TPORAPDI_CIPHER_METHOD );
 
 	if ( false === $iv_len || $iv_len <= 0 ) {
 		return $plaintext;
@@ -464,14 +464,14 @@ function eai_encrypt_credential( $plaintext ) {
 		return $plaintext;
 	}
 
-	$ciphertext = openssl_encrypt( $plaintext, EAI_CIPHER_METHOD, $key, OPENSSL_RAW_DATA, $iv );
+	$ciphertext = openssl_encrypt( $plaintext, TPORAPDI_CIPHER_METHOD, $key, OPENSSL_RAW_DATA, $iv );
 
 	if ( false === $ciphertext ) {
 		return $plaintext;
 	}
 
 	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Required for safe binary storage in DB text columns.
-	return EAI_ENCRYPTED_PREFIX . base64_encode( $iv . $ciphertext );
+	return TPORAPDI_ENCRYPTED_PREFIX . base64_encode( $iv . $ciphertext );
 }
 
 /**
@@ -484,14 +484,14 @@ function eai_encrypt_credential( $plaintext ) {
  *
  * @return string Decrypted plaintext, or original if not encrypted.
  */
-function eai_decrypt_credential( $encrypted ) {
+function tporapdi_decrypt_credential( $encrypted ) {
 	$encrypted = (string) $encrypted;
 
 	if ( '' === $encrypted ) {
 		return '';
 	}
 
-	if ( ! str_starts_with( $encrypted, EAI_ENCRYPTED_PREFIX ) ) {
+	if ( ! str_starts_with( $encrypted, TPORAPDI_ENCRYPTED_PREFIX ) ) {
 		// Legacy plaintext — return as-is.
 		return $encrypted;
 	}
@@ -500,7 +500,7 @@ function eai_decrypt_credential( $encrypted ) {
 		return '';
 	}
 
-	$payload = substr( $encrypted, strlen( EAI_ENCRYPTED_PREFIX ) );
+	$payload = substr( $encrypted, strlen( TPORAPDI_ENCRYPTED_PREFIX ) );
 
 	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Required for reading encrypted binary stored in DB text columns.
 	$raw = base64_decode( $payload, true );
@@ -509,7 +509,7 @@ function eai_decrypt_credential( $encrypted ) {
 		return '';
 	}
 
-	$iv_len = openssl_cipher_iv_length( EAI_CIPHER_METHOD );
+	$iv_len = openssl_cipher_iv_length( TPORAPDI_CIPHER_METHOD );
 
 	if ( false === $iv_len || $iv_len <= 0 || strlen( $raw ) <= $iv_len ) {
 		return '';
@@ -518,8 +518,8 @@ function eai_decrypt_credential( $encrypted ) {
 	$iv         = substr( $raw, 0, $iv_len );
 	$ciphertext = substr( $raw, $iv_len );
 
-	$key       = eai_get_encryption_key();
-	$decrypted = openssl_decrypt( $ciphertext, EAI_CIPHER_METHOD, $key, OPENSSL_RAW_DATA, $iv );
+	$key       = tporapdi_get_encryption_key();
+	$decrypted = openssl_decrypt( $ciphertext, TPORAPDI_CIPHER_METHOD, $key, OPENSSL_RAW_DATA, $iv );
 
 	if ( false === $decrypted ) {
 		return '';
@@ -533,7 +533,7 @@ function eai_decrypt_credential( $encrypted ) {
  *
  * @return string[]
  */
-function eai_get_credential_field_names() {
+function tporapdi_get_credential_field_names() {
 	return array( 'auth_token', 'auth_password' );
 }
 
@@ -544,10 +544,10 @@ function eai_get_credential_field_names() {
  *
  * @return array<string, mixed>
  */
-function eai_decrypt_import_credentials( array $row ) {
-	foreach ( eai_get_credential_field_names() as $field ) {
+function tporapdi_decrypt_import_credentials( array $row ) {
+	foreach ( tporapdi_get_credential_field_names() as $field ) {
 		if ( isset( $row[ $field ] ) && is_string( $row[ $field ] ) ) {
-			$row[ $field ] = eai_decrypt_credential( $row[ $field ] );
+			$row[ $field ] = tporapdi_decrypt_credential( $row[ $field ] );
 		}
 	}
 
@@ -564,8 +564,8 @@ function eai_decrypt_import_credentials( array $row ) {
  *
  * @return array<string, mixed>
  */
-function eai_mask_import_credentials( array $row ) {
-	foreach ( eai_get_credential_field_names() as $field ) {
+function tporapdi_mask_import_credentials( array $row ) {
+	foreach ( tporapdi_get_credential_field_names() as $field ) {
 		$has_value              = isset( $row[ $field ] ) && '' !== (string) $row[ $field ];
 		$row[ 'has_' . $field ] = $has_value;
 		$row[ $field ]          = '';

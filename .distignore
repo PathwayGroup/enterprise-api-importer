@@ -6,7 +6,6 @@
 /.dist
 /docs
 /.docs
-/src
 /README.md
 /package.json
 /package-lock.json
@@ -16,6 +15,7 @@
 /tailwind.config.js
 /webpack.config.js
 /enterprise-api-importer.zip
+/tporret-api-data-importer.zip
 .distignore
 .gitignore
 testsite.md
@@ -23,6 +23,12 @@ testsite.md
 skills-lock.json
 package-release.sh
 *.sh
+/vendor/bin/
+/vendor/dealerdirect/
+/vendor/phpcsstandards/
+/vendor/squizlabs/
+/vendor/squizlabs/php_codesniffer/
+/vendor/wp-coding-standards/
 # Safe vendor size trims (non-runtime docs only).
 /vendor/**/README*
 /vendor/**/CHANGELOG*

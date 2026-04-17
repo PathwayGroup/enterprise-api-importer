@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reports recurring import scheduling health.
  */
-class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
+class TPORAPDI_Reporter_Cron_Heartbeat extends TPORAPDI_Reporter_Base {
 
 	/**
 	 * Reporter identifier.
@@ -44,7 +44,7 @@ class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
 	protected function calculate_metrics(): array {
 		global $wpdb;
 
-		$imports_table = eai_db_imports_table();
+		$imports_table = tporapdi_db_imports_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$rows = $wpdb->get_results(
@@ -66,9 +66,9 @@ class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
 		$issues = array();
 
 		foreach ( $rows as $row ) {
-			$next = wp_next_scheduled( 'eai_recurring_import_trigger', array( (int) $row->id, 'recurring' ) );
+			$next = wp_next_scheduled( 'tporapdi_recurring_import_trigger', array( (int) $row->id, 'recurring' ) );
 			if ( false === $next ) {
-				$next = wp_next_scheduled( 'eai_recurring_import_trigger', array( (int) $row->id ) );
+				$next = wp_next_scheduled( 'tporapdi_recurring_import_trigger', array( (int) $row->id ) );
 			}
 
 			if ( false === $next ) {
@@ -116,7 +116,7 @@ class EAPI_Reporter_Cron_Heartbeat extends EAPI_Reporter_Base {
 		$schedules = wp_get_schedules();
 
 		if ( 'custom' === $recurrence && $custom_minutes > 0 ) {
-			$recurrence = 'eai_every_' . $custom_minutes . '_minutes';
+			$recurrence = 'tporapdi_every_' . $custom_minutes . '_minutes';
 		}
 
 		if ( isset( $schedules[ $recurrence ]['interval'] ) ) {

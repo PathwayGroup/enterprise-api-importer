@@ -10,21 +10,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers the imported_item custom post type with conservative visibility.
+ * Registers the tporapdi_item custom post type with conservative visibility.
  */
-function eai_register_imported_item_cpt() {
+function tporapdi_register_imported_item_cpt() {
 	$labels = array(
-		'name'          => __( 'Imported Items', 'enterprise-api-importer' ),
-		'singular_name' => __( 'Imported Item', 'enterprise-api-importer' ),
-		'menu_name'     => __( 'Imported Items', 'enterprise-api-importer' ),
-		'add_new_item'  => __( 'Add Imported Item', 'enterprise-api-importer' ),
-		'edit_item'     => __( 'Edit Imported Item', 'enterprise-api-importer' ),
-		'view_item'     => __( 'View Imported Item', 'enterprise-api-importer' ),
-		'not_found'     => __( 'No imported items found.', 'enterprise-api-importer' ),
+		'name'          => __( 'Imported Items', 'tporret-api-data-importer' ),
+		'singular_name' => __( 'Imported Item', 'tporret-api-data-importer' ),
+		'menu_name'     => __( 'Imported Items', 'tporret-api-data-importer' ),
+		'add_new_item'  => __( 'Add Imported Item', 'tporret-api-data-importer' ),
+		'edit_item'     => __( 'Edit Imported Item', 'tporret-api-data-importer' ),
+		'view_item'     => __( 'View Imported Item', 'tporret-api-data-importer' ),
+		'not_found'     => __( 'No imported items found.', 'tporret-api-data-importer' ),
 	);
 
 	register_post_type(
-		'imported_item',
+		'tporapdi_item',
 		array(
 			'labels'              => $labels,
 			'public'              => true,
@@ -50,19 +50,19 @@ function eai_register_imported_item_cpt() {
 		)
 	);
 }
-add_action( 'init', 'eai_register_imported_item_cpt' );
+add_action( 'init', 'tporapdi_register_imported_item_cpt' );
 
 /**
  * Determines whether a post is an imported item whose import job has editing locked.
  *
- * Checks any post type — returns true when the post carries an `_eai_import_id`
+ * Checks any post type — returns true when the post carries an `_tporapdi_import_id`
  * meta value whose corresponding import configuration has `lock_editing` enabled.
  *
  * @param int $post_id Post ID.
  * @return bool
  */
-function eai_is_managed_imported_item( $post_id ) {
-	$import_id = get_post_meta( $post_id, '_eai_import_id', true );
+function tporapdi_is_managed_imported_item( $post_id ) {
+	$import_id = get_post_meta( $post_id, '_tporapdi_import_id', true );
 
 	if ( '' === (string) $import_id ) {
 		return false;
@@ -73,7 +73,7 @@ function eai_is_managed_imported_item( $post_id ) {
 		return false;
 	}
 
-	$config = eai_db_get_import_config( $import_id );
+	$config = tporapdi_db_get_import_config( $import_id );
 	if ( ! is_array( $config ) ) {
 		// Import configuration deleted — treat post as unlocked.
 		return false;
@@ -91,7 +91,7 @@ function eai_is_managed_imported_item( $post_id ) {
  * @param mixed[]  $args Optional args for the capability check.
  * @return string[]
  */
-function eai_lock_managed_imported_items_caps( $caps, $cap, $user_id, $args ) {
+function tporapdi_lock_managed_imported_items_caps( $caps, $cap, $user_id, $args ) {
 	if ( ! in_array( $cap, array( 'edit_post', 'delete_post' ), true ) ) {
 		return $caps;
 	}
@@ -102,13 +102,13 @@ function eai_lock_managed_imported_items_caps( $caps, $cap, $user_id, $args ) {
 
 	$post_id = (int) $args[0];
 
-	if ( $post_id > 0 && eai_is_managed_imported_item( $post_id ) ) {
+	if ( $post_id > 0 && tporapdi_is_managed_imported_item( $post_id ) ) {
 		return array( 'do_not_allow' );
 	}
 
 	return $caps;
 }
-add_filter( 'map_meta_cap', 'eai_lock_managed_imported_items_caps', 10, 4 );
+add_filter( 'map_meta_cap', 'tporapdi_lock_managed_imported_items_caps', 10, 4 );
 
 /**
  * Removes edit affordances from managed imported items in the list table.
@@ -117,8 +117,8 @@ add_filter( 'map_meta_cap', 'eai_lock_managed_imported_items_caps', 10, 4 );
  * @param WP_Post $post    Current post object.
  * @return array
  */
-function eai_filter_managed_imported_item_row_actions( $actions, $post ) {
-	if ( ! $post instanceof WP_Post || ! eai_is_managed_imported_item( $post->ID ) ) {
+function tporapdi_filter_managed_imported_item_row_actions( $actions, $post ) {
+	if ( ! $post instanceof WP_Post || ! tporapdi_is_managed_imported_item( $post->ID ) ) {
 		return $actions;
 	}
 
@@ -128,29 +128,31 @@ function eai_filter_managed_imported_item_row_actions( $actions, $post ) {
 
 	return $actions;
 }
-add_filter( 'post_row_actions', 'eai_filter_managed_imported_item_row_actions', 10, 2 );
+add_filter( 'post_row_actions', 'tporapdi_filter_managed_imported_item_row_actions', 10, 2 );
 
 /**
  * Removes edit links for managed imported items to avoid dead-end edit screens.
  *
  * @param string $link    Edit link.
  * @param int    $post_id Post ID.
- * @param string $context Link context.
+ * @param string $_context Link context.
  * @return string
  */
-function eai_filter_managed_imported_item_edit_link( $link, $post_id, $context ) {
-	if ( eai_is_managed_imported_item( $post_id ) ) {
+function tporapdi_filter_managed_imported_item_edit_link( $link, $post_id, $_context ) {
+	unset( $_context );
+
+	if ( tporapdi_is_managed_imported_item( $post_id ) ) {
 		return '';
 	}
 
 	return $link;
 }
-add_filter( 'get_edit_post_link', 'eai_filter_managed_imported_item_edit_link', 10, 3 );
+add_filter( 'get_edit_post_link', 'tporapdi_filter_managed_imported_item_edit_link', 10, 3 );
 
 /**
  * Shows a read-only notice when viewing a list of import-locked posts.
  */
-function eai_render_imported_items_read_only_notice() {
+function tporapdi_render_imported_items_read_only_notice() {
 	$screen = get_current_screen();
 
 	if ( ! $screen || 'edit' !== $screen->base ) {
@@ -158,12 +160,12 @@ function eai_render_imported_items_read_only_notice() {
 	}
 
 	// Quick check: does this post type have any import-locked posts?
-	// The imported_item CPT is always relevant; for other types check meta existence.
-	if ( 'imported_item' !== $screen->post_type ) {
+	// The tporapdi_item CPT is always relevant; for other types check meta existence.
+	if ( 'tporapdi_item' !== $screen->post_type ) {
 		$has_locked = get_posts(
 			array(
 				'post_type'      => $screen->post_type,
-				'meta_key'       => '_eai_import_id',
+				'meta_key'       => '_tporapdi_import_id',
 				'meta_compare'   => 'EXISTS',
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
@@ -175,7 +177,7 @@ function eai_render_imported_items_read_only_notice() {
 	}
 
 	echo '<div class="notice notice-info"><p>';
-	echo esc_html__( 'Some items on this screen are managed by tporret API Data Importer and may be read-only.', 'enterprise-api-importer' );
+	echo esc_html__( 'Some items on this screen are managed by tporret API Data Importer and may be read-only.', 'tporret-api-data-importer' );
 	echo '</p></div>';
 }
-add_action( 'admin_notices', 'eai_render_imported_items_read_only_notice' );
+add_action( 'admin_notices', 'tporapdi_render_imported_items_read_only_notice' );

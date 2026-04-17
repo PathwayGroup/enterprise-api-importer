@@ -8,14 +8,14 @@ import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
 const OPERATOR_OPTIONS = [
-	{ label: __( 'Equals', 'enterprise-api-importer' ), value: 'equals' },
-	{ label: __( 'Not Equals', 'enterprise-api-importer' ), value: 'not_equals' },
-	{ label: __( 'Contains', 'enterprise-api-importer' ), value: 'contains' },
-	{ label: __( 'Not Contains', 'enterprise-api-importer' ), value: 'not_contains' },
-	{ label: __( 'Is Empty', 'enterprise-api-importer' ), value: 'is_empty' },
-	{ label: __( 'Not Empty', 'enterprise-api-importer' ), value: 'not_empty' },
-	{ label: __( 'Greater Than', 'enterprise-api-importer' ), value: 'greater_than' },
-	{ label: __( 'Less Than', 'enterprise-api-importer' ), value: 'less_than' },
+	{ label: __( 'Equals', 'tporret-api-data-importer' ), value: 'equals' },
+	{ label: __( 'Not Equals', 'tporret-api-data-importer' ), value: 'not_equals' },
+	{ label: __( 'Contains', 'tporret-api-data-importer' ), value: 'contains' },
+	{ label: __( 'Not Contains', 'tporret-api-data-importer' ), value: 'not_contains' },
+	{ label: __( 'Is Empty', 'tporret-api-data-importer' ), value: 'is_empty' },
+	{ label: __( 'Not Empty', 'tporret-api-data-importer' ), value: 'not_empty' },
+	{ label: __( 'Greater Than', 'tporret-api-data-importer' ), value: 'greater_than' },
+	{ label: __( 'Less Than', 'tporret-api-data-importer' ), value: 'less_than' },
 ];
 
 function parseFilterRules( raw ) {
@@ -74,7 +74,7 @@ export default function DataRulesTab( {
 		setPreviewing( true );
 		try {
 			const result = await apiFetch( {
-				path: '/enterprise-api-importer/v1/test-api-connection',
+				path: '/tporret-api-data-importer/v1/test-api-connection',
 				method: 'POST',
 				data: {
 					api_url: job.endpoint_url,
@@ -89,12 +89,12 @@ export default function DataRulesTab( {
 			setPreviewData( result.sample_data || null );
 			setNotice( {
 				status: 'success',
-				message: __( 'Preview data loaded.', 'enterprise-api-importer' ),
+				message: __( 'Preview data loaded.', 'tporret-api-data-importer' ),
 			} );
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Preview failed.', 'enterprise-api-importer' ),
+				message: err.message || __( 'Preview failed.', 'tporret-api-data-importer' ),
 			} );
 		} finally {
 			setPreviewing( false );
@@ -107,10 +107,10 @@ export default function DataRulesTab( {
 				<TextControl
 					__next40pxDefaultSize
 					__nextHasNoMarginBottom
-					label={ __( 'JSON Array Path', 'enterprise-api-importer' ) }
+					label={ __( 'JSON Array Path', 'tporret-api-data-importer' ) }
 					value={ job.array_path }
 					onChange={ ( val ) => updateField( 'array_path', val ) }
-					help={ __( 'Example: data.employees. Leave empty if the API root is already an array.', 'enterprise-api-importer' ) }
+					help={ __( 'Example: data.employees. Leave empty if the API root is already an array.', 'tporret-api-data-importer' ) }
 				/>
 				<Button
 					isSmall
@@ -121,33 +121,33 @@ export default function DataRulesTab( {
 					className="eapi-ij-preview-btn"
 				>
 					{ previewing
-						? __( 'Loading…', 'enterprise-api-importer' )
-						: __( 'Preview First Record', 'enterprise-api-importer' ) }
+						? __( 'Loading…', 'tporret-api-data-importer' )
+						: __( 'Preview First Record', 'tporret-api-data-importer' ) }
 				</Button>
 			</div>
 
 			<TextControl
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
-				label={ __( 'Unique ID Path', 'enterprise-api-importer' ) }
+				label={ __( 'Unique ID Path', 'tporret-api-data-importer' ) }
 				value={ job.unique_id_path }
 				onChange={ ( val ) => updateField( 'unique_id_path', val ) }
-				help={ __( 'Dot-path to the source unique identifier (example: CourseIDFull or data.course.id). Defaults to id when empty.', 'enterprise-api-importer' ) }
+				help={ __( 'Dot-path to the source unique identifier (example: CourseIDFull or data.course.id). Defaults to id when empty.', 'tporret-api-data-importer' ) }
 			/>
 
 			<div className="eapi-ij-filters">
-				<h3>{ __( 'Data Filters', 'enterprise-api-importer' ) }</h3>
+				<h3>{ __( 'Data Filters', 'tporret-api-data-importer' ) }</h3>
 				<p className="description">
-					{ __( 'Only records matching every filter are staged for import (AND logic).', 'enterprise-api-importer' ) }
+					{ __( 'Only records matching every filter are staged for import (AND logic).', 'tporret-api-data-importer' ) }
 				</p>
 
 				<table className="widefat striped eapi-ij-filter-table">
 					<thead>
 						<tr>
-							<th>{ __( 'Key', 'enterprise-api-importer' ) }</th>
-							<th>{ __( 'Operator', 'enterprise-api-importer' ) }</th>
-							<th>{ __( 'Value', 'enterprise-api-importer' ) }</th>
-							<th>{ __( 'Actions', 'enterprise-api-importer' ) }</th>
+							<th>{ __( 'Key', 'tporret-api-data-importer' ) }</th>
+							<th>{ __( 'Operator', 'tporret-api-data-importer' ) }</th>
+							<th>{ __( 'Value', 'tporret-api-data-importer' ) }</th>
+							<th>{ __( 'Actions', 'tporret-api-data-importer' ) }</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -196,7 +196,7 @@ export default function DataRulesTab( {
 										variant="secondary"
 										onClick={ () => removeRule( index ) }
 									>
-										{ __( 'Remove', 'enterprise-api-importer' ) }
+										{ __( 'Remove', 'tporret-api-data-importer' ) }
 									</Button>
 								</td>
 							</tr>
@@ -210,7 +210,7 @@ export default function DataRulesTab( {
 					onClick={ addRule }
 					className="eapi-ij-add-filter"
 				>
-					{ __( 'Add Filter', 'enterprise-api-importer' ) }
+					{ __( 'Add Filter', 'tporret-api-data-importer' ) }
 				</Button>
 			</div>
 		</div>

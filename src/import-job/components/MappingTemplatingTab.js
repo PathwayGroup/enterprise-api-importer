@@ -64,7 +64,7 @@ export default function MappingTemplatingTab( {
 	} ) );
 
 	const authorOptions = [
-		{ label: __( '— Default (current user) —', 'enterprise-api-importer' ), value: '0' },
+		{ label: __( '— Default (current user) —', 'tporret-api-data-importer' ), value: '0' },
 		...( authors || [] ).map( ( a ) => ( {
 			label: a.label,
 			value: String( a.value ),
@@ -77,7 +77,7 @@ export default function MappingTemplatingTab( {
 
 		try {
 			const result = await apiFetch( {
-				path: '/enterprise-api-importer/v1/dry-run',
+				path: '/tporret-api-data-importer/v1/dry-run',
 				method: 'POST',
 				data: {
 					api_url: job.endpoint_url,
@@ -109,7 +109,7 @@ export default function MappingTemplatingTab( {
 		} catch ( err ) {
 			setNotice( {
 				status: 'error',
-				message: err.message || __( 'Dry run failed.', 'enterprise-api-importer' ),
+				message: err.message || __( 'Dry run failed.', 'tporret-api-data-importer' ),
 			} );
 		} finally {
 			setDryRunning( false );
@@ -136,19 +136,19 @@ export default function MappingTemplatingTab( {
 			<SelectControl
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
-				label={ __( 'Target Post Type', 'enterprise-api-importer' ) }
+				label={ __( 'Target Post Type', 'tporret-api-data-importer' ) }
 				value={ job.target_post_type }
 				options={ postTypeOptions }
 				onChange={ ( val ) => updateField( 'target_post_type', val ) }
-				help={ __( 'Select which public WordPress post type receives imported records.', 'enterprise-api-importer' ) }
+				help={ __( 'Select which public WordPress post type receives imported records.', 'tporret-api-data-importer' ) }
 			/>
 
 			<CheckboxControl
 				__nextHasNoMarginBottom
-				label={ __( 'Lock editing of imported posts', 'enterprise-api-importer' ) }
+				label={ __( 'Lock editing of imported posts', 'tporret-api-data-importer' ) }
 				checked={ !! job.lock_editing }
 				onChange={ ( val ) => updateField( 'lock_editing', val ? 1 : 0 ) }
-				help={ __( 'When enabled, posts created by this import cannot be edited or deleted in wp-admin. Disable to allow manual editing.', 'enterprise-api-importer' ) }
+				help={ __( 'When enabled, posts created by this import cannot be edited or deleted in wp-admin. Disable to allow manual editing.', 'tporret-api-data-importer' ) }
 			/>
 
 			<Flex className="eapi-ij-post-settings" gap={ 4 } wrap>
@@ -156,54 +156,54 @@ export default function MappingTemplatingTab( {
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Default Post Status', 'enterprise-api-importer' ) }
+						label={ __( 'Default Post Status', 'tporret-api-data-importer' ) }
 						value={ job.post_status || 'draft' }
 						options={ [
-							{ label: __( 'Draft', 'enterprise-api-importer' ), value: 'draft' },
-							{ label: __( 'Published', 'enterprise-api-importer' ), value: 'publish' },
-							{ label: __( 'Pending Review', 'enterprise-api-importer' ), value: 'pending' },
+							{ label: __( 'Draft', 'tporret-api-data-importer' ), value: 'draft' },
+							{ label: __( 'Published', 'tporret-api-data-importer' ), value: 'publish' },
+							{ label: __( 'Pending Review', 'tporret-api-data-importer' ), value: 'pending' },
 						] }
 						onChange={ ( val ) => updateField( 'post_status', val ) }
-						help={ __( 'Status assigned to newly imported posts.', 'enterprise-api-importer' ) }
+						help={ __( 'Status assigned to newly imported posts.', 'tporret-api-data-importer' ) }
 					/>
 				</FlexBlock>
 				<FlexBlock>
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Author', 'enterprise-api-importer' ) }
+						label={ __( 'Author', 'tporret-api-data-importer' ) }
 						value={ String( job.post_author || 0 ) }
 						options={ authorOptions }
 						onChange={ ( val ) => updateField( 'post_author', parseInt( val, 10 ) ) }
-						help={ __( 'Assign imported posts to this author. If unset, the user triggering the import will be used.', 'enterprise-api-importer' ) }
+						help={ __( 'Assign imported posts to this author. If unset, the user triggering the import will be used.', 'tporret-api-data-importer' ) }
 					/>
 				</FlexBlock>
 				<FlexBlock>
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Comment Status', 'enterprise-api-importer' ) }
+						label={ __( 'Comment Status', 'tporret-api-data-importer' ) }
 						value={ job.comment_status || 'closed' }
 						options={ [
-							{ label: __( 'Open', 'enterprise-api-importer' ), value: 'open' },
-							{ label: __( 'Closed', 'enterprise-api-importer' ), value: 'closed' },
+							{ label: __( 'Open', 'tporret-api-data-importer' ), value: 'open' },
+							{ label: __( 'Closed', 'tporret-api-data-importer' ), value: 'closed' },
 						] }
 						onChange={ ( val ) => updateField( 'comment_status', val ) }
-						help={ __( 'Whether comments are open on imported posts.', 'enterprise-api-importer' ) }
+						help={ __( 'Whether comments are open on imported posts.', 'tporret-api-data-importer' ) }
 					/>
 				</FlexBlock>
 				<FlexBlock>
 					<SelectControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Pingback/Trackback Status', 'enterprise-api-importer' ) }
+						label={ __( 'Pingback/Trackback Status', 'tporret-api-data-importer' ) }
 						value={ job.ping_status || 'closed' }
 						options={ [
-							{ label: __( 'Open', 'enterprise-api-importer' ), value: 'open' },
-							{ label: __( 'Closed', 'enterprise-api-importer' ), value: 'closed' },
+							{ label: __( 'Open', 'tporret-api-data-importer' ), value: 'open' },
+							{ label: __( 'Closed', 'tporret-api-data-importer' ), value: 'closed' },
 						] }
 						onChange={ ( val ) => updateField( 'ping_status', val ) }
-						help={ __( 'Whether pingbacks and trackbacks are accepted on imported posts.', 'enterprise-api-importer' ) }
+						help={ __( 'Whether pingbacks and trackbacks are accepted on imported posts.', 'tporret-api-data-importer' ) }
 					/>
 				</FlexBlock>
 			</Flex>
@@ -213,25 +213,25 @@ export default function MappingTemplatingTab( {
 					<TextControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Post Title Template', 'enterprise-api-importer' ) }
+						label={ __( 'Post Title Template', 'tporret-api-data-importer' ) }
 						value={ job.title_template }
 						onChange={ ( val ) => updateField( 'title_template', val ) }
-						help={ __( 'Supports Twig syntax (for example: {{ data.first_name }} {{ data.last_name }}). If left blank, defaults to Imported Item {ID}.', 'enterprise-api-importer' ) }
+						help={ __( 'Supports Twig syntax (for example: {{ data.first_name }} {{ data.last_name }}). If left blank, defaults to Imported Item {ID}.', 'tporret-api-data-importer' ) }
 					/>
 
 					<TextControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Featured Image Source Path', 'enterprise-api-importer' ) }
+						label={ __( 'Featured Image Source Path', 'tporret-api-data-importer' ) }
 						value={ job.featured_image_source_path || '' }
 						onChange={ ( val ) => updateField( 'featured_image_source_path', val ) }
-						help={ __( 'Dot-notation path used to set post featured image (for example: image.url). Leave blank to use image.url.', 'enterprise-api-importer' ) }
+						help={ __( 'Dot-notation path used to set post featured image (for example: image.url). Leave blank to use image.url.', 'tporret-api-data-importer' ) }
 					/>
 
 					<BaseControl
 						__nextHasNoMarginBottom
-						label={ __( 'Mapping Template', 'enterprise-api-importer' ) }
-						help={ __( 'Twig template for the post body. Use data.field_name to reference API fields.', 'enterprise-api-importer' ) }
+						label={ __( 'Mapping Template', 'tporret-api-data-importer' ) }
+						help={ __( 'Twig template for the post body. Use data.field_name to reference API fields.', 'tporret-api-data-importer' ) }
 					>
 						<div className="eapi-ij-template-editor">
 							<div
@@ -272,15 +272,15 @@ export default function MappingTemplatingTab( {
 						onClick={ handleDryRun }
 					>
 						{ dryRunning
-							? __( 'Running…', 'enterprise-api-importer' )
-							: __( 'Test Template (Dry Run)', 'enterprise-api-importer' ) }
+							? __( 'Running…', 'tporret-api-data-importer' )
+							: __( 'Test Template (Dry Run)', 'tporret-api-data-importer' ) }
 					</Button>
 				</FlexBlock>
 
 				<FlexItem className="eapi-ij-split-dictionary">
 					<Panel>
 						<PanelBody
-							title={ __( 'Data Dictionary', 'enterprise-api-importer' ) }
+							title={ __( 'Data Dictionary', 'tporret-api-data-importer' ) }
 							initialOpen={ true }
 						>
 							{ sampleJson ? (
@@ -289,7 +289,7 @@ export default function MappingTemplatingTab( {
 								</pre>
 							) : (
 								<p className="eapi-ij-empty-state">
-									{ __( 'Use "Test Endpoint" on the Source & Auth tab or "Preview First Record" on the Data Rules tab to load sample data here.', 'enterprise-api-importer' ) }
+									{ __( 'Use "Test Endpoint" on the Source & Auth tab or "Preview First Record" on the Data Rules tab to load sample data here.', 'tporret-api-data-importer' ) }
 								</p>
 							) }
 						</PanelBody>
@@ -299,7 +299,7 @@ export default function MappingTemplatingTab( {
 
 			<Panel className="eapi-ij-custom-meta-panel">
 				<PanelBody
-					title={ __( 'Custom Fields (Post Meta)', 'enterprise-api-importer' ) }
+					title={ __( 'Custom Fields (Post Meta)', 'tporret-api-data-importer' ) }
 					initialOpen={ customMetaMappings.length > 0 }
 				>
 					{ customMetaMappings.map( ( mapping, index ) => (
@@ -308,7 +308,7 @@ export default function MappingTemplatingTab( {
 								<TextControl
 									__next40pxDefaultSize
 									__nextHasNoMarginBottom
-									label={ index === 0 ? __( 'Meta Key', 'enterprise-api-importer' ) : undefined }
+									label={ index === 0 ? __( 'Meta Key', 'tporret-api-data-importer' ) : undefined }
 									placeholder="_price"
 									value={ mapping.key }
 									onChange={ ( val ) => handleUpdateMapping( index, 'key', val ) }
@@ -318,7 +318,7 @@ export default function MappingTemplatingTab( {
 								<TextControl
 									__next40pxDefaultSize
 									__nextHasNoMarginBottom
-									label={ index === 0 ? __( 'Meta Value (Twig enabled)', 'enterprise-api-importer' ) : undefined }
+									label={ index === 0 ? __( 'Meta Value (Twig enabled)', 'tporret-api-data-importer' ) : undefined }
 									placeholder="{{ data.price }}"
 									value={ mapping.value }
 									onChange={ ( val ) => handleUpdateMapping( index, 'value', val ) }
@@ -328,7 +328,7 @@ export default function MappingTemplatingTab( {
 								<Button
 									isDestructive
 									icon="trash"
-									label={ __( 'Remove', 'enterprise-api-importer' ) }
+									label={ __( 'Remove', 'tporret-api-data-importer' ) }
 									onClick={ () => handleRemoveMapping( index ) }
 								/>
 							</FlexItem>
@@ -339,24 +339,24 @@ export default function MappingTemplatingTab( {
 						onClick={ handleAddMapping }
 						style={ { marginTop: '8px' } }
 					>
-						{ __( '+ Add Custom Field', 'enterprise-api-importer' ) }
+						{ __( '+ Add Custom Field', 'tporret-api-data-importer' ) }
 					</Button>
 				</PanelBody>
 			</Panel>
 
 			{ dryRunResult && (
 				<div className="eapi-ij-dry-run-result">
-					<h3>{ __( 'Dry Run Result', 'enterprise-api-importer' ) }</h3>
+					<h3>{ __( 'Dry Run Result', 'tporret-api-data-importer' ) }</h3>
 
 					<Panel>
 						<PanelBody
-							title={ __( 'Rendered Title', 'enterprise-api-importer' ) }
+							title={ __( 'Rendered Title', 'tporret-api-data-importer' ) }
 							initialOpen={ true }
 						>
 							<p>{ dryRunResult.renderedTitle }</p>
 						</PanelBody>
 						<PanelBody
-							title={ __( 'Rendered Body', 'enterprise-api-importer' ) }
+							title={ __( 'Rendered Body', 'tporret-api-data-importer' ) }
 							initialOpen={ true }
 						>
 							<div
@@ -367,7 +367,7 @@ export default function MappingTemplatingTab( {
 							/>
 						</PanelBody>
 						<PanelBody
-							title={ __( 'Raw Data', 'enterprise-api-importer' ) }
+							title={ __( 'Raw Data', 'tporret-api-data-importer' ) }
 							initialOpen={ false }
 						>
 							<pre className="eapi-ij-json-preview">

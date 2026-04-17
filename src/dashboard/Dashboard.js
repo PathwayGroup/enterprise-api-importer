@@ -6,6 +6,7 @@ import StatusList from './components/StatusList';
 import SecurityDonut from './components/SecurityDonut';
 import LatencyChart from './components/LatencyChart';
 import AuditMarquee from './components/AuditMarquee';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const STATUS_COLORS = {
 	green: 'eapi-text-emerald-600',
@@ -44,8 +45,8 @@ export default function Dashboard() {
 		try {
 			const params = refresh ? '?refresh=1' : '';
 			const [ dashRes, histRes ] = await Promise.all( [
-				apiFetch( { path: '/enterprise-api-importer/v1/dashboard' + params } ),
-				apiFetch( { path: '/enterprise-api-importer/v1/dashboard/history' } ),
+				apiFetch( { path: '/tporret-api-data-importer/v1/dashboard' + params } ),
+				apiFetch( { path: '/tporret-api-data-importer/v1/dashboard/history' } ),
 			] );
 			setData( dashRes );
 			setHistory( histRes );
@@ -177,7 +178,15 @@ export default function Dashboard() {
 					<h2 className="eapi-text-sm eapi-font-semibold eapi-text-slate-500 eapi-uppercase eapi-tracking-wider eapi-mb-4 eapi-m-0">
 						Security Posture
 					</h2>
-					<SecurityDonut items={ security } />
+					<ErrorBoundary
+						fallback={
+							<p className="eapi-text-sm eapi-text-slate-400 eapi-m-0">
+								Security visualization failed to load.
+							</p>
+						}
+					>
+						<SecurityDonut items={ security } />
+					</ErrorBoundary>
 				</div>
 
 				{ /* Performance Column */ }
@@ -185,12 +194,30 @@ export default function Dashboard() {
 					<h2 className="eapi-text-sm eapi-font-semibold eapi-text-slate-500 eapi-uppercase eapi-tracking-wider eapi-mb-4 eapi-m-0">
 						API Latency
 					</h2>
-					<LatencyChart dataPoints={ history?.latency_points || [] } />
+					<ErrorBoundary
+						fallback={
+							<p className="eapi-text-sm eapi-text-slate-400 eapi-m-0">
+								Latency chart failed to load.
+							</p>
+						}
+					>
+						<LatencyChart dataPoints={ history?.latency_points || [] } />
+					</ErrorBoundary>
 				</div>
 			</div>
 
 			{ /* Footer Marquee */ }
-			<AuditMarquee entries={ history?.audit_entries || [] } />
+			<ErrorBoundary
+				fallback={
+					<div className="eapi-bg-white eapi-rounded-xl eapi-shadow-sm eapi-ring-1 eapi-ring-slate-200 eapi-px-5 eapi-py-3">
+						<span className="eapi-text-xs eapi-text-slate-400">
+							Audit activity failed to load.
+						</span>
+					</div>
+				}
+			>
+				<AuditMarquee entries={ history?.audit_entries || [] } />
+			</ErrorBoundary>
 		</div>
 	);
 }
