@@ -17,19 +17,19 @@ function tporapdi_init_reporting() {
 	$dir = __DIR__;
 
 	// Core classes.
-	require_once $dir . '/class-eapi-reporter-base.php';
-	require_once $dir . '/class-eapi-reporting-aggregator.php';
+	require_once $dir . '/class-tporapdi-reporter-base.php';
+	require_once $dir . '/class-tporapdi-reporting-aggregator.php';
 
 	// Reporter modules.
-	require_once $dir . '/reporters/class-eapi-reporter-cron-heartbeat.php';
-	require_once $dir . '/reporters/class-eapi-reporter-queue-depth.php';
-	require_once $dir . '/reporters/class-eapi-reporter-daily-success-rate.php';
-	require_once $dir . '/reporters/class-eapi-reporter-ssrf-hardening.php';
-	require_once $dir . '/reporters/class-eapi-reporter-audit-integrity.php';
-	require_once $dir . '/reporters/class-eapi-reporter-protocol-enforcement.php';
-	require_once $dir . '/reporters/class-eapi-reporter-api-latency.php';
-	require_once $dir . '/reporters/class-eapi-reporter-active-connections.php';
-	require_once $dir . '/reporters/class-eapi-reporter-throughput.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-cron-heartbeat.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-queue-depth.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-daily-success-rate.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-ssrf-hardening.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-audit-integrity.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-protocol-enforcement.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-api-latency.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-active-connections.php';
+	require_once $dir . '/reporters/class-tporapdi-reporter-throughput.php';
 
 	$aggregator = TPORAPDI_Reporting_Aggregator::get_instance();
 

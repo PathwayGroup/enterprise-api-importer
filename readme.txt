@@ -6,7 +6,7 @@ Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 1.2.5
-License: GPLv2 or later
+License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Enterprise ETL importer for WordPress that turns complex API payloads into reliable, automation-ready content workflows.
@@ -68,12 +68,16 @@ Built for real-world production workflows:
 == Installation ==
 1. Upload the plugin folder to the /wp-content/plugins/ directory, or install it through the WordPress Plugins screen.
 2. Activate the plugin through the Plugins screen in WordPress.
-3. Go to EAPI -> Manage Imports to configure your API connections, filtering rules, target post type, and Twig templates.
+3. Go to tporret API Data Importer → Manage Imports to configure your API connections, filtering rules, target post type, and Twig templates.
 
 Multisite note: activate the plugin on each subsite that should run imports. If you also want the Network Admin summary dashboard, activate it on the primary site too. Do not use Network Activate; that mode is intentionally not supported.
 
 == Development ==
-To rebuild generated admin assets from source, install the repository dependencies and run the standard build tools from the plugin root.
+To rebuild generated admin assets from source:
+
+1. Install Node.js dependencies: `npm install`
+2. Build production assets: `npm run build` (uses `@wordpress/scripts` / webpack)
+3. For a watch/dev build: `npm start`
 
 - JavaScript/CSS source lives in `src/`
 - Production assets are generated into `build/`
@@ -113,11 +117,11 @@ Yes, but not recommended for production. Go to Settings → Allow Internal Endpo
 = Why does the dashboard show a security warning on a new install? =
 The SSRF Hardening check starts in a warning state until you configure Allowed Endpoint Hosts or Allowed Endpoint CIDR Blocks. That warning is there to remind you that outbound API access is still open until you add an allowlist.
 
-= What should I configure in EAPI → Settings first? =
+= What should I configure in tporret API Data Importer → Settings first? =
 Start with Allowed Endpoint Hosts and list only trusted API domains. Leave Allow Internal Endpoints disabled unless you intentionally import from internal services. Add CIDR blocks only when you need additional IP-range restrictions.
 
 = Where are template changes logged? =
-All template configuration changes are logged to the wp_custom_import_logs database table with before/after hashes, actor information, and precise timestamps. Review logs via EAPI → Manage Imports → Import edit screen.
+All template configuration changes are logged to the wp_custom_import_logs database table with before/after hashes, actor information, and precise timestamps. Review logs via tporret API Data Importer → Manage Imports → Import edit screen.
 
 == External services ==
 This plugin connects to external APIs that you configure in each import job.

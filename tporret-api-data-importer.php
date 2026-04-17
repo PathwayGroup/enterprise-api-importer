@@ -210,9 +210,9 @@ if ( tporapdi_enforce_supported_multisite_activation_mode() ) {
 // Load plugin modules in dependency order.
 require_once __DIR__ . '/includes/core.php';
 require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/class-eai-imports-list-table.php';
+require_once __DIR__ . '/includes/class-tporapdi-imports-list-table.php';
 require_once __DIR__ . '/includes/content.php';
-require_once __DIR__ . '/includes/class-eai-import-processor.php';
+require_once __DIR__ . '/includes/class-tporapdi-import-processor.php';
 require_once __DIR__ . '/includes/import.php';
 require_once __DIR__ . '/includes/admin.php';
 require_once __DIR__ . '/includes/rest.php';
