@@ -166,7 +166,7 @@ function tporapdi_render_dependency_notice( $message ) {
 		return;
 	}
 
-	echo '<div class="notice notice-error"><p>';
+	echo '<div class="notice notice-error is-dismissible"><p>';
 	echo esc_html( $message );
 	echo '</p></div>';
 }
