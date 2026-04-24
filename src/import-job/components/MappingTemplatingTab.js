@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from '@wordpress/element';
+import { useState, useCallback, useMemo, useRef, useEffect } from '@wordpress/element';
 import {
 	SelectControl,
 	TextControl,
@@ -18,9 +18,13 @@ import apiFetch from '@wordpress/api-fetch';
 export default function MappingTemplatingTab( {
 	job,
 	updateField,
+	isEdit,
 	previewData,
 	postTypes,
 	authors,
+	postTypeDefaults,
+	defaultsLoading,
+	onApplyRecommendedDefaults,
 	setNotice,
 } ) {
 	const [ dryRunning, setDryRunning ] = useState( false );
@@ -131,6 +135,24 @@ export default function MappingTemplatingTab( {
 		setTemplateScrollTop( event.target.scrollTop );
 	}, [] );
 
+	const hasRecommendedDefaults = !! postTypeDefaults && 'object' === typeof postTypeDefaults;
+
+	const supportsHierarchy = hasRecommendedDefaults && Object.prototype.hasOwnProperty.call( postTypeDefaults, 'post_parent' );
+	const supportsComments = ! hasRecommendedDefaults || false !== postTypeDefaults.supports_comments;
+	const supportsTrackbacks = ! hasRecommendedDefaults || false !== postTypeDefaults.supports_trackbacks;
+
+	useEffect( () => {
+		if ( ! supportsComments && 'open' === ( job.comment_status || 'closed' ) ) {
+			updateField( 'comment_status', 'closed', { markTouched: false } );
+		}
+	}, [ supportsComments, job.comment_status, updateField ] );
+
+	useEffect( () => {
+		if ( ! supportsTrackbacks && 'open' === ( job.ping_status || 'closed' ) ) {
+			updateField( 'ping_status', 'closed', { markTouched: false } );
+		}
+	}, [ supportsTrackbacks, job.ping_status, updateField ] );
+
 	return (
 		<div className="eapi-ij-tab-content">
 			<SelectControl
@@ -142,6 +164,63 @@ export default function MappingTemplatingTab( {
 				onChange={ ( val ) => updateField( 'target_post_type', val ) }
 				help={ __( 'Select which public WordPress post type receives imported records.', 'tporret-api-data-importer' ) }
 			/>
+
+			<Panel className="eapi-ij-defaults-panel">
+				<PanelBody
+					title={ __( 'Recommended Defaults For Selected Post Type', 'tporret-api-data-importer' ) }
+					initialOpen={ true }
+				>
+					{ defaultsLoading && (
+						<p className="eapi-ij-defaults-muted">
+							{ __( 'Loading recommended defaults…', 'tporret-api-data-importer' ) }
+						</p>
+					) }
+
+					{ ! defaultsLoading && ! hasRecommendedDefaults && (
+						<p className="eapi-ij-defaults-muted">
+							{ __( 'Recommended defaults are unavailable for this post type.', 'tporret-api-data-importer' ) }
+						</p>
+					) }
+
+					{ ! defaultsLoading && hasRecommendedDefaults && (
+						<>
+							<Flex className="eapi-ij-defaults-grid" wrap gap={ 3 }>
+								<FlexBlock>
+									<p className="eapi-ij-defaults-label">{ __( 'Post Status', 'tporret-api-data-importer' ) }</p>
+									<p className="eapi-ij-defaults-value">{ String( postTypeDefaults.post_status || 'draft' ) }</p>
+								</FlexBlock>
+								<FlexBlock>
+									<p className="eapi-ij-defaults-label">{ __( 'Comment Status', 'tporret-api-data-importer' ) }</p>
+									<p className="eapi-ij-defaults-value">{ String( postTypeDefaults.comment_status || 'closed' ) }</p>
+								</FlexBlock>
+								<FlexBlock>
+									<p className="eapi-ij-defaults-label">{ __( 'Ping Status', 'tporret-api-data-importer' ) }</p>
+									<p className="eapi-ij-defaults-value">{ String( postTypeDefaults.ping_status || 'closed' ) }</p>
+								</FlexBlock>
+								<FlexBlock>
+									<p className="eapi-ij-defaults-label">{ __( 'Author ID', 'tporret-api-data-importer' ) }</p>
+									<p className="eapi-ij-defaults-value">{ String( postTypeDefaults.post_author || 0 ) }</p>
+								</FlexBlock>
+							</Flex>
+
+							<Notice status="info" isDismissible={ false } className="eapi-ij-defaults-notice">
+								{ supportsHierarchy
+									? __( 'This post type is hierarchical, so parent-aware destination behavior can be enabled in upcoming mapping phases.', 'tporret-api-data-importer' )
+									: __( 'This post type is non-hierarchical, so parent-specific destination fields are not applicable.', 'tporret-api-data-importer' ) }
+							</Notice>
+
+							<Button
+								variant="secondary"
+								onClick={ onApplyRecommendedDefaults }
+							>
+								{ isEdit
+									? __( 'Apply Recommended Defaults To Untouched Fields', 'tporret-api-data-importer' )
+									: __( 'Re-Apply Recommended Defaults', 'tporret-api-data-importer' ) }
+							</Button>
+						</>
+					) }
+				</PanelBody>
+			</Panel>
 
 			<CheckboxControl
 				__nextHasNoMarginBottom
@@ -188,8 +267,11 @@ export default function MappingTemplatingTab( {
 							{ label: __( 'Open', 'tporret-api-data-importer' ), value: 'open' },
 							{ label: __( 'Closed', 'tporret-api-data-importer' ), value: 'closed' },
 						] }
+						disabled={ ! supportsComments }
 						onChange={ ( val ) => updateField( 'comment_status', val ) }
-						help={ __( 'Whether comments are open on imported posts.', 'tporret-api-data-importer' ) }
+						help={ supportsComments
+							? __( 'Whether comments are open on imported posts.', 'tporret-api-data-importer' )
+							: __( 'This post type does not support comments. Comment status is forced to Closed.', 'tporret-api-data-importer' ) }
 					/>
 				</FlexBlock>
 				<FlexBlock>
@@ -202,8 +284,11 @@ export default function MappingTemplatingTab( {
 							{ label: __( 'Open', 'tporret-api-data-importer' ), value: 'open' },
 							{ label: __( 'Closed', 'tporret-api-data-importer' ), value: 'closed' },
 						] }
+						disabled={ ! supportsTrackbacks }
 						onChange={ ( val ) => updateField( 'ping_status', val ) }
-						help={ __( 'Whether pingbacks and trackbacks are accepted on imported posts.', 'tporret-api-data-importer' ) }
+						help={ supportsTrackbacks
+							? __( 'Whether pingbacks and trackbacks are accepted on imported posts.', 'tporret-api-data-importer' )
+							: __( 'This post type does not support trackbacks. Pingback/trackback status is forced to Closed.', 'tporret-api-data-importer' ) }
 					/>
 				</FlexBlock>
 			</Flex>
@@ -217,6 +302,24 @@ export default function MappingTemplatingTab( {
 						value={ job.title_template }
 						onChange={ ( val ) => updateField( 'title_template', val ) }
 						help={ __( 'Supports Twig syntax (for example: {{ data.first_name }} {{ data.last_name }}). If left blank, defaults to Imported Item {ID}.', 'tporret-api-data-importer' ) }
+					/>
+
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Post Excerpt Template', 'tporret-api-data-importer' ) }
+						value={ job.excerpt_template || '' }
+						onChange={ ( val ) => updateField( 'excerpt_template', val ) }
+						help={ __( 'Twig template for the post excerpt (for example: {{ data.summary }}). If left blank, no excerpt is set.', 'tporret-api-data-importer' ) }
+					/>
+
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Post Slug Template', 'tporret-api-data-importer' ) }
+						value={ job.post_name_template || '' }
+						onChange={ ( val ) => updateField( 'post_name_template', val ) }
+						help={ __( 'Twig template for the URL slug (for example: {{ data.slug }}). Output is sanitized via sanitize_title(). If left blank, WordPress auto-generates the slug from the post title.', 'tporret-api-data-importer' ) }
 					/>
 
 					<TextControl

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import { TabPanel, Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
@@ -6,7 +6,19 @@ import SourceAuthTab from './components/SourceAuthTab';
 import DataRulesTab from './components/DataRulesTab';
 import MappingTemplatingTab from './components/MappingTemplatingTab';
 import AutomationTab from './components/AutomationTab';
+import CleanupTab from './components/CleanupTab';
 import StickyFooter from './components/StickyFooter';
+
+const DEFAULTS_ADOPTABLE_FIELDS = [
+	'post_status',
+	'comment_status',
+	'ping_status',
+	'post_author',
+];
+
+function valuesEqual( left, right ) {
+	return String( left ?? '' ) === String( right ?? '' );
+}
 
 const DEFAULT_JOB = {
 	name: '',
@@ -26,19 +38,14 @@ const DEFAULT_JOB = {
 	lock_editing: 1,
 	post_author: 0,
 	title_template: '',
+	excerpt_template: '',
+	post_name_template: '',
 	mapping_template: '',
 	post_status: 'draft',
 	comment_status: 'closed',
 	ping_status: 'closed',
 	custom_meta_mappings: '[]',
 };
-
-const TABS = [
-	{ name: 'source-auth', title: __( 'Source & Auth', 'tporret-api-data-importer' ) },
-	{ name: 'data-rules', title: __( 'Data Rules', 'tporret-api-data-importer' ) },
-	{ name: 'mapping', title: __( 'Mapping & Templating', 'tporret-api-data-importer' ) },
-	{ name: 'automation', title: __( 'Automation', 'tporret-api-data-importer' ) },
-];
 
 export default function ImportJobWorkspace() {
 	const config = window.tporapdiImportJob || {};
@@ -52,6 +59,14 @@ export default function ImportJobWorkspace() {
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
 	const [ previewData, setPreviewData ] = useState( null );
+	const [ touchedFields, setTouchedFields ] = useState( {} );
+	const [ postTypeDefaults, setPostTypeDefaults ] = useState( null );
+	const [ defaultsLoading, setDefaultsLoading ] = useState( false );
+	const touchedFieldsRef = useRef( touchedFields );
+
+	useEffect( () => {
+		touchedFieldsRef.current = touchedFields;
+	}, [ touchedFields ] );
 
 	useEffect( () => {
 		if ( ! isEdit ) {
@@ -60,6 +75,7 @@ export default function ImportJobWorkspace() {
 		apiFetch( { path: `/tporret-api-data-importer/v1/import-jobs/${ importId }` } )
 			.then( ( data ) => {
 				setJob( ( prev ) => ( { ...prev, ...data } ) );
+				setTouchedFields( {} );
 			} )
 			.catch( () => {
 				setNotice( {
@@ -70,9 +86,108 @@ export default function ImportJobWorkspace() {
 			.finally( () => setLoading( false ) );
 	}, [ isEdit, importId ] );
 
-	const updateField = useCallback( ( field, value ) => {
+	const updateField = useCallback( ( field, value, options = {} ) => {
+		const shouldMarkTouched = options.markTouched !== false;
 		setJob( ( prev ) => ( { ...prev, [ field ]: value } ) );
+		if ( shouldMarkTouched ) {
+			setTouchedFields( ( prev ) => ( { ...prev, [ field ]: true } ) );
+		}
 	}, [] );
+
+	const applyRecommendedDefaults = useCallback( () => {
+		if ( ! postTypeDefaults ) {
+			return;
+		}
+
+		setJob( ( prev ) => {
+			const updates = {};
+
+			DEFAULTS_ADOPTABLE_FIELDS.forEach( ( field ) => {
+				if ( touchedFields[ field ] ) {
+					return;
+				}
+
+				if ( Object.prototype.hasOwnProperty.call( postTypeDefaults, field ) ) {
+					const recommendedValue = postTypeDefaults[ field ];
+					if ( ! valuesEqual( prev[ field ], recommendedValue ) ) {
+						updates[ field ] = recommendedValue;
+					}
+				}
+			} );
+
+			if ( 0 === Object.keys( updates ).length ) {
+				return prev;
+			}
+
+			return { ...prev, ...updates };
+		} );
+	}, [ postTypeDefaults, touchedFields ] );
+
+	useEffect( () => {
+		const selectedPostType = ( job.target_post_type || '' ).trim();
+
+		if ( '' === selectedPostType ) {
+			setPostTypeDefaults( null );
+			return;
+		}
+
+		let cancelled = false;
+		setDefaultsLoading( true );
+
+		apiFetch( {
+			path: `/tporret-api-data-importer/v1/post-type-defaults/${ selectedPostType }`,
+			method: 'GET',
+		} )
+			.then( ( defaults ) => {
+				if ( cancelled || ! defaults || 'object' !== typeof defaults ) {
+					return;
+				}
+
+				setPostTypeDefaults( defaults );
+
+				if ( isEdit ) {
+					return;
+				}
+
+				setJob( ( prev ) => {
+					const updates = {};
+
+					DEFAULTS_ADOPTABLE_FIELDS.forEach( ( field ) => {
+						if ( touchedFieldsRef.current[ field ] ) {
+							return;
+						}
+
+						if ( Object.prototype.hasOwnProperty.call( defaults, field ) ) {
+							const recommendedValue = defaults[ field ];
+							if ( ! valuesEqual( prev[ field ], recommendedValue ) ) {
+								updates[ field ] = recommendedValue;
+							}
+						}
+					} );
+
+					if ( 0 === Object.keys( updates ).length ) {
+						return prev;
+					}
+
+					return { ...prev, ...updates };
+				} );
+			} )
+			.catch( () => {
+				if ( cancelled ) {
+					return;
+				}
+				setPostTypeDefaults( null );
+			} )
+			.finally( () => {
+				if ( ! cancelled ) {
+					setDefaultsLoading( false );
+				}
+			} );
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ job.target_post_type, isEdit ] );
 
 	const handleSave = useCallback( async () => {
 		setSaving( true );
@@ -160,6 +275,51 @@ export default function ImportJobWorkspace() {
 		}
 	}, [ isEdit, importId ] );
 
+	const handleCleanup = useCallback( async ( mode, confirmation ) => {
+		if ( ! isEdit ) {
+			return;
+		}
+
+		setNotice( null );
+
+		try {
+			const result = await apiFetch( {
+				path: `/tporret-api-data-importer/v1/import-jobs/${ importId }/cleanup`,
+				method: 'POST',
+				data: {
+					mode,
+					confirmation,
+				},
+			} );
+
+			const cleanupResults = result?.results || {};
+			setNotice( {
+				status: 'success',
+				message: `${ result.message || __( 'Cleanup completed.', 'tporret-api-data-importer' ) } ${ __(
+					'Posts:',
+					'tporret-api-data-importer'
+				) } ${ cleanupResults.posts_affected || 0 }, ${ __( 'featured media:', 'tporret-api-data-importer' ) } ${ cleanupResults.featured_media_count || 0 }, ${ __( 'staging rows:', 'tporret-api-data-importer' ) } ${ cleanupResults.staging_rows_cleared || 0 }, ${ __( 'log rows:', 'tporret-api-data-importer' ) } ${ cleanupResults.log_rows_cleared || 0 }.`,
+			} );
+		} catch ( err ) {
+			setNotice( {
+				status: 'error',
+				message: err.message || __( 'Cleanup failed.', 'tporret-api-data-importer' ),
+			} );
+			throw err;
+		}
+	}, [ isEdit, importId ] );
+
+	const tabs = [
+		{ name: 'source-auth', title: __( 'Source & Auth', 'tporret-api-data-importer' ) },
+		{ name: 'data-rules', title: __( 'Data Rules', 'tporret-api-data-importer' ) },
+		{ name: 'mapping', title: __( 'Mapping & Templating', 'tporret-api-data-importer' ) },
+		{ name: 'automation', title: __( 'Automation', 'tporret-api-data-importer' ) },
+	];
+
+	if ( isEdit ) {
+		tabs.push( { name: 'cleanup', title: __( 'Cleanup', 'tporret-api-data-importer' ) } );
+	}
+
 	if ( loading ) {
 		return (
 			<div className="eapi-ij-loading">
@@ -189,7 +349,7 @@ export default function ImportJobWorkspace() {
 
 			<TabPanel
 				className="eapi-ij-tabs"
-				tabs={ TABS }
+				tabs={ tabs }
 			>
 				{ ( tab ) => {
 					switch ( tab.name ) {
@@ -217,9 +377,13 @@ export default function ImportJobWorkspace() {
 								<MappingTemplatingTab
 									job={ job }
 									updateField={ updateField }
+									isEdit={ isEdit }
 									previewData={ previewData }
 									postTypes={ postTypes }
 									authors={ authors }
+									postTypeDefaults={ postTypeDefaults }
+									defaultsLoading={ defaultsLoading }
+									onApplyRecommendedDefaults={ applyRecommendedDefaults }
 									setNotice={ setNotice }
 								/>
 							);
@@ -230,6 +394,8 @@ export default function ImportJobWorkspace() {
 									updateField={ updateField }
 								/>
 							);
+						case 'cleanup':
+							return <CleanupTab onCleanup={ handleCleanup } />;
 						default:
 							return null;
 					}

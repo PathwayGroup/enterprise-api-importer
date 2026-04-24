@@ -1162,7 +1162,7 @@ function tporapdi_handle_save_import() {
 			'class'  => true,
 		),
 	);
-	$mapping_template     = wp_kses( (string) $template_raw, $allowed_mapping_html );
+	$mapping_template     = tporapdi_kses_mapping_template( (string) $template_raw, $allowed_mapping_html );
 
 	$title_template_validation = tporapdi_validate_twig_template_security( $title_template, 'title' );
 	if ( is_wp_error( $title_template_validation ) ) {

@@ -4,6 +4,7 @@
 /node_modules
 /dist
 /.dist
+/.svn-release
 /docs
 /.docs
 /README.md

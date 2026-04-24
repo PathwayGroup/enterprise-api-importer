@@ -157,6 +157,46 @@
 	min-height: 3.2em;
 }
 
+.eapi-ij-defaults-panel {
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.eapi-ij-defaults-grid {
+	margin-bottom: 12px;
+}
+
+.eapi-ij-defaults-label {
+	margin: 0;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: #646970;
+}
+
+.eapi-ij-defaults-value {
+	margin: 2px 0 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.eapi-ij-defaults-muted {
+
+.eapi-ij-cleanup-actions {
+	display: flex;
+	gap: 12px;
+	margin-top: 16px;
+	flex-wrap: wrap;
+}
+	margin: 0;
+	color: #646970;
+}
+
+.eapi-ij-defaults-notice {
+	margin: 0 0 12px !important;
+}
+
 .eapi-ij-template-editor {
 	display: flex;
 	border: 1px solid #8c8f94;

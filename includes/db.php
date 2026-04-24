@@ -195,7 +195,7 @@ function tporapdi_db_get_import_configs(): array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
+			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, excerpt_template, post_name_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
 			FROM %i
 			ORDER BY id DESC',
 			$table
@@ -241,7 +241,7 @@ function tporapdi_db_get_import_config( int $import_id ): ?array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
-			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
+			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, excerpt_template, post_name_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
 			FROM %i
 			WHERE id = %d',
 			$table,
@@ -396,6 +396,46 @@ function tporapdi_db_delete_import_config( int $import_id ): bool {
 
 	tporapdi_db_invalidate_imports_cache( $import_id );
 	return true;
+}
+
+/**
+ * Deletes staging rows for one import job.
+ *
+ * @param int $import_id Import job ID.
+ * @return int|false Number of deleted rows, or false on error.
+ */
+function tporapdi_db_delete_staging_rows_for_import( int $import_id ) {
+	global $wpdb;
+
+	$import_id = absint( $import_id );
+	if ( $import_id <= 0 ) {
+		return 0;
+	}
+
+	$table = tporapdi_db_temp_table();
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	return $wpdb->delete( $table, array( 'import_id' => $import_id ), array( '%d' ) );
+}
+
+/**
+ * Deletes log rows for one import job.
+ *
+ * @param int $import_id Import job ID.
+ * @return int|false Number of deleted rows, or false on error.
+ */
+function tporapdi_db_delete_log_rows_for_import( int $import_id ) {
+	global $wpdb;
+
+	$import_id = absint( $import_id );
+	if ( $import_id <= 0 ) {
+		return 0;
+	}
+
+	$table = tporapdi_db_logs_table();
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	return $wpdb->delete( $table, array( 'import_id' => $import_id ), array( '%d' ) );
 }
 
 /**

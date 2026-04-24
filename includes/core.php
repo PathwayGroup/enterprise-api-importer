@@ -69,6 +69,8 @@ function tporapdi_activate_plugin( $network_wide = false ) {
 		target_post_type varchar(100) NOT NULL DEFAULT 'post',
 		featured_image_source_path varchar(191) NOT NULL DEFAULT 'image.url',
 		title_template varchar(255) NOT NULL DEFAULT '',
+		excerpt_template varchar(255) NOT NULL DEFAULT '',
+		post_name_template varchar(255) NOT NULL DEFAULT '',
 		mapping_template longtext NOT NULL,
 		post_author bigint(20) unsigned NOT NULL DEFAULT 0,
 		lock_editing tinyint(1) unsigned NOT NULL DEFAULT 1,
@@ -117,6 +119,7 @@ function tporapdi_activate_plugin( $network_wide = false ) {
 	tporapdi_ensure_imports_featured_image_column();
 	tporapdi_ensure_imports_post_status_columns();
 	tporapdi_ensure_imports_custom_meta_mappings_column();
+	tporapdi_ensure_imports_template_columns();
 
 	tporapdi_sync_template_management_capabilities();
 
@@ -350,6 +353,31 @@ function tporapdi_ensure_imports_custom_meta_mappings_column() {
 }
 
 /**
+ * Ensures excerpt_template and post_name_template columns exist on the imports table.
+ *
+ * @return void
+ */
+function tporapdi_ensure_imports_template_columns() {
+	global $wpdb;
+
+	$table = tporapdi_db_imports_table();
+
+	$columns = array(
+		'excerpt_template'   => "varchar(255) NOT NULL DEFAULT '' AFTER title_template",
+		'post_name_template' => "varchar(255) NOT NULL DEFAULT '' AFTER excerpt_template",
+	);
+
+	foreach ( $columns as $col_name => $col_def ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $col_name ) );
+		if ( null === $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN `{$col_name}` {$col_def}", $table ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+	}
+}
+
+/**
  * Runs on plugin deactivation.
  *
  * Clears plugin-owned scheduled cron events.
@@ -379,6 +407,7 @@ function tporapdi_maybe_upgrade_schema() {
 	tporapdi_ensure_imports_featured_image_column();
 	tporapdi_ensure_imports_post_status_columns();
 	tporapdi_ensure_imports_custom_meta_mappings_column();
+	tporapdi_ensure_imports_template_columns();
 
 	$installed_version = (string) get_option( 'tporapdi_db_schema_version', '' );
 

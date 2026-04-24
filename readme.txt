@@ -5,7 +5,7 @@ Tags: api, import, etl, json, cron
 Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.2.5
+Stable tag: 1.2.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,7 +48,7 @@ Use tporret API Data Importer to run clean, repeatable import workflows without 
   - Twig template security validation (disallowed tags, size/complexity limits, syntax checking)
   - Template change audit logging with before/after hashes and actor metadata
   - SSRF prevention via hostname and CIDR allowlisting with DNS resolution
-  - Twig strict variables mode enabled by default for better error visibility
+  - Twig variable strictness is filterable, with permissive rendering used by default for resilient imports
   - Imported items locked read-only (no editing, deletion, or quick-edit)
 
 Whether you import catalogs, directory records, listings, events, or custom business data, tporret API Data Importer provides a scalable framework for structured API-to-WordPress ETL.
@@ -126,37 +126,18 @@ All template configuration changes are logged to the wp_custom_import_logs datab
 == External services ==
 This plugin connects to external APIs that you configure in each import job.
 
-- What service is used: Your configured API endpoint URL.
-- What data is sent: Request headers (including optional Bearer token) and normal HTTP request metadata.
-- When data is sent: During endpoint tests, dry-run template previews, and scheduled/manual import runs.
-- Why data is sent: To fetch remote JSON payloads for preview, transform, and import workflows.
-
-**Security policy notes:**
-
-- Configure only trusted API endpoints that you control or explicitly trust.
-- **HTTPS is required by default** for all endpoints (can be disabled via code filter for development).
-- **Private/internal network hosts are blocked by default** (RFC1918 ranges and loopback). Enable only if you need to import from internal APIs in controlled environments.
-- **Hostname allowlisting:** Restrict imports to specific domains (exact or wildcard subdomains). Configure at Settings → Allowed Endpoint Hosts.
-- **CIDR allowlisting:** Restrict imports to specific IPv4/IPv6 network ranges. Configure at Settings → Allowed Endpoint CIDR Blocks.
-- **Endpoint validation:** All endpoints are validated before request execution.
-- **Audit logging:** All endpoint changes and template modifications are logged with full actor context.
 
 The plugin does not hardcode any third-party API vendor. Data destination, terms, and privacy practices depend on the endpoint(s) you configure.
 
 == Screenshots ==
 1. The Twig Mapping Interface for transforming JSON data.
-2. The Schedules and Logs Health Dashboard.
 3. API Connection and Data Filtering rules.
 
 == Changelog ==
-= 1.2.5 =
 * Updated the public plugin name to tporret API Data Importer for WordPress.org resubmission.
 
 = 1.2.4 =
 * Aligned Twig dry-run template normalization with save-time normalization so preview output matches persisted output.
-* Expanded mapping template HTML allowlist to support modern layout markup and CSS hooks (`article`, `header`, `section`, `footer`, `div`, `span`, and `class` attributes on common tags).
-* Kept mapping allowlist behavior consistent across dry-run, REST import-job save, and classic admin save handlers.
-
 = 1.2.3 =
 * Added multisite Network Admin dashboard support while preserving per-site importer dashboards.
 * Added multisite activation safeguards so unsupported Network Activate attempts are blocked and reverted.
@@ -240,7 +221,7 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
     - CIDR allowlisting (IPv4 and IPv6 support).
     - DNS resolution for hostname validation.
     - Settings UI for managing allowed hosts and CIDR blocks.
-  - Enabled Twig strict variables mode by default (prevents undefined variable silent rendering).
+  - Twig variable strictness is filterable; permissive rendering now avoids row failures when a template references a missing key.
   - Added Settings page (EAPI → Settings) for endpoint security configuration.
 
 = 1.0.0 =

@@ -42,10 +42,13 @@ It gives you:
 - Endpoint test, API data preview, and Twig dry-run tools before production execution.
 - Per-import edit-lock toggle to allow or prevent wp-admin edits on imported posts.
 
-## Latest Release (1.2.5)
+## Latest Release (1.2.6)
 
-- Plugin naming update for resubmission: the public plugin name is now tporret API Data Importer.
-- No functional changes are bundled with this release.
+- Added post-type-aware defaults plumbing in the import workspace and REST layer.
+- Added excerpt and slug templates to the Mapping & Templating workflow.
+- Existing imported posts now sync mapping-driven destination attributes during updates, including status, author, discussion settings, excerpt, and slug.
+- Added a dedicated Cleanup tab for existing jobs with typed confirmation, plus per-job trash/delete fresh-start actions.
+- Twig now renders missing variables as empty by default instead of failing the row import.
 
 ## Multisite Operation
 
@@ -342,10 +345,10 @@ apply_filters( 'tporapdi_allowed_endpoint_cidrs', array( '192.168.1.0/24', '10.0
 apply_filters( 'tporapdi_allow_internal_endpoints', false ); // default: block RFC1918/loopback
 ```
 
-#### ✅ Twig Strict Variables by Default
+#### ✅ Twig Variable Strictness Is Filterable
 
-- Strict variables mode enabled on Twig environment to prevent undefined variable silently rendering as empty.
-- Missing variable access now raises `Twig\Error\RuntimeError` (caught and logged).
+- Default Twig rendering is now permissive so missing variables render as empty values instead of failing item imports.
+- Teams that prefer fail-fast template validation can re-enable strict mode with `tporapdi_twig_strict_variables`.
 - Filterable via `tporapdi_twig_strict_variables`:
 
 ```php
@@ -479,7 +482,7 @@ Recommended baseline:
 - **Validation layers**: Pre-save, pre-render, and REST dry-run all validate template safety.
 - **Disallowed features**: `include`, `source`, `import`, `from`, `embed`, `extends`, `use`, `macro` tags blocked.
 - **Resource limits**: Size, expression count, and nesting depth throttled to prevent DoS.
-- **Strict variables**: Undefined variable access caught and logged vs. silently rendering as empty.
+- **Strict variables**: Permissive by default for import resilience, with an opt-in filter to enforce fail-fast validation.
 - **Audit trail**: All template changes logged with before/after hashes and actor metadata.
 
 ### Network & SSRF Defense
@@ -521,7 +524,7 @@ Recommended baseline:
 ## Scheduling Model
 
 - Recurring trigger hook: `tporapdi_recurring_import_trigger`
-- Immediate trigger hook: `ncsu_api_importer_batch_hook`
+- Immediate trigger hook: `tporapdi_immediate_import_trigger`
 - Queue worker hook: `tporapdi_process_import_queue`
 
 Each run tracks trigger context (`manual`, `run_now`, `recurring`) for operational traceability.

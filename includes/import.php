@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'tporapdi_process_import_queue', 'tporapdi_handle_scheduled_import_batch' );
-add_action( 'ncsu_api_importer_batch_hook', 'tporapdi_handle_import_batch_hook', 10, 2 );
+add_action( 'tporapdi_immediate_import_trigger', 'tporapdi_handle_import_batch_hook', 10, 2 );
 add_action( 'tporapdi_recurring_import_trigger', 'tporapdi_handle_import_batch_hook', 10, 2 );
 add_action( 'tporapdi_daily_garbage_collection', array( 'TPORAPDI_Import_Processor', 'run_garbage_collection' ) );
 add_filter( 'cron_schedules', 'tporapdi_register_custom_cron_schedules' );
@@ -140,8 +140,8 @@ function tporapdi_clear_import_scheduled_hooks( $import_id ) {
 
 	wp_clear_scheduled_hook( 'tporapdi_recurring_import_trigger', array( $import_id, 'recurring' ) );
 	wp_clear_scheduled_hook( 'tporapdi_recurring_import_trigger', array( $import_id ) );
-	wp_clear_scheduled_hook( 'ncsu_api_importer_batch_hook', array( $import_id, 'run_now' ) );
-	wp_clear_scheduled_hook( 'ncsu_api_importer_batch_hook', array( $import_id ) );
+	wp_clear_scheduled_hook( 'tporapdi_immediate_import_trigger', array( $import_id, 'run_now' ) );
+	wp_clear_scheduled_hook( 'tporapdi_immediate_import_trigger', array( $import_id ) );
 }
 
 /**
@@ -1039,16 +1039,20 @@ function tporapdi_resolve_json_array_path( $decoded_json, $path ) {
  * @param string               $ping_status               Ping status for new items. Default 'closed'.
  * @param array                $custom_meta_mappings      Array of {key, value} custom meta mappings. Default empty.
  * @param array<string, int>   $existing_post_ids         Map of external IDs to existing post IDs.
+ * @param string               $excerpt_template          Optional excerpt template for this import job.
+ * @param string               $post_name_template        Optional slug template for this import job.
  *
  * @return array<string, mixed>|WP_Error
  */
-function tporapdi_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0, $post_status = 'draft', $comment_status = 'closed', $ping_status = 'closed', $custom_meta_mappings = array(), $existing_post_ids = array() ) {
+function tporapdi_transform_and_load_item( $item, $mapping_template, $title_template = '', $target_post_type = 'post', $unique_id_path = 'id', $import_id = 0, $featured_image_source_path = 'image.url', $post_author = 0, $post_status = 'draft', $comment_status = 'closed', $ping_status = 'closed', $custom_meta_mappings = array(), $existing_post_ids = array(), $excerpt_template = '', $post_name_template = '' ) {
 	if ( ! is_array( $item ) ) {
 		return new WP_Error( 'tporapdi_invalid_item', __( 'Transform input must be an array.', 'tporret-api-data-importer' ) );
 	}
 
 	$mapping_template           = (string) $mapping_template;
 	$title_template             = trim( (string) $title_template );
+	$excerpt_template           = trim( (string) $excerpt_template );
+	$post_name_template         = trim( (string) $post_name_template );
 	$target_post_type           = sanitize_key( (string) $target_post_type );
 	$unique_id_path             = trim( (string) $unique_id_path );
 	$import_id                  = absint( $import_id );
@@ -1183,6 +1187,57 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 		}
 	}
 
+	$post_excerpt = '';
+	if ( '' !== $excerpt_template ) {
+		$twig = tporapdi_get_twig_environment();
+		if ( ! is_wp_error( $twig ) ) {
+			$loader = $twig->getLoader();
+			if ( $loader instanceof \Twig\Loader\ArrayLoader ) {
+				$excerpt_tpl_name = 'excerpt-template-' . md5( $excerpt_template );
+				try {
+					$loader->setTemplate( $excerpt_tpl_name, $excerpt_template );
+					$rendered_excerpt = (string) $twig->render(
+						$excerpt_tpl_name,
+						array(
+							'record' => $item,
+							'item'   => $item,
+							'data'   => $item,
+						)
+					);
+					$post_excerpt     = wp_strip_all_tags( trim( $rendered_excerpt ) );
+					$post_excerpt     = mb_substr( $post_excerpt, 0, 1000 );
+				} catch ( \Twig\Error\Error $error ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					// Non-fatal: fall through with empty excerpt.
+				}
+			}
+		}
+	}
+
+	$post_name = '';
+	if ( '' !== $post_name_template ) {
+		$twig = tporapdi_get_twig_environment();
+		if ( ! is_wp_error( $twig ) ) {
+			$loader = $twig->getLoader();
+			if ( $loader instanceof \Twig\Loader\ArrayLoader ) {
+				$slug_tpl_name = 'slug-template-' . md5( $post_name_template );
+				try {
+					$loader->setTemplate( $slug_tpl_name, $post_name_template );
+					$rendered_slug = (string) $twig->render(
+						$slug_tpl_name,
+						array(
+							'record' => $item,
+							'item'   => $item,
+							'data'   => $item,
+						)
+					);
+					$post_name     = sanitize_title( trim( $rendered_slug ) );
+				} catch ( \Twig\Error\Error $error ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+					// Non-fatal: fall through with empty slug (WordPress will auto-generate).
+				}
+			}
+		}
+	}
+
 	$existing_post_id = 0;
 
 	if ( is_array( $existing_post_ids ) && isset( $existing_post_ids[ $external_id ] ) ) {
@@ -1232,9 +1287,13 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 			'post_status'    => $post_status,
 			'post_title'     => $post_title,
 			'post_content'   => $post_content,
+			'post_excerpt'   => $post_excerpt,
 			'comment_status' => $comment_status,
 			'ping_status'    => $ping_status,
 		);
+		if ( '' !== $post_name ) {
+			$insert_args['post_name'] = $post_name;
+		}
 		if ( $post_author > 0 ) {
 			$insert_args['post_author'] = $post_author;
 		}
@@ -1283,45 +1342,47 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 
 	$featured_image_updated = tporapdi_assign_featured_image_from_item( $item, $existing_post_id, $import_id, $featured_image_source_path );
 
+	$update_args = array(
+		'ID' => $existing_post_id,
+	);
+
+	if ( (string) $existing_post->post_title !== (string) $post_title ) {
+		$update_args['post_title'] = $post_title;
+	}
+
 	if ( (string) $existing_post->post_content !== (string) $post_content ) {
-		$updated_post_id = wp_update_post(
-			array(
-				'ID'             => $existing_post_id,
-				'post_title'     => $post_title,
-				'post_content'   => $post_content,
-				'comment_status' => $comment_status,
-				'ping_status'    => $ping_status,
-			),
-			true
-		);
+		$update_args['post_content'] = $post_content;
+	}
+
+	if ( (string) $existing_post->post_excerpt !== (string) $post_excerpt ) {
+		$update_args['post_excerpt'] = $post_excerpt;
+	}
+
+	if ( (string) $existing_post->post_status !== (string) $post_status ) {
+		$update_args['post_status'] = $post_status;
+	}
+
+	if ( (string) $existing_post->comment_status !== (string) $comment_status ) {
+		$update_args['comment_status'] = $comment_status;
+	}
+
+	if ( (string) $existing_post->ping_status !== (string) $ping_status ) {
+		$update_args['ping_status'] = $ping_status;
+	}
+
+	if ( '' !== $post_name && (string) $existing_post->post_name !== (string) $post_name ) {
+		$update_args['post_name'] = $post_name;
+	}
+
+	if ( $post_author > 0 && (int) $existing_post->post_author !== (int) $post_author ) {
+		$update_args['post_author'] = $post_author;
+	}
+
+	if ( count( $update_args ) > 1 ) {
+		$updated_post_id = wp_update_post( $update_args, true );
 
 		if ( is_wp_error( $updated_post_id ) ) {
 			return $updated_post_id;
-		}
-
-		update_post_meta( $existing_post_id, '_last_synced_timestamp', $timestamp );
-		tporapdi_save_item_meta_with_manifest( $existing_post_id, $item, $import_id );
-		tporapdi_apply_custom_meta_mappings( $existing_post_id, $item, $custom_meta_mappings );
-
-		return array(
-			'action'  => 'updated',
-			'post_id' => $existing_post_id,
-		);
-	}
-
-	if ( (string) $existing_post->post_title !== (string) $post_title ) {
-		$updated_title_post_id = wp_update_post(
-			array(
-				'ID'             => $existing_post_id,
-				'post_title'     => $post_title,
-				'comment_status' => $comment_status,
-				'ping_status'    => $ping_status,
-			),
-			true
-		);
-
-		if ( is_wp_error( $updated_title_post_id ) ) {
-			return $updated_title_post_id;
 		}
 
 		update_post_meta( $existing_post_id, '_last_synced_timestamp', $timestamp );
@@ -1849,7 +1910,7 @@ function tporapdi_get_twig_environment() {
 		);
 	}
 
-	$strict_variables = (bool) apply_filters( 'tporapdi_twig_strict_variables', true );
+	$strict_variables = (bool) apply_filters( 'tporapdi_twig_strict_variables', false );
 
 	$loader = new \Twig\Loader\ArrayLoader( array() );
 	$twig   = new \Twig\Environment(
@@ -1905,6 +1966,41 @@ function tporapdi_get_twig_environment() {
 	);
 
 	return $twig;
+}
+
+/**
+ * Applies wp_kses to a Twig mapping template while preserving Twig syntax blocks.
+ *
+ * The wp_kses function treats bare `>` and `<` characters as HTML and encodes them to `&gt;`/`&lt;`,
+ * which corrupts Twig comparison operators (e.g. `{% if x > 0 %}`). This function
+ * temporarily replaces Twig blocks ({{ }}, {% %}, {# #}) with safe placeholders before
+ * calling wp_kses and restores them afterwards.
+ *
+ * @param string               $template     Twig template source.
+ * @param array<string, mixed> $allowed_html wp_kses allowed HTML array.
+ * @return string Sanitized template with Twig blocks intact.
+ */
+function tporapdi_kses_mapping_template( $template, $allowed_html ) {
+	$template   = (string) $template;
+	$twig_blocks = array();
+
+	$template = preg_replace_callback(
+		'/\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}/s',
+		static function ( $matches ) use ( &$twig_blocks ) {
+			$key               = 'TWIGEAIBLOCK' . count( $twig_blocks ) . 'X';
+			$twig_blocks[ $key ] = $matches[0];
+			return $key;
+		},
+		$template
+	);
+
+	$template = wp_kses( (string) $template, $allowed_html );
+
+	foreach ( $twig_blocks as $key => $block ) {
+		$template = str_replace( $key, $block, $template );
+	}
+
+	return $template;
 }
 
 /**
@@ -2267,6 +2363,8 @@ function tporapdi_process_unprocessed_staging_rows( $started_at_microtime, $impo
 		$items                      = tporapdi_normalize_staged_items( $decoded_items );
 		$mapping_template           = (string) $import_job['mapping_template'];
 		$title_template             = isset( $import_job['title_template'] ) ? (string) $import_job['title_template'] : '';
+		$excerpt_template           = isset( $import_job['excerpt_template'] ) ? (string) $import_job['excerpt_template'] : '';
+		$post_name_template         = isset( $import_job['post_name_template'] ) ? (string) $import_job['post_name_template'] : '';
 		$target_post_type           = isset( $import_job['target_post_type'] ) ? (string) $import_job['target_post_type'] : 'post';
 		$unique_id_path             = isset( $import_job['unique_id_path'] ) ? trim( (string) $import_job['unique_id_path'] ) : 'id';
 		$featured_image_source_path = isset( $import_job['featured_image_source_path'] ) ? trim( (string) $import_job['featured_image_source_path'] ) : 'image.url';
@@ -2328,7 +2426,9 @@ function tporapdi_process_unprocessed_staging_rows( $started_at_microtime, $impo
 					$comment_status,
 					$ping_status,
 					$custom_meta_mappings,
-					$existing_post_ids
+					$existing_post_ids,
+					$excerpt_template,
+					$post_name_template
 				);
 
 				if ( is_wp_error( $item_result ) ) {
@@ -2590,4 +2690,140 @@ function tporapdi_trash_orphaned_imported_posts( $run_started_unix, $import_id )
 	}
 
 	return $trashed_count;
+}
+
+/**
+ * Returns imported post IDs for a specific import job.
+ *
+ * @param int $import_id Import job ID.
+ * @return int[]
+ */
+function tporapdi_get_imported_post_ids_for_job( $import_id ) {
+	global $wpdb;
+
+	$import_id      = absint( $import_id );
+	$postmeta_table = $wpdb->postmeta;
+	$posts_table    = $wpdb->posts;
+
+	if ( $import_id <= 0 ) {
+		return array();
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$post_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT p.ID
+			FROM %i pm
+			INNER JOIN %i p ON p.ID = pm.post_id
+			WHERE pm.meta_key = %s
+				AND CAST(pm.meta_value AS UNSIGNED) = %d
+				AND p.post_type <> 'attachment'",
+			$postmeta_table,
+			$posts_table,
+			'_tporapdi_import_id',
+			$import_id
+		)
+	);
+
+	if ( ! is_array( $post_ids ) ) {
+		return array();
+	}
+
+	return array_map( 'absint', $post_ids );
+}
+
+/**
+ * Deletes or trashes an owned featured image attachment for a post.
+ *
+ * Only attachments created by this import flow and parented to the current post
+ * are eligible, which avoids deleting shared media reused across posts/jobs.
+ *
+ * @param int  $post_id    Post ID.
+ * @param bool $permanent  Whether to permanently delete.
+ * @return bool True when an attachment was removed or trashed.
+ */
+function tporapdi_cleanup_featured_image_for_post( $post_id, $permanent = false ) {
+	$post_id       = absint( $post_id );
+	$attachment_id = absint( get_post_thumbnail_id( $post_id ) );
+
+	if ( $post_id <= 0 || $attachment_id <= 0 ) {
+		return false;
+	}
+
+	$attachment = get_post( $attachment_id );
+	if ( ! $attachment instanceof WP_Post || 'attachment' !== $attachment->post_type ) {
+		return false;
+	}
+
+	$source_url = get_post_meta( $attachment_id, '_tporapdi_source_url', true );
+	if ( ! is_string( $source_url ) || '' === $source_url ) {
+		return false;
+	}
+
+	if ( (int) $attachment->post_parent !== $post_id ) {
+		return false;
+	}
+
+	if ( $permanent ) {
+		$deleted = wp_delete_attachment( $attachment_id, true );
+		return false !== $deleted && null !== $deleted;
+	}
+
+	$trashed = wp_trash_post( $attachment_id );
+	return false !== $trashed && null !== $trashed;
+}
+
+/**
+ * Fresh-start cleanup for one import job.
+ *
+ * @param int    $import_id Import job ID.
+ * @param string $mode      Cleanup mode: trash or delete.
+ * @return array<string, int>|WP_Error
+ */
+function tporapdi_cleanup_import_job_content( $import_id, $mode = 'trash' ) {
+	$import_id = absint( $import_id );
+	$mode      = 'delete' === $mode ? 'delete' : 'trash';
+
+	if ( $import_id <= 0 ) {
+		return new WP_Error( 'tporapdi_invalid_import_id', __( 'Invalid import job ID.', 'tporret-api-data-importer' ) );
+	}
+
+	$post_ids = tporapdi_get_imported_post_ids_for_job( $import_id );
+	$summary  = array(
+		'posts_affected'       => 0,
+		'featured_media_count' => 0,
+		'staging_rows_cleared' => 0,
+		'log_rows_cleared'     => 0,
+	);
+
+	foreach ( $post_ids as $post_id ) {
+		if ( tporapdi_cleanup_featured_image_for_post( $post_id, 'delete' === $mode ) ) {
+			++$summary['featured_media_count'];
+		}
+
+		if ( 'delete' === $mode ) {
+			$deleted = wp_delete_post( $post_id, true );
+			if ( false !== $deleted && null !== $deleted ) {
+				++$summary['posts_affected'];
+			}
+			continue;
+		}
+
+		$trashed = wp_trash_post( $post_id );
+		if ( false !== $trashed && null !== $trashed ) {
+			++$summary['posts_affected'];
+		}
+	}
+
+	$staging_deleted = tporapdi_db_delete_staging_rows_for_import( $import_id );
+	$logs_deleted    = tporapdi_db_delete_log_rows_for_import( $import_id );
+
+	if ( false === $staging_deleted || false === $logs_deleted ) {
+		return new WP_Error( 'tporapdi_cleanup_db_failed', __( 'Failed to clear staging or log rows for the import job.', 'tporret-api-data-importer' ) );
+	}
+
+	$summary['staging_rows_cleared'] = (int) $staging_deleted;
+	$summary['log_rows_cleared']     = (int) $logs_deleted;
+
+	return $summary;
 }
