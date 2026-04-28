@@ -167,7 +167,7 @@ A pluggable, high-performance reporting aggregator with real-time operational me
 
 **Get aggregated metrics:**
 ```
-GET /wp-json/eapi/v1/dashboard
+GET /wp-json/tporret-api-data-importer/v1/dashboard
 ```
 Returns nested structure grouped by category and reporter ID.
 
@@ -186,13 +186,13 @@ Returns nested structure grouped by category and reporter ID.
 
 **Get time-series history (for charts and feeds):**
 ```
-GET /wp-json/eapi/v1/dashboard/history
+GET /wp-json/tporret-api-data-importer/v1/dashboard/history
 ```
 Returns sparkline data, latency charts, audit entries, and throughput trends (600s cache).
 
 **Force refresh (flush transients):**
 ```
-GET /wp-json/eapi/v1/dashboard?refresh=1
+GET /wp-json/tporret-api-data-importer/v1/dashboard?refresh=1
 ```
 
 #### React Dashboard UI
@@ -362,13 +362,13 @@ The import add/edit screen has been rebuilt as a React tabbed workspace using `@
 - Tabs: Source & Auth, Data Rules, Mapping & Templating, Automation.
 - Sticky action footer with Save, Run Import Now, and Update Existing Items.
 - REST-backed job management for modern UI workflows:
-  - `GET /wp-json/eapi/v1/import-jobs/{id}`
-  - `POST /wp-json/eapi/v1/import-jobs`
-  - `PUT /wp-json/eapi/v1/import-jobs/{id}`
-  - `POST /wp-json/eapi/v1/import-jobs/{id}/run`
-  - `POST /wp-json/eapi/v1/import-jobs/{id}/template-sync`
-- API test endpoint (`/wp-json/eapi/v1/test-api-connection`) now powers in-UI sample preview for mapping.
-- Dry-run endpoint (`/wp-json/eapi/v1/dry-run`) supports template verification before import runs.
+  - `GET /wp-json/tporret-api-data-importer/v1/import-jobs/{id}`
+  - `POST /wp-json/tporret-api-data-importer/v1/import-jobs`
+  - `PUT /wp-json/tporret-api-data-importer/v1/import-jobs/{id}`
+  - `POST /wp-json/tporret-api-data-importer/v1/import-jobs/{id}/run`
+  - `POST /wp-json/tporret-api-data-importer/v1/import-jobs/{id}/template-sync`
+- API test endpoint (`/wp-json/tporret-api-data-importer/v1/test-api-connection`) now powers in-UI sample preview for mapping.
+- Dry-run endpoint (`/wp-json/tporret-api-data-importer/v1/dry-run`) supports template verification before import runs.
 
 ### 9) Per-Import Edit-Lock Toggle
 
