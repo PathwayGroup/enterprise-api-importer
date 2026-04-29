@@ -5,7 +5,7 @@ Tags: api, import, etl, json, cron
 Requires at least: 6.3
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.2.6
+Stable tag: 1.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,17 @@ Use tporret API Data Importer to run clean, repeatable import workflows without 
 - Per-import editing lock toggle for imported posts (allow editing or enforce read-only)
 - Time-aware batch processing via WP-Cron to reduce timeout and memory-risk scenarios
 - Multisite support with per-site importer dashboards and an optional Network Admin summary dashboard when the plugin is also active on the primary site
+- **[New v1.3] Deep Module Architecture (internal):**
+  - `Tporapdi_Validator` — single validation seam for all import job fields
+  - `Tporapdi_Import_Runner` — owns the 5-stage import lifecycle (Extract → Filter → Stage → Transform → Load)
+  - `Tporapdi_Template_Engine` — unified Twig rendering seam for all template fields and dry-run previews
+  - `Tporapdi_Security_Guard` — centralised SSRF, CIDR, and Twig security checks shared across save and run paths
+  - `Tporapdi_Job_Repository`, `Tporapdi_Queue_Repository`, `Tporapdi_Log_Repository` — domain repositories hiding all SQL and cache management
+  - `Tporapdi_Media_Ingestor` — isolated image sideload and HTML rewrite logic with idempotent deduplication
+  - `Tporapdi_Cleanup_Service` — chunked garbage collection for staging queue and log tables
+  - Reporter self-registration via glob discovery — adding a new dashboard metric requires zero edits to existing files
+  - `Tporapdi_Lock_Policy` — single edit-lock policy seam used by all admin UI affordances
+  - `TPORAPDI_Defaults_Resolver::normalize()` — single normalization seam for post status defaults shared by REST save and import runtime
 - **[New v1.2] Tableau-Style Reporting Dashboard:** Real-time metrics on environment health, security posture, and API performance with interactive charts, status indicators, and audit activity feed
 - **[New] Credential Encryption & REST Masking:**
   - AES-256-CBC encryption at rest for auth_token and auth_password fields
@@ -134,6 +145,19 @@ The plugin does not hardcode any third-party API vendor. Data destination, terms
 3. API Connection and Data Filtering rules.
 
 == Changelog ==
+
+= 1.3.0 =
+* **Architectural deepening release — no breaking changes to existing import jobs, REST API, or admin UI.**
+* Extracted `Tporapdi_Validator` module: single entry point for all import job field validation (auth, recurrence, templates, post defaults, meta mappings) replacing scattered inline checks in rest.php.
+* Extracted `Tporapdi_Import_Runner` module: owns the full 5-stage import lifecycle (Extract, Filter, Stage, Transform, Load) with state transitions and failure semantics in one place.
+* Extracted `Tporapdi_Template_Engine` module: single `render()` seam used by both live import runs and dry-run previews, guaranteeing identical Twig security and output behaviour across all template fields.
+* Extracted `Tporapdi_Security_Guard` module: centralises SSRF, CIDR, and Twig security validation — same rules enforced at save time and run time.
+* Extracted three domain repositories (`Tporapdi_Job_Repository`, `Tporapdi_Queue_Repository`, `Tporapdi_Log_Repository`): all SQL and cache management moved out of db.php, which is now a thin backwards-compatible shim layer.
+* Extracted `Tporapdi_Media_Ingestor` module: image sideload, deduplication, and HTML content rewriting isolated from lifecycle cleanup.
+* Extracted `Tporapdi_Cleanup_Service` module: chunked garbage collection for staging queue and log tables, independent of media handling.
+* Reporting Discovery Engine: reporters now self-register via `TPORAPDI_Reporting_Aggregator::register()`; `reporting.php` uses glob-based auto-discovery so new reporters require no edits to existing files.
+* Extracted `Tporapdi_Lock_Policy` module: single `is_locked(int $post_id)` seam for all import-managed post edit-locking; all content.php hook callbacks route through this one policy.
+* Deepened `TPORAPDI_Defaults_Resolver`: new `normalize(string $post_type, array $raw_input)` static method is the single seam for post status/comment status/ping status normalization — used identically by the REST save path and the import runtime.
 * Updated the public plugin name to tporret API Data Importer for WordPress.org resubmission.
 
 = 1.2.4 =

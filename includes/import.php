@@ -36,7 +36,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 function tporapdi_wp_cli_run_garbage_collection( $args, $assoc_args ) {
 	unset( $args, $assoc_args );
 
-	$results = TPORAPDI_Import_Processor::run_garbage_collection();
+	$results = Tporapdi_Cleanup_Service::run();
 
 	if ( ! is_array( $results ) ) {
 		WP_CLI::error( 'Garbage collection failed: invalid response payload.' );
@@ -181,6 +181,51 @@ function tporapdi_sync_import_recurrence_schedule( $import_id, $recurrence, $cus
 }
 
 /**
+ * Returns the shared template engine instance.
+ *
+ * @return TPORAPDI_Template_Engine
+ */
+function tporapdi_get_template_engine() {
+	static $engine = null;
+
+	if ( ! $engine instanceof TPORAPDI_Template_Engine ) {
+		$engine = new TPORAPDI_Template_Engine();
+	}
+
+	return $engine;
+}
+
+/**
+ * Returns the shared security guard instance.
+ *
+ * @return TPORAPDI_Security_Guard
+ */
+function tporapdi_get_security_guard() {
+	static $guard = null;
+
+	if ( ! $guard instanceof TPORAPDI_Security_Guard ) {
+		$guard = new TPORAPDI_Security_Guard();
+	}
+
+	return $guard;
+}
+
+/**
+ * Returns the import execution runner module.
+ *
+ * @return TPORAPDI_Import_Runner
+ */
+function tporapdi_get_import_runner() {
+	static $runner = null;
+
+	if ( ! $runner instanceof TPORAPDI_Import_Runner ) {
+		$runner = new TPORAPDI_Import_Runner();
+	}
+
+	return $runner;
+}
+
+/**
  * Handles import-specific cron trigger.
  *
  * @param int    $import_id       Import job ID.
@@ -189,280 +234,7 @@ function tporapdi_sync_import_recurrence_schedule( $import_id, $recurrence, $cus
  * @return void
  */
 function tporapdi_handle_import_batch_hook( $import_id, $trigger_source = 'run_now' ) {
-	$import_id       = absint( $import_id );
-	$trigger_source  = sanitize_key( (string) $trigger_source );
-	$allowed_sources = array( 'manual', 'run_now', 'recurring' );
-
-	if ( ! in_array( $trigger_source, $allowed_sources, true ) ) {
-		$trigger_source = 'run_now';
-	}
-
-	if ( $import_id <= 0 ) {
-		return;
-	}
-
-	$active_state = tporapdi_get_active_run_state();
-
-	if ( ! empty( $active_state['run_id'] ) ) {
-		if ( isset( $active_state['import_id'] ) && absint( $active_state['import_id'] ) === $import_id ) {
-			tporapdi_handle_scheduled_import_batch();
-		}
-		return;
-	}
-
-	$extract_result = tporapdi_extract_and_stage_data( $import_id );
-
-	if ( is_wp_error( $extract_result ) ) {
-		$now = gmdate( 'Y-m-d H:i:s', time() );
-
-		tporapdi_write_import_log(
-			$import_id,
-			wp_generate_uuid4(),
-			'failed',
-			0,
-			0,
-			0,
-			array(
-				'start_time'          => $now,
-				'end_time'            => $now,
-				'orphans_trashed'     => 0,
-				'temp_rows_found'     => 0,
-				'temp_rows_processed' => 0,
-				'slices'              => 0,
-				'trigger_source'      => $trigger_source,
-				'processing_errors'   => array( $extract_result->get_error_message() ),
-			),
-			$now
-		);
-
-		return;
-	}
-
-	$started_unix = time();
-
-	tporapdi_set_active_run_state(
-		array(
-			'run_id'              => wp_generate_uuid4(),
-			'import_id'           => $import_id,
-			'trigger_source'      => $trigger_source,
-			'start_timestamp'     => $started_unix,
-			'start_time'          => gmdate( 'Y-m-d H:i:s', $started_unix ),
-			'rows_processed'      => 0,
-			'rows_created'        => 0,
-			'rows_updated'        => 0,
-			'temp_rows_found'     => 0,
-			'temp_rows_processed' => 0,
-			'errors'              => array(),
-			'slices'              => 0,
-		)
-	);
-
-	tporapdi_handle_scheduled_import_batch();
-}
-
-/**
- * Returns true when an IP address is private/reserved and should be blocked by default.
- *
- * @param string $ip_address IP address to evaluate.
- *
- * @return bool
- */
-function tporapdi_is_private_or_reserved_ip( $ip_address ) {
-	$ip_address = is_string( $ip_address ) ? trim( $ip_address ) : '';
-
-	if ( '' === $ip_address || false === filter_var( $ip_address, FILTER_VALIDATE_IP ) ) {
-		return true;
-	}
-
-	return false === filter_var( $ip_address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
-}
-
-/**
- * Resolves a hostname to a list of IPv4/IPv6 addresses.
- *
- * @param string $host Hostname.
- * @return string[]
- */
-function tporapdi_resolve_host_ips( $host ) {
-	$host = is_string( $host ) ? strtolower( trim( $host ) ) : '';
-
-	if ( '' === $host ) {
-		return array();
-	}
-
-	if ( false !== filter_var( $host, FILTER_VALIDATE_IP ) ) {
-		return array( $host );
-	}
-
-	$resolved_ips = array();
-
-	if ( function_exists( 'dns_get_record' ) ) {
-		$ipv4_records = dns_get_record( $host, DNS_A );
-		$ipv4_records = is_array( $ipv4_records ) ? $ipv4_records : array();
-
-		foreach ( $ipv4_records as $ipv4_record ) {
-			if ( isset( $ipv4_record['ip'] ) && is_string( $ipv4_record['ip'] ) ) {
-				$resolved_ips[] = $ipv4_record['ip'];
-			}
-		}
-
-		if ( defined( 'DNS_AAAA' ) ) {
-			$ipv6_records = dns_get_record( $host, DNS_AAAA );
-			$ipv6_records = is_array( $ipv6_records ) ? $ipv6_records : array();
-
-			foreach ( $ipv6_records as $ipv6_record ) {
-				if ( isset( $ipv6_record['ipv6'] ) && is_string( $ipv6_record['ipv6'] ) ) {
-					$resolved_ips[] = $ipv6_record['ipv6'];
-				}
-			}
-		}
-	}
-
-	if ( empty( $resolved_ips ) && function_exists( 'gethostbynamel' ) ) {
-		$ipv4_fallback = gethostbynamel( $host );
-		if ( is_array( $ipv4_fallback ) ) {
-			$resolved_ips = array_merge( $resolved_ips, $ipv4_fallback );
-		}
-	}
-
-	return array_values( array_unique( array_filter( $resolved_ips, 'is_string' ) ) );
-}
-
-/**
- * Returns true when a host resolves to local/private/reserved networks.
- *
- * @param string $host Hostname or IP.
- *
- * @return bool
- */
-function tporapdi_is_disallowed_remote_host( $host ) {
-	$host = is_string( $host ) ? strtolower( trim( $host ) ) : '';
-
-	if ( '' === $host ) {
-		return true;
-	}
-
-	if ( in_array( $host, array( 'localhost', 'localhost.localdomain' ), true ) ) {
-		return true;
-	}
-
-	if ( false !== filter_var( $host, FILTER_VALIDATE_IP ) ) {
-		return tporapdi_is_private_or_reserved_ip( $host );
-	}
-
-	if ( 0 === substr_count( $host, '.' ) || str_ends_with( $host, '.local' ) ) {
-		return true;
-	}
-
-	$resolved_ips = tporapdi_resolve_host_ips( $host );
-
-	foreach ( $resolved_ips as $resolved_ip ) {
-		if ( tporapdi_is_private_or_reserved_ip( $resolved_ip ) ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
- * Normalizes comma/newline separated allowlist entries.
- *
- * @param mixed $raw_list Raw list string or array.
- * @return string[]
- */
-function tporapdi_normalize_security_allowlist( $raw_list ) {
-	$entries = is_array( $raw_list ) ? $raw_list : preg_split( '/[\r\n,]+/', (string) $raw_list );
-	$entries = is_array( $entries ) ? $entries : array();
-
-	$normalized = array();
-	foreach ( $entries as $entry ) {
-		$entry = strtolower( trim( (string) $entry ) );
-		if ( '' !== $entry ) {
-			$normalized[] = $entry;
-		}
-	}
-
-	return array_values( array_unique( $normalized ) );
-}
-
-/**
- * Returns true when host matches an allowlist rule.
- *
- * Supports exact host and wildcard prefix rules (for example *.example.com).
- *
- * @param string $host Hostname.
- * @param string $rule Allowlist rule.
- * @return bool
- */
-function tporapdi_host_matches_allow_rule( $host, $rule ) {
-	$host = strtolower( trim( (string) $host ) );
-	$rule = strtolower( trim( (string) $rule ) );
-
-	if ( '' === $host || '' === $rule ) {
-		return false;
-	}
-
-	if ( 0 === strpos( $rule, '*.' ) ) {
-		$base = substr( $rule, 2 );
-		if ( '' === $base ) {
-			return false;
-		}
-
-		return $host === $base || str_ends_with( $host, '.' . $base );
-	}
-
-	return $host === $rule;
-}
-
-/**
- * Checks whether an IP matches a CIDR block.
- *
- * @param string $ip   IP address.
- * @param string $cidr CIDR block.
- * @return bool
- */
-function tporapdi_ip_matches_cidr( $ip, $cidr ) {
-	$ip   = trim( (string) $ip );
-	$cidr = trim( (string) $cidr );
-
-	if ( '' === $ip || '' === $cidr || false === strpos( $cidr, '/' ) ) {
-		return false;
-	}
-
-	list( $network, $prefix ) = array_pad( explode( '/', $cidr, 2 ), 2, '' );
-	$prefix                   = (int) $prefix;
-
-	if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) || ! filter_var( $network, FILTER_VALIDATE_IP ) ) {
-		return false;
-	}
-
-	$ip_bin      = inet_pton( $ip );
-	$network_bin = inet_pton( $network );
-
-	if ( false === $ip_bin || false === $network_bin || strlen( $ip_bin ) !== strlen( $network_bin ) ) {
-		return false;
-	}
-
-	$max_bits = 8 * strlen( $ip_bin );
-	if ( $prefix < 0 || $prefix > $max_bits ) {
-		return false;
-	}
-
-	$full_bytes = (int) floor( $prefix / 8 );
-	$extra_bits = $prefix % 8;
-
-	if ( $full_bytes > 0 && substr( $ip_bin, 0, $full_bytes ) !== substr( $network_bin, 0, $full_bytes ) ) {
-		return false;
-	}
-
-	if ( 0 === $extra_bits ) {
-		return true;
-	}
-
-	$mask = ( 0xFF << ( 8 - $extra_bits ) ) & 0xFF;
-
-	return ( ord( $ip_bin[ $full_bytes ] ) & $mask ) === ( ord( $network_bin[ $full_bytes ] ) & $mask );
+	tporapdi_get_import_runner()->handle_import_batch_hook( $import_id, $trigger_source );
 }
 
 /**
@@ -473,94 +245,7 @@ function tporapdi_ip_matches_cidr( $ip, $cidr ) {
  * @return true|WP_Error
  */
 function tporapdi_validate_remote_endpoint_url( $endpoint ) {
-	$endpoint = is_string( $endpoint ) ? trim( $endpoint ) : '';
-
-	if ( '' === $endpoint || ! wp_http_validate_url( $endpoint ) ) {
-		return new WP_Error( 'tporapdi_invalid_endpoint_url', __( 'A valid endpoint URL is required.', 'tporret-api-data-importer' ) );
-	}
-
-	$settings = wp_parse_args( get_option( 'tporapdi_settings', array() ), tporapdi_get_default_settings() );
-
-	$allow_internal_endpoints = ! empty( $settings['allow_internal_endpoints'] ) && '0' !== (string) $settings['allow_internal_endpoints'];
-	$allow_internal_endpoints = (bool) apply_filters( 'tporapdi_allow_internal_endpoints', $allow_internal_endpoints, $endpoint );
-
-	$require_https = (bool) apply_filters( 'tporapdi_require_https_endpoints', true, $endpoint );
-	$scheme        = wp_parse_url( $endpoint, PHP_URL_SCHEME );
-	$host          = wp_parse_url( $endpoint, PHP_URL_HOST );
-	$scheme        = is_string( $scheme ) ? strtolower( $scheme ) : '';
-	$host          = is_string( $host ) ? strtolower( trim( $host ) ) : '';
-
-	if ( $require_https && 'https' !== $scheme ) {
-		return new WP_Error(
-			'tporapdi_endpoint_requires_https',
-			__( 'Only HTTPS endpoint URLs are allowed.', 'tporret-api-data-importer' )
-		);
-	}
-
-	$allowed_hosts = tporapdi_normalize_security_allowlist(
-		apply_filters(
-			'tporapdi_allowed_endpoint_hosts',
-			isset( $settings['allowed_endpoint_hosts'] ) ? $settings['allowed_endpoint_hosts'] : array(),
-			$endpoint
-		)
-	);
-
-	if ( ! empty( $allowed_hosts ) ) {
-		$host_match = false;
-		foreach ( $allowed_hosts as $allowed_host ) {
-			if ( tporapdi_host_matches_allow_rule( $host, $allowed_host ) ) {
-				$host_match = true;
-				break;
-			}
-		}
-
-		if ( ! $host_match ) {
-			return new WP_Error(
-				'tporapdi_endpoint_not_in_allowed_hosts',
-				__( 'Endpoint host is not in the configured host allowlist.', 'tporret-api-data-importer' )
-			);
-		}
-	}
-
-	$allowed_cidrs = tporapdi_normalize_security_allowlist(
-		apply_filters(
-			'tporapdi_allowed_endpoint_cidrs',
-			isset( $settings['allowed_endpoint_cidrs'] ) ? $settings['allowed_endpoint_cidrs'] : array(),
-			$endpoint
-		)
-	);
-
-	if ( ! empty( $allowed_cidrs ) ) {
-		$resolved_ips = tporapdi_resolve_host_ips( $host );
-		$cidr_match   = false;
-
-		foreach ( $resolved_ips as $resolved_ip ) {
-			foreach ( $allowed_cidrs as $allowed_cidr ) {
-				if ( tporapdi_ip_matches_cidr( $resolved_ip, $allowed_cidr ) ) {
-					$cidr_match = true;
-					break 2;
-				}
-			}
-		}
-
-		if ( ! $cidr_match ) {
-			return new WP_Error(
-				'tporapdi_endpoint_not_in_allowed_cidrs',
-				__( 'Endpoint IP is not in the configured CIDR allowlist.', 'tporret-api-data-importer' )
-			);
-		}
-	}
-
-	if ( ! $allow_internal_endpoints ) {
-		if ( tporapdi_is_disallowed_remote_host( $host ) ) {
-			return new WP_Error(
-				'tporapdi_endpoint_disallowed_host',
-				__( 'This endpoint host is blocked by security policy. Use a trusted public host or explicitly allow internal endpoints.', 'tporret-api-data-importer' )
-			);
-		}
-	}
-
-	return true;
+	return tporapdi_get_security_guard()->check_endpoint( $endpoint );
 }
 
 /**
@@ -1059,10 +744,10 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 	$featured_image_source_path = trim( (string) $featured_image_source_path );
 	$post_author                = absint( $post_author );
 
-	$allowed_post_statuses = array( 'draft', 'publish', 'pending' );
-	$post_status           = in_array( (string) $post_status, $allowed_post_statuses, true ) ? (string) $post_status : 'draft';
-	$comment_status        = in_array( (string) $comment_status, array( 'open', 'closed' ), true ) ? (string) $comment_status : 'closed';
-	$ping_status           = in_array( (string) $ping_status, array( 'open', 'closed' ), true ) ? (string) $ping_status : 'closed';
+	$normalized     = TPORAPDI_Defaults_Resolver::normalize( $target_post_type, compact( 'post_status', 'comment_status', 'ping_status' ) );
+	$post_status    = $normalized['post_status'];
+	$comment_status = $normalized['comment_status'];
+	$ping_status    = $normalized['ping_status'];
 
 	if ( '' === $target_post_type || 'attachment' === $target_post_type || ! post_type_exists( $target_post_type ) ) {
 		$target_post_type = 'post';
@@ -1100,10 +785,6 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 	}
 
 	$post_content = tporapdi_render_mapping_template_for_item( $item, $mapping_template );
-
-	if ( ! is_wp_error( $post_content ) ) {
-		$post_content = wp_kses_post( $post_content );
-	}
 
 	if ( is_wp_error( $post_content ) ) {
 		if ( 'tporapdi_template_syntax_error' === $post_content->get_error_code() ) {
@@ -1143,44 +824,11 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 	);
 
 	if ( '' !== $title_template ) {
-		$twig = tporapdi_get_twig_environment();
+		$rendered_title = tporapdi_get_template_engine()->render( $title_template, $item, TPORAPDI_Template_Engine::TYPE_TITLE );
 
-		if ( is_wp_error( $twig ) ) {
-			return $twig;
+		if ( is_wp_error( $rendered_title ) ) {
+			return $rendered_title;
 		}
-
-		$loader = $twig->getLoader();
-		if ( ! $loader instanceof \Twig\Loader\ArrayLoader ) {
-			return new WP_Error( 'tporapdi_twig_loader_invalid', __( 'Twig loader is not configured for string templates.', 'tporret-api-data-importer' ) );
-		}
-
-		$template_name = 'title-template-' . md5( $title_template );
-
-		try {
-			$loader->setTemplate( $template_name, $title_template );
-
-			$rendered_title = (string) $twig->render(
-				$template_name,
-				array(
-					'record' => $item,
-					'item'   => $item,
-					'data'   => $item,
-				)
-			);
-		} catch ( \Twig\Error\Error $error ) {
-			return new WP_Error(
-				'tporapdi_template_syntax_error',
-				sprintf(
-					/* translators: %s is the Twig exception message. */
-					__( 'Twig template syntax error: %s', 'tporret-api-data-importer' ),
-					$error->getMessage()
-				)
-			);
-		}
-
-		$rendered_title = wp_strip_all_tags( $rendered_title );
-		$rendered_title = trim( $rendered_title );
-		$rendered_title = mb_substr( $rendered_title, 0, 255 );
 
 		if ( '' !== $rendered_title ) {
 			$post_title = $rendered_title;
@@ -1189,52 +837,17 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 
 	$post_excerpt = '';
 	if ( '' !== $excerpt_template ) {
-		$twig = tporapdi_get_twig_environment();
-		if ( ! is_wp_error( $twig ) ) {
-			$loader = $twig->getLoader();
-			if ( $loader instanceof \Twig\Loader\ArrayLoader ) {
-				$excerpt_tpl_name = 'excerpt-template-' . md5( $excerpt_template );
-				try {
-					$loader->setTemplate( $excerpt_tpl_name, $excerpt_template );
-					$rendered_excerpt = (string) $twig->render(
-						$excerpt_tpl_name,
-						array(
-							'record' => $item,
-							'item'   => $item,
-							'data'   => $item,
-						)
-					);
-					$post_excerpt     = wp_strip_all_tags( trim( $rendered_excerpt ) );
-					$post_excerpt     = mb_substr( $post_excerpt, 0, 1000 );
-				} catch ( \Twig\Error\Error $error ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-					// Non-fatal: fall through with empty excerpt.
-				}
-			}
+		$rendered_excerpt = tporapdi_get_template_engine()->render( $excerpt_template, $item, TPORAPDI_Template_Engine::TYPE_EXCERPT );
+		if ( ! is_wp_error( $rendered_excerpt ) ) {
+			$post_excerpt = $rendered_excerpt;
 		}
 	}
 
 	$post_name = '';
 	if ( '' !== $post_name_template ) {
-		$twig = tporapdi_get_twig_environment();
-		if ( ! is_wp_error( $twig ) ) {
-			$loader = $twig->getLoader();
-			if ( $loader instanceof \Twig\Loader\ArrayLoader ) {
-				$slug_tpl_name = 'slug-template-' . md5( $post_name_template );
-				try {
-					$loader->setTemplate( $slug_tpl_name, $post_name_template );
-					$rendered_slug = (string) $twig->render(
-						$slug_tpl_name,
-						array(
-							'record' => $item,
-							'item'   => $item,
-							'data'   => $item,
-						)
-					);
-					$post_name     = sanitize_title( trim( $rendered_slug ) );
-				} catch ( \Twig\Error\Error $error ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-					// Non-fatal: fall through with empty slug (WordPress will auto-generate).
-				}
-			}
+		$rendered_slug = tporapdi_get_template_engine()->render( $post_name_template, $item, TPORAPDI_Template_Engine::TYPE_SLUG );
+		if ( ! is_wp_error( $rendered_slug ) ) {
+			$post_name = $rendered_slug;
 		}
 	}
 
@@ -1278,7 +891,7 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 	$timestamp = time();
 
 	if ( $existing_post_id > 0 ) {
-		$post_content = TPORAPDI_Import_Processor::parse_and_sideload_content_images( $post_content, $existing_post_id );
+		$post_content = Tporapdi_Media_Ingestor::parse_and_sideload_content_images( $post_content, $existing_post_id );
 	}
 
 	if ( 0 === $existing_post_id ) {
@@ -1304,7 +917,7 @@ function tporapdi_transform_and_load_item( $item, $mapping_template, $title_temp
 			return $insert_post_id;
 		}
 
-		$post_content = TPORAPDI_Import_Processor::parse_and_sideload_content_images( $post_content, $insert_post_id );
+		$post_content = Tporapdi_Media_Ingestor::parse_and_sideload_content_images( $post_content, $insert_post_id );
 
 		if ( (string) get_post_field( 'post_content', $insert_post_id ) !== (string) $post_content ) {
 			$updated_insert_post_id = wp_update_post(
@@ -1423,16 +1036,6 @@ function tporapdi_apply_custom_meta_mappings( $post_id, $item, $mappings ) {
 		return;
 	}
 
-	$twig = tporapdi_get_twig_environment();
-	if ( is_wp_error( $twig ) ) {
-		return;
-	}
-
-	$loader = $twig->getLoader();
-	if ( ! $loader instanceof \Twig\Loader\ArrayLoader ) {
-		return;
-	}
-
 	foreach ( $mappings as $mapping ) {
 		if ( ! is_array( $mapping ) ) {
 			continue;
@@ -1445,24 +1048,13 @@ function tporapdi_apply_custom_meta_mappings( $post_id, $item, $mappings ) {
 			continue;
 		}
 
-		$template_name = 'custom-meta-' . md5( $meta_key . $raw_value );
+		$compiled_value = tporapdi_get_template_engine()->render( $raw_value, $item, TPORAPDI_Template_Engine::TYPE_META );
 
-		try {
-			$loader->setTemplate( $template_name, $raw_value );
-
-			$compiled_value = (string) $twig->render(
-				$template_name,
-				array(
-					'record' => $item,
-					'item'   => $item,
-					'data'   => $item,
-				)
-			);
-		} catch ( \Twig\Error\Error $error ) {
+		if ( is_wp_error( $compiled_value ) ) {
 			do_action(
 				'tporapdi_custom_meta_mapping_error',
 				$post_id,
-				sanitize_text_field( $error->getMessage() )
+				sanitize_text_field( $compiled_value->get_error_message() )
 			);
 			continue;
 		}
@@ -1471,8 +1063,6 @@ function tporapdi_apply_custom_meta_mappings( $post_id, $item, $mappings ) {
 			$compiled_value = true;
 		} elseif ( 'false' === $compiled_value ) {
 			$compiled_value = false;
-		} elseif ( is_string( $compiled_value ) ) {
-			$compiled_value = sanitize_text_field( $compiled_value );
 		}
 
 		update_post_meta( $post_id, $meta_key, $compiled_value );
@@ -1879,93 +1469,13 @@ function tporapdi_assign_featured_image_from_item( $item, $post_id, $import_id =
 	}
 
 	$current_thumbnail_id = (int) get_post_thumbnail_id( $post_id );
-	$attachment_id        = TPORAPDI_Import_Processor::sideload_image( $featured_image_url, $post_id, true );
+	$attachment_id        = Tporapdi_Media_Ingestor::sideload_image( $featured_image_url, $post_id, true );
 
 	if ( false === $attachment_id ) {
 		return false;
 	}
 
 	return $current_thumbnail_id !== (int) $attachment_id;
-}
-
-/**
- * Initializes the Twig templating environment for import transforms.
- *
- * Uses ArrayLoader because templates are saved in the database and rendered from strings.
- * Auto-escaping is disabled so mapped HTML remains intact in post_content.
- *
- * @return Twig\Environment|WP_Error
- */
-function tporapdi_get_twig_environment() {
-	static $twig = null;
-
-	if ( $twig instanceof \Twig\Environment ) {
-		return $twig;
-	}
-
-	if ( ! class_exists( '\\Twig\\Environment' ) || ! class_exists( '\\Twig\\Loader\\ArrayLoader' ) ) {
-		return new WP_Error(
-			'tporapdi_twig_missing_dependency',
-			__( 'Twig is not installed. Run Composer install for twig/twig.', 'tporret-api-data-importer' )
-		);
-	}
-
-	$strict_variables = (bool) apply_filters( 'tporapdi_twig_strict_variables', false );
-
-	$loader = new \Twig\Loader\ArrayLoader( array() );
-	$twig   = new \Twig\Environment(
-		$loader,
-		array(
-			'autoescape'       => false,
-			'strict_variables' => $strict_variables,
-			'cache'            => false,
-		)
-	);
-
-	// Add custom Twig tests here (for example, domain-specific validation checks).
-	$twig->addTest(
-		new \Twig\TwigTest(
-			'numeric',
-			static function ( $value ) {
-				return is_numeric( $value );
-			}
-		)
-	);
-
-	// Add custom Twig filters here (for example, formatting helpers used by mapping templates).
-	$twig->addFilter(
-		new \Twig\TwigFilter(
-			'format_us_currency',
-			static function ( $value ) {
-				if ( ! is_numeric( $value ) ) {
-					return (string) $value;
-				}
-
-				return '$' . number_format( (float) $value, 2, '.', ',' );
-			}
-		)
-	);
-
-	$twig->addFilter(
-		new \Twig\TwigFilter(
-			'format_date_mdy',
-			static function ( $value ) {
-				$date_value = trim( (string) $value );
-				if ( '' === $date_value ) {
-					return '';
-				}
-
-				$timestamp = strtotime( $date_value );
-				if ( false === $timestamp ) {
-					return $date_value;
-				}
-
-				return gmdate( 'm/d/Y', (int) $timestamp );
-			}
-		)
-	);
-
-	return $twig;
 }
 
 /**
@@ -2011,78 +1521,7 @@ function tporapdi_kses_mapping_template( $template, $allowed_html ) {
  * @return true|WP_Error
  */
 function tporapdi_validate_twig_template_security( $template, $type = 'mapping' ) {
-	$template = (string) $template;
-	$type     = in_array( $type, array( 'title', 'mapping' ), true ) ? $type : 'mapping';
-
-	$max_bytes_default = 'title' === $type ? 2048 : 50000;
-	$max_bytes         = (int) apply_filters( 'tporapdi_template_max_bytes', $max_bytes_default, $type );
-	$template_size     = strlen( $template );
-
-	if ( $max_bytes > 0 && $template_size > $max_bytes ) {
-		return new WP_Error(
-			'tporapdi_template_too_large',
-			sprintf(
-				/* translators: %1$d is current bytes, %2$d is max bytes. */
-				__( 'Template is too large (%1$d bytes). Maximum allowed is %2$d bytes.', 'tporret-api-data-importer' ),
-				$template_size,
-				$max_bytes
-			)
-		);
-	}
-
-	$max_expressions  = (int) apply_filters( 'tporapdi_template_max_expressions', 250, $type );
-	$expression_count = substr_count( $template, '{{' ) + substr_count( $template, '{%' );
-	if ( $max_expressions > 0 && $expression_count > $max_expressions ) {
-		return new WP_Error( 'tporapdi_template_too_complex', __( 'Template has too many Twig expressions.', 'tporret-api-data-importer' ) );
-	}
-
-	$disallowed_tag_pattern = '/\{\%\s*(include|source|import|from|embed|extends|use|macro)\b/i';
-	if ( 1 === preg_match( $disallowed_tag_pattern, $template ) ) {
-		return new WP_Error( 'tporapdi_template_disallowed_tag', __( 'Template uses disallowed Twig tags.', 'tporret-api-data-importer' ) );
-	}
-
-	$max_nesting = (int) apply_filters( 'tporapdi_template_max_nesting_depth', 12, $type );
-	$tokens      = array();
-	$token_match = preg_match_all( '/\{\%\s*(if|for|endif|endfor)\b[^%]*\%\}/i', $template, $tokens );
-	$depth       = 0;
-	$max_seen    = 0;
-
-	if ( false !== $token_match && ! empty( $tokens[1] ) ) {
-		foreach ( $tokens[1] as $token ) {
-			$token = strtolower( (string) $token );
-			if ( 'if' === $token || 'for' === $token ) {
-				++$depth;
-				$max_seen = max( $max_seen, $depth );
-			} elseif ( 'endif' === $token || 'endfor' === $token ) {
-				$depth = max( 0, $depth - 1 );
-			}
-		}
-	}
-
-	if ( $max_nesting > 0 && $max_seen > $max_nesting ) {
-		return new WP_Error( 'tporapdi_template_excessive_nesting', __( 'Template nesting depth is too high.', 'tporret-api-data-importer' ) );
-	}
-
-	$twig = tporapdi_get_twig_environment();
-	if ( is_wp_error( $twig ) ) {
-		return $twig;
-	}
-
-	try {
-		$source = new \Twig\Source( $template, 'eai-validate-' . $type );
-		$twig->parse( $twig->tokenize( $source ) );
-	} catch ( \Twig\Error\Error $error ) {
-		return new WP_Error(
-			'tporapdi_template_syntax_error',
-			sprintf(
-				/* translators: %s is the Twig exception message. */
-				__( 'Twig template syntax error: %s', 'tporret-api-data-importer' ),
-				sanitize_text_field( $error->getMessage() )
-			)
-		);
-	}
-
-	return true;
+	return tporapdi_get_security_guard()->check_template( $template, $type );
 }
 
 /**
@@ -2104,47 +1543,12 @@ function tporapdi_render_mapping_template_for_item( $item, $mapping_template = n
 		return new WP_Error( 'tporapdi_missing_mapping_template', __( 'Mapping Template is not configured.', 'tporret-api-data-importer' ) );
 	}
 
-	$template_security = tporapdi_validate_twig_template_security( (string) $mapping_template, 'mapping' );
+	$template_security = tporapdi_validate_twig_template_security( $mapping_template, 'mapping' );
 	if ( is_wp_error( $template_security ) ) {
 		return $template_security;
 	}
 
-	$twig = tporapdi_get_twig_environment();
-
-	if ( is_wp_error( $twig ) ) {
-		return $twig;
-	}
-
-	$loader = $twig->getLoader();
-
-	if ( ! $loader instanceof \Twig\Loader\ArrayLoader ) {
-		return new WP_Error( 'tporapdi_twig_loader_invalid', __( 'Twig loader is not configured for string templates.', 'tporret-api-data-importer' ) );
-	}
-
-	try {
-		$template_name = 'tporapdi_import_template';
-		$loader->setTemplate( $template_name, (string) $mapping_template );
-
-		$post_content = $twig->render(
-			$template_name,
-			array(
-				'record' => $item,
-				'item'   => $item,
-				'data'   => $item,
-			)
-		);
-	} catch ( \Twig\Error\Error $error ) {
-		return new WP_Error(
-			'tporapdi_template_syntax_error',
-			sprintf(
-				/* translators: %s is the Twig exception message. */
-				__( 'Twig template syntax error: %s', 'tporret-api-data-importer' ),
-				sanitize_text_field( $error->getMessage() )
-			)
-		);
-	}
-
-	return (string) $post_content;
+	return tporapdi_get_template_engine()->render( $mapping_template, $item, TPORAPDI_Template_Engine::TYPE_BODY );
 }
 
 /**
@@ -2248,13 +1652,7 @@ function tporapdi_schedule_import_batch_event( $delay_seconds = null, $is_initia
  * @return array<string, mixed>
  */
 function tporapdi_get_active_run_state() {
-	$state = get_option( 'tporapdi_active_import_run', array() );
-
-	if ( ! is_array( $state ) ) {
-		$state = array();
-	}
-
-	return $state;
+	return tporapdi_get_import_runner()->get_active_run_state();
 }
 
 /**
@@ -2265,7 +1663,7 @@ function tporapdi_get_active_run_state() {
  * @return void
  */
 function tporapdi_set_active_run_state( $state ) {
-	update_option( 'tporapdi_active_import_run', $state, false );
+	tporapdi_get_import_runner()->set_active_run_state( is_array( $state ) ? $state : array() );
 }
 
 /**
@@ -2275,7 +1673,7 @@ function tporapdi_set_active_run_state( $state ) {
  * @return void
  */
 function tporapdi_clear_active_run_state() {
-	delete_option( 'tporapdi_active_import_run' );
+	tporapdi_get_import_runner()->clear_active_run_state();
 }
 
 /**
@@ -2291,193 +1689,11 @@ function tporapdi_clear_active_run_state() {
  * @return array<string, mixed>|WP_Error
  */
 function tporapdi_process_unprocessed_staging_rows( $started_at_microtime, $import_id, $max_runtime_seconds = 45 ) {
-	$import_id   = absint( $import_id );
-	$staged_rows = tporapdi_db_get_unprocessed_staging_rows( $import_id, 10 );
-
-	if ( ! is_array( $staged_rows ) ) {
-		return new WP_Error( 'tporapdi_staging_query_failed', __( 'Failed to query unprocessed staging rows.', 'tporret-api-data-importer' ) );
-	}
-
-	$result = array(
-		'temp_rows_found'     => count( $staged_rows ),
-		'temp_rows_processed' => 0,
-		'rows_processed'      => 0,
-		'rows_created'        => 0,
-		'rows_updated'        => 0,
-		'errors'              => array(),
-		'timed_out'           => false,
-		'has_remaining'       => false,
+	return tporapdi_get_import_runner()->process_unprocessed_staging_rows(
+		(float) $started_at_microtime,
+		absint( $import_id ),
+		(int) $max_runtime_seconds
 	);
-
-	if ( empty( $staged_rows ) ) {
-		return $result;
-	}
-
-	foreach ( $staged_rows as $staged_row ) {
-		if ( ( microtime( true ) - $started_at_microtime ) >= $max_runtime_seconds ) {
-			$result['timed_out']     = true;
-			$result['has_remaining'] = true;
-			break;
-		}
-
-		$row_id        = isset( $staged_row['id'] ) ? (int) $staged_row['id'] : 0;
-		$row_import_id = isset( $staged_row['import_id'] ) ? (int) $staged_row['import_id'] : 0;
-
-		if ( $row_id <= 0 ) {
-			$result['errors'][] = __( 'Encountered an invalid staging row identifier.', 'tporret-api-data-importer' );
-			continue;
-		}
-
-		$import_job = tporapdi_db_get_import_config( $row_import_id );
-
-		if ( ! is_array( $import_job ) ) {
-			$result['errors'][] = sprintf(
-				/* translators: %d is import job ID. */
-				__( 'Import job %d could not be loaded for processing.', 'tporret-api-data-importer' ),
-				$row_import_id
-			);
-			continue;
-		}
-
-		$decoded_items = json_decode( (string) $staged_row['raw_json'], true );
-
-		if ( JSON_ERROR_NONE !== json_last_error() ) {
-			$result['errors'][] = sprintf(
-				/* translators: 1: staging row ID, 2: JSON error message. */
-				__( 'Staging row %1$d has invalid JSON: %2$s', 'tporret-api-data-importer' ),
-				$row_id,
-				json_last_error_msg()
-			);
-			continue;
-		}
-
-		if ( ! is_array( $decoded_items ) ) {
-			$result['errors'][] = sprintf(
-				/* translators: %d is the staging row ID. */
-				__( 'Staging row %d does not contain an array payload.', 'tporret-api-data-importer' ),
-				$row_id
-			);
-			continue;
-		}
-
-		$items                      = tporapdi_normalize_staged_items( $decoded_items );
-		$mapping_template           = (string) $import_job['mapping_template'];
-		$title_template             = isset( $import_job['title_template'] ) ? (string) $import_job['title_template'] : '';
-		$excerpt_template           = isset( $import_job['excerpt_template'] ) ? (string) $import_job['excerpt_template'] : '';
-		$post_name_template         = isset( $import_job['post_name_template'] ) ? (string) $import_job['post_name_template'] : '';
-		$target_post_type           = isset( $import_job['target_post_type'] ) ? (string) $import_job['target_post_type'] : 'post';
-		$unique_id_path             = isset( $import_job['unique_id_path'] ) ? trim( (string) $import_job['unique_id_path'] ) : 'id';
-		$featured_image_source_path = isset( $import_job['featured_image_source_path'] ) ? trim( (string) $import_job['featured_image_source_path'] ) : 'image.url';
-		$post_author                = isset( $import_job['post_author'] ) ? absint( $import_job['post_author'] ) : 0;
-		$post_status                = isset( $import_job['post_status'] ) ? (string) $import_job['post_status'] : 'draft';
-		$comment_status             = isset( $import_job['comment_status'] ) ? (string) $import_job['comment_status'] : 'closed';
-		$ping_status                = isset( $import_job['ping_status'] ) ? (string) $import_job['ping_status'] : 'closed';
-		$custom_meta_mappings       = array();
-		if ( ! empty( $import_job['custom_meta_mappings'] ) ) {
-			$decoded_meta_mappings = is_string( $import_job['custom_meta_mappings'] )
-				? json_decode( $import_job['custom_meta_mappings'], true )
-				: $import_job['custom_meta_mappings'];
-			if ( is_array( $decoded_meta_mappings ) ) {
-				$custom_meta_mappings = $decoded_meta_mappings;
-			}
-		}
-		$chunks        = array_chunk( $items, 50 );
-		$row_completed = true;
-
-		if ( '' === $unique_id_path ) {
-			$unique_id_path = 'id';
-		}
-
-		if ( '' === $featured_image_source_path ) {
-			$featured_image_source_path = 'image.url';
-		}
-
-		foreach ( $chunks as $chunk_items ) {
-			$chunk_external_ids = array();
-			foreach ( $chunk_items as $chunk_item ) {
-				$chunk_external_id = tporapdi_get_item_value_by_path( $chunk_item, $unique_id_path );
-				if ( is_scalar( $chunk_external_id ) ) {
-					$chunk_external_ids[] = trim( (string) $chunk_external_id );
-				}
-			}
-
-			$existing_post_ids = tporapdi_get_existing_imported_post_ids_by_external_ids( $chunk_external_ids, $row_import_id );
-
-			foreach ( $chunk_items as $item ) {
-				if ( ( microtime( true ) - $started_at_microtime ) >= $max_runtime_seconds ) {
-					$result['timed_out']     = true;
-					$result['has_remaining'] = true;
-					$row_completed           = false;
-					break 2;
-				}
-
-				++$result['rows_processed'];
-
-				$item_result = tporapdi_transform_and_load_item(
-					$item,
-					$mapping_template,
-					$title_template,
-					$target_post_type,
-					$unique_id_path,
-					$row_import_id,
-					$featured_image_source_path,
-					$post_author,
-					$post_status,
-					$comment_status,
-					$ping_status,
-					$custom_meta_mappings,
-					$existing_post_ids,
-					$excerpt_template,
-					$post_name_template
-				);
-
-				if ( is_wp_error( $item_result ) ) {
-					$result['errors'][] = sprintf(
-						/* translators: 1: staging row ID, 2: error message. */
-						__( 'Row %1$d item failed: %2$s', 'tporret-api-data-importer' ),
-						$row_id,
-						$item_result->get_error_message()
-					);
-					continue;
-				}
-
-				if ( isset( $item_result['action'] ) && 'inserted' === $item_result['action'] ) {
-					++$result['rows_created'];
-				} elseif ( isset( $item_result['action'] ) && 'updated' === $item_result['action'] ) {
-					++$result['rows_updated'];
-				}
-			}
-
-			unset( $chunk_items );
-		}
-
-		if ( $row_completed ) {
-			$marked_processed = tporapdi_db_mark_staging_row_processed( $row_id );
-
-			if ( ! $marked_processed ) {
-				$result['errors'][] = sprintf(
-					/* translators: %d is the staging row ID. */
-					__( 'Failed to mark staging row %d as processed.', 'tporret-api-data-importer' ),
-					$row_id
-				);
-				$result['has_remaining'] = true;
-			} else {
-				++$result['temp_rows_processed'];
-			}
-		}
-
-		unset( $items, $chunks, $decoded_items );
-
-		if ( $result['timed_out'] ) {
-			break;
-		}
-	}
-
-	if ( ! $result['has_remaining'] ) {
-		$result['has_remaining'] = tporapdi_has_unprocessed_staging_rows( $import_id );
-	}
-
-	return $result;
 }
 
 /**
@@ -2486,101 +1702,7 @@ function tporapdi_process_unprocessed_staging_rows( $started_at_microtime, $impo
  * @return void
  */
 function tporapdi_handle_scheduled_import_batch() {
-	$state = tporapdi_get_active_run_state();
-
-	if ( empty( $state ) || empty( $state['import_id'] ) ) {
-		return;
-	}
-
-	$import_id = absint( $state['import_id'] );
-
-	$state['slices'] = isset( $state['slices'] ) ? ( (int) $state['slices'] + 1 ) : 1;
-
-	$processing_result = tporapdi_process_unprocessed_staging_rows( microtime( true ), $import_id, 45 );
-
-	if ( is_wp_error( $processing_result ) ) {
-		$end_time = gmdate( 'Y-m-d H:i:s', time() );
-		$details  = array(
-			'start_time'          => $state['start_time'],
-			'end_time'            => $end_time,
-			'orphans_trashed'     => 0,
-			'temp_rows_found'     => (int) $state['temp_rows_found'],
-			'temp_rows_processed' => (int) $state['temp_rows_processed'],
-			'slices'              => (int) $state['slices'],
-			'trigger_source'      => isset( $state['trigger_source'] ) ? sanitize_key( (string) $state['trigger_source'] ) : 'unknown',
-			'processing_errors'   => array( $processing_result->get_error_message() ),
-		);
-
-		tporapdi_write_import_log(
-			$import_id,
-			(string) $state['run_id'],
-			'failed',
-			(int) $state['rows_processed'],
-			(int) $state['rows_created'],
-			(int) $state['rows_updated'],
-			$details,
-			(string) $state['start_time']
-		);
-
-		tporapdi_clear_active_run_state();
-		return;
-	}
-
-	$state['rows_processed']      = (int) $state['rows_processed'] + (int) $processing_result['rows_processed'];
-	$state['rows_created']        = (int) $state['rows_created'] + (int) $processing_result['rows_created'];
-	$state['rows_updated']        = (int) $state['rows_updated'] + (int) $processing_result['rows_updated'];
-	$state['temp_rows_found']     = (int) $state['temp_rows_found'] + (int) $processing_result['temp_rows_found'];
-	$state['temp_rows_processed'] = (int) $state['temp_rows_processed'] + (int) $processing_result['temp_rows_processed'];
-
-	if ( ! empty( $processing_result['errors'] ) && is_array( $processing_result['errors'] ) ) {
-		$state['errors'] = array_merge( $state['errors'], $processing_result['errors'] );
-	}
-
-	if ( ! empty( $processing_result['has_remaining'] ) ) {
-		tporapdi_set_active_run_state( $state );
-		tporapdi_schedule_import_batch_event( null, false );
-		return;
-	}
-
-	$orphans_trashed = tporapdi_trash_orphaned_imported_posts( (int) $state['start_timestamp'], $import_id );
-	if ( is_wp_error( $orphans_trashed ) ) {
-		$state['errors'][] = $orphans_trashed->get_error_message();
-		$orphans_trashed   = 0;
-	}
-
-	$end_time = gmdate( 'Y-m-d H:i:s', time() );
-
-	if ( 0 === (int) $state['rows_processed'] && 0 === (int) $state['temp_rows_found'] ) {
-		$status = 'no_data';
-	} elseif ( empty( $state['errors'] ) ) {
-		$status = 'success';
-	} else {
-		$status = 'completed_with_errors';
-	}
-
-	$details = array(
-		'start_time'          => $state['start_time'],
-		'end_time'            => $end_time,
-		'orphans_trashed'     => (int) $orphans_trashed,
-		'temp_rows_found'     => (int) $state['temp_rows_found'],
-		'temp_rows_processed' => (int) $state['temp_rows_processed'],
-		'slices'              => (int) $state['slices'],
-		'trigger_source'      => isset( $state['trigger_source'] ) ? sanitize_key( (string) $state['trigger_source'] ) : 'unknown',
-		'processing_errors'   => $state['errors'],
-	);
-
-	tporapdi_write_import_log(
-		$import_id,
-		(string) $state['run_id'],
-		$status,
-		(int) $state['rows_processed'],
-		(int) $state['rows_created'],
-		(int) $state['rows_updated'],
-		$details,
-		(string) $state['start_time']
-	);
-
-	tporapdi_clear_active_run_state();
+	tporapdi_get_import_runner()->handle_scheduled_import_batch();
 }
 
 /**

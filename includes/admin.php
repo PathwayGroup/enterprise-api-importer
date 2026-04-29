@@ -1452,8 +1452,8 @@ function tporapdi_handle_manual_import_run() {
 		exit;
 	}
 
-	$active_state = tporapdi_get_active_run_state();
-	if ( ! empty( $active_state['run_id'] ) ) {
+	$start_result = tporapdi_get_import_runner()->start_manual_run( $import_id, 'manual' );
+	if ( is_wp_error( $start_result ) ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
@@ -1467,42 +1467,6 @@ function tporapdi_handle_manual_import_run() {
 		);
 		exit;
 	}
-
-	$extract_result = tporapdi_extract_and_stage_data( $import_id );
-	if ( is_wp_error( $extract_result ) ) {
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'            => TPORAPDI_ADMIN_PAGE_MANAGE_SLUG,
-					'action'          => 'edit',
-					'id'              => $import_id,
-					'tporapdi_notice' => 'import_error',
-				),
-				admin_url( 'admin.php' )
-			)
-		);
-		exit;
-	}
-
-	tporapdi_set_active_run_state(
-		array(
-			'run_id'              => wp_generate_uuid4(),
-			'import_id'           => $import_id,
-			'trigger_source'      => 'manual',
-			'start_timestamp'     => time(),
-			'start_time'          => gmdate( 'Y-m-d H:i:s', time() ),
-			'rows_processed'      => 0,
-			'rows_created'        => 0,
-			'rows_updated'        => 0,
-			'temp_rows_found'     => 0,
-			'temp_rows_processed' => 0,
-			'errors'              => array(),
-			'slices'              => 0,
-		)
-	);
-
-	// Process one slice immediately; remaining slices will self-schedule if needed.
-	tporapdi_handle_scheduled_import_batch();
 
 	$notice_code   = 'import_started';
 	$template_sync = isset( $_POST['tporapdi_template_sync'] )

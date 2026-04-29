@@ -147,34 +147,7 @@ function tporapdi_db_delete_network_snapshot( int $blog_id ): bool {
 	return false !== $deleted;
 }
 
-/**
- * Builds the cache key for one import config row.
- *
- * @param int $import_id Import job ID.
- *
- * @return string
- */
-function tporapdi_db_import_config_cache_key( int $import_id ): string {
-	return 'import_config:' . absint( $import_id );
-}
-
-/**
- * Invalidates all import-configuration cache entries.
- *
- * @param int $import_id Import ID that changed.
- *
- * @return void
- */
-function tporapdi_db_invalidate_imports_cache( int $import_id = 0 ): void {
-	$import_id = absint( $import_id );
-
-	wp_cache_delete( 'import_configs:all', TPORAPDI_CACHE_GROUP );
-	wp_cache_delete( 'import_configs:custom_intervals', TPORAPDI_CACHE_GROUP );
-
-	if ( $import_id > 0 ) {
-		wp_cache_delete( tporapdi_db_import_config_cache_key( $import_id ), TPORAPDI_CACHE_GROUP );
-	}
-}
+// Cache management is now owned by Tporapdi_Job_Repository.
 
 /**
  * Fetches all import configurations (cache-backed).
@@ -182,37 +155,7 @@ function tporapdi_db_invalidate_imports_cache( int $import_id = 0 ): void {
  * @return array<int, array<string, mixed>>
  */
 function tporapdi_db_get_import_configs(): array {
-	$cache_key = 'import_configs:all';
-	$cached    = wp_cache_get( $cache_key, TPORAPDI_CACHE_GROUP );
-
-	if ( false !== $cached && is_array( $cached ) ) {
-		return $cached;
-	}
-
-	global $wpdb;
-	$table = tporapdi_db_imports_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, excerpt_template, post_name_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
-			FROM %i
-			ORDER BY id DESC',
-			$table
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		$rows = array();
-	}
-
-	// Decrypt credentials transparently so consumers receive plaintext.
-	$rows = array_map( 'tporapdi_decrypt_import_credentials', $rows );
-
-	wp_cache_set( $cache_key, $rows, TPORAPDI_CACHE_GROUP, 60 );
-
-	return $rows;
+	return Tporapdi_Job_Repository::find_all();
 }
 
 /**
@@ -223,43 +166,7 @@ function tporapdi_db_get_import_configs(): array {
  * @return array<string, mixed>|null
  */
 function tporapdi_db_get_import_config( int $import_id ): ?array {
-	$import_id = absint( $import_id );
-	if ( $import_id <= 0 ) {
-		return null;
-	}
-
-	$cache_key = tporapdi_db_import_config_cache_key( $import_id );
-	$cached    = wp_cache_get( $cache_key, TPORAPDI_CACHE_GROUP );
-
-	if ( false !== $cached && is_array( $cached ) ) {
-		return $cached;
-	}
-
-	global $wpdb;
-	$table = tporapdi_db_imports_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$row = $wpdb->get_row(
-		$wpdb->prepare(
-			'SELECT id, name, endpoint_url, auth_method, auth_token, auth_header_name, auth_username, auth_password, array_path, unique_id_path, recurrence, custom_interval_minutes, filter_rules, target_post_type, featured_image_source_path, title_template, excerpt_template, post_name_template, mapping_template, lock_editing, post_status, comment_status, ping_status, custom_meta_mappings, created_at
-			FROM %i
-			WHERE id = %d',
-			$table,
-			$import_id
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $row ) ) {
-		return null;
-	}
-
-	// Decrypt credentials transparently so consumers receive plaintext.
-	$row = tporapdi_decrypt_import_credentials( $row );
-
-	wp_cache_set( $cache_key, $row, TPORAPDI_CACHE_GROUP, 60 );
-
-	return $row;
+	return Tporapdi_Job_Repository::find( $import_id );
 }
 
 /**
@@ -268,43 +175,7 @@ function tporapdi_db_get_import_config( int $import_id ): ?array {
  * @return array<int, int>
  */
 function tporapdi_db_get_custom_recurrence_minutes(): array {
-	$cache_key = 'import_configs:custom_intervals';
-	$cached    = wp_cache_get( $cache_key, TPORAPDI_CACHE_GROUP );
-
-	if ( false !== $cached && is_array( $cached ) ) {
-		return $cached;
-	}
-
-	global $wpdb;
-	$table = tporapdi_db_imports_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_col(
-		$wpdb->prepare(
-			"SELECT DISTINCT custom_interval_minutes
-			FROM %i
-			WHERE recurrence = 'custom'
-				AND custom_interval_minutes > 0",
-			$table
-		)
-	);
-
-	if ( ! is_array( $rows ) ) {
-		$rows = array();
-	}
-
-	$minutes = array();
-	foreach ( $rows as $minutes_value ) {
-		$interval = max( 1, absint( $minutes_value ) );
-		if ( $interval > 0 ) {
-			$minutes[] = $interval;
-		}
-	}
-
-	$minutes = array_values( array_unique( $minutes ) );
-	wp_cache_set( $cache_key, $minutes, TPORAPDI_CACHE_GROUP, 60 );
-
-	return $minutes;
+	return Tporapdi_Job_Repository::find_custom_recurrence_minutes();
 }
 
 /**
@@ -317,57 +188,7 @@ function tporapdi_db_get_custom_recurrence_minutes(): array {
  * @return int|WP_Error Persisted import ID or WP_Error on failure.
  */
 function tporapdi_db_save_import_config( int $import_id, array $data, array $formats ) {
-	global $wpdb;
-
-	$table     = tporapdi_db_imports_table();
-	$import_id = absint( $import_id );
-
-	if ( $import_id > 0 ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$updated = $wpdb->update( $table, $data, array( 'id' => $import_id ), $formats, array( '%d' ) );
-		if ( false === $updated ) {
-			$last_error = is_string( $wpdb->last_error ) ? trim( $wpdb->last_error ) : '';
-			$message    = __( 'Failed to update import configuration.', 'tporret-api-data-importer' );
-			if ( '' !== $last_error ) {
-				$message .= ' ' . sprintf(
-					/* translators: %s is the SQL/database error message. */
-					__( 'Database error: %s', 'tporret-api-data-importer' ),
-					$last_error
-				);
-			}
-
-			return new WP_Error( 'tporapdi_import_update_failed', $message );
-		}
-
-		tporapdi_db_invalidate_imports_cache( $import_id );
-		return $import_id;
-	}
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-	$inserted = $wpdb->insert(
-		$table,
-		array_merge( $data, array( 'created_at' => current_time( 'mysql', true ) ) ),
-		array_merge( $formats, array( '%s' ) )
-	);
-
-	if ( false === $inserted ) {
-		$last_error = is_string( $wpdb->last_error ) ? trim( $wpdb->last_error ) : '';
-		$message    = __( 'Failed to create import configuration.', 'tporret-api-data-importer' );
-		if ( '' !== $last_error ) {
-			$message .= ' ' . sprintf(
-				/* translators: %s is the SQL/database error message. */
-				__( 'Database error: %s', 'tporret-api-data-importer' ),
-				$last_error
-			);
-		}
-
-		return new WP_Error( 'tporapdi_import_insert_failed', $message );
-	}
-
-	$new_import_id = (int) $wpdb->insert_id;
-	tporapdi_db_invalidate_imports_cache( $new_import_id );
-
-	return $new_import_id;
+	return Tporapdi_Job_Repository::save( $import_id, $data, $formats );
 }
 
 /**
@@ -378,24 +199,7 @@ function tporapdi_db_save_import_config( int $import_id, array $data, array $for
  * @return bool
  */
 function tporapdi_db_delete_import_config( int $import_id ): bool {
-	global $wpdb;
-
-	$import_id = absint( $import_id );
-	if ( $import_id <= 0 ) {
-		return false;
-	}
-
-	$table = tporapdi_db_imports_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-	$deleted = $wpdb->delete( $table, array( 'id' => $import_id ), array( '%d' ) );
-
-	if ( false === $deleted ) {
-		return false;
-	}
-
-	tporapdi_db_invalidate_imports_cache( $import_id );
-	return true;
+	return Tporapdi_Job_Repository::delete( $import_id );
 }
 
 /**
@@ -405,17 +209,7 @@ function tporapdi_db_delete_import_config( int $import_id ): bool {
  * @return int|false Number of deleted rows, or false on error.
  */
 function tporapdi_db_delete_staging_rows_for_import( int $import_id ) {
-	global $wpdb;
-
-	$import_id = absint( $import_id );
-	if ( $import_id <= 0 ) {
-		return 0;
-	}
-
-	$table = tporapdi_db_temp_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	return $wpdb->delete( $table, array( 'import_id' => $import_id ), array( '%d' ) );
+	return Tporapdi_Queue_Repository::delete_for_import( $import_id );
 }
 
 /**
@@ -425,17 +219,7 @@ function tporapdi_db_delete_staging_rows_for_import( int $import_id ) {
  * @return int|false Number of deleted rows, or false on error.
  */
 function tporapdi_db_delete_log_rows_for_import( int $import_id ) {
-	global $wpdb;
-
-	$import_id = absint( $import_id );
-	if ( $import_id <= 0 ) {
-		return 0;
-	}
-
-	$table = tporapdi_db_logs_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	return $wpdb->delete( $table, array( 'import_id' => $import_id ), array( '%d' ) );
+	return Tporapdi_Log_Repository::delete_for_import( $import_id );
 }
 
 /**
@@ -447,29 +231,7 @@ function tporapdi_db_delete_log_rows_for_import( int $import_id ) {
  * @return array<int, array<string, mixed>>
  */
 function tporapdi_db_get_unprocessed_staging_rows( int $import_id, int $limit = 10 ): array {
-	global $wpdb;
-
-	$import_id = absint( $import_id );
-	$limit     = absint( $limit );
-	$table     = tporapdi_db_temp_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT id, import_id, raw_json
-			FROM %i
-			WHERE is_processed = 0
-				AND import_id = %d
-			ORDER BY id ASC
-			LIMIT %d',
-			$table,
-			$import_id,
-			$limit
-		),
-		ARRAY_A
-	);
-
-	return is_array( $rows ) ? $rows : array();
+	return Tporapdi_Queue_Repository::get_unprocessed( $import_id, $limit );
 }
 
 /**
@@ -480,23 +242,7 @@ function tporapdi_db_get_unprocessed_staging_rows( int $import_id, int $limit = 
  * @return int
  */
 function tporapdi_db_count_unprocessed_staging_rows( int $import_id ): int {
-	global $wpdb;
-
-	$table = tporapdi_db_temp_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$count = $wpdb->get_var(
-		$wpdb->prepare(
-			'SELECT COUNT(1)
-			FROM %i
-			WHERE is_processed = 0
-				AND import_id = %d',
-			$table,
-			absint( $import_id )
-		)
-	);
-
-	return (int) $count;
+	return Tporapdi_Queue_Repository::count_pending( $import_id );
 }
 
 /**
@@ -507,20 +253,7 @@ function tporapdi_db_count_unprocessed_staging_rows( int $import_id ): int {
  * @return bool
  */
 function tporapdi_db_mark_staging_row_processed( int $row_id ): bool {
-	global $wpdb;
-
-	$table = tporapdi_db_temp_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$updated = $wpdb->update(
-		$table,
-		array( 'is_processed' => 1 ),
-		array( 'id' => absint( $row_id ) ),
-		array( '%d' ),
-		array( '%d' )
-	);
-
-	return false !== $updated;
+	return Tporapdi_Queue_Repository::mark_processed( $row_id );
 }
 
 /**
@@ -532,27 +265,7 @@ function tporapdi_db_mark_staging_row_processed( int $row_id ): bool {
  * @return int|WP_Error New row ID or WP_Error on failure.
  */
 function tporapdi_db_insert_staging_payload( int $import_id, string $raw_json ) {
-	global $wpdb;
-
-	$table = tporapdi_db_temp_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$inserted = $wpdb->insert(
-		$table,
-		array(
-			'import_id'    => absint( $import_id ),
-			'raw_json'     => (string) $raw_json,
-			'is_processed' => 0,
-			'created_at'   => current_time( 'mysql', true ),
-		),
-		array( '%d', '%s', '%d', '%s' )
-	);
-
-	if ( false === $inserted ) {
-		return new WP_Error( 'tporapdi_temp_insert_failed', __( 'Failed to insert staging payload.', 'tporret-api-data-importer' ) );
-	}
-
-	return (int) $wpdb->insert_id;
+	return Tporapdi_Queue_Repository::enqueue( $import_id, $raw_json );
 }
 
 /**
@@ -570,27 +283,7 @@ function tporapdi_db_insert_staging_payload( int $import_id, string $raw_json ) 
  * @return bool
  */
 function tporapdi_db_insert_import_log( int $import_id, string $import_run_id, string $status, int $rows_processed, int $rows_created, int $rows_updated, string $errors_json, string $created_at ): bool {
-	global $wpdb;
-
-	$table = tporapdi_db_logs_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$inserted = $wpdb->insert(
-		$table,
-		array(
-			'import_id'      => absint( $import_id ),
-			'import_run_id'  => (string) $import_run_id,
-			'status'         => (string) $status,
-			'rows_processed' => (int) $rows_processed,
-			'rows_created'   => (int) $rows_created,
-			'rows_updated'   => (int) $rows_updated,
-			'errors'         => (string) $errors_json,
-			'created_at'     => (string) $created_at,
-		),
-		array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
-	);
-
-	return false !== $inserted;
+	return Tporapdi_Log_Repository::insert( $import_id, $import_run_id, $status, $rows_processed, $rows_created, $rows_updated, $errors_json, $created_at );
 }
 
 /**
@@ -599,41 +292,7 @@ function tporapdi_db_insert_import_log( int $import_id, string $import_run_id, s
  * @return array<int, array<string, mixed>>
  */
 function tporapdi_db_get_latest_logs_indexed_by_import_id(): array {
-	global $wpdb;
-
-	$logs_table = tporapdi_db_logs_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT l.import_id, l.status, l.rows_processed, l.rows_created, l.rows_updated, l.errors, l.created_at AS last_run_at
-			FROM %i l
-			INNER JOIN (
-				SELECT import_id, MAX(id) AS max_id
-				FROM %i
-				GROUP BY import_id
-			) latest
-				ON l.import_id = latest.import_id
-				AND l.id = latest.max_id',
-			$logs_table,
-			$logs_table
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return array();
-	}
-
-	$indexed = array();
-	foreach ( $rows as $row ) {
-		$import_id = isset( $row['import_id'] ) ? absint( $row['import_id'] ) : 0;
-		if ( $import_id > 0 ) {
-			$indexed[ $import_id ] = $row;
-		}
-	}
-
-	return $indexed;
+	return Tporapdi_Log_Repository::latest_indexed_by_import();
 }
 
 /**
@@ -646,58 +305,7 @@ function tporapdi_db_get_latest_logs_indexed_by_import_id(): array {
  * @return array<int, array<int, array<string, int>>>
  */
 function tporapdi_db_get_recent_import_log_trends( int $points_per_import = 12 ): array {
-	global $wpdb;
-
-	$logs_table         = tporapdi_db_logs_table();
-	$points_per_import  = max( 3, min( 30, absint( $points_per_import ) ) );
-	$global_sample_size = max( 150, $points_per_import * 250 );
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT import_id, rows_created, rows_updated
-			FROM %i
-			WHERE import_id > 0
-				AND status NOT IN ('template_audit')
-			ORDER BY id DESC
-			LIMIT %d",
-			$logs_table,
-			$global_sample_size
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return array();
-	}
-
-	$trends = array();
-
-	foreach ( $rows as $row ) {
-		$import_id = isset( $row['import_id'] ) ? absint( $row['import_id'] ) : 0;
-		if ( $import_id <= 0 ) {
-			continue;
-		}
-
-		if ( ! isset( $trends[ $import_id ] ) ) {
-			$trends[ $import_id ] = array();
-		}
-
-		if ( count( $trends[ $import_id ] ) >= $points_per_import ) {
-			continue;
-		}
-
-		$trends[ $import_id ][] = array(
-			'created' => isset( $row['rows_created'] ) ? (int) $row['rows_created'] : 0,
-			'updated' => isset( $row['rows_updated'] ) ? (int) $row['rows_updated'] : 0,
-		);
-	}
-
-	foreach ( $trends as $import_id => $points ) {
-		$trends[ $import_id ] = array_reverse( $points );
-	}
-
-	return $trends;
+	return Tporapdi_Log_Repository::trends( $points_per_import );
 }
 
 /**
@@ -706,33 +314,5 @@ function tporapdi_db_get_recent_import_log_trends( int $points_per_import = 12 )
  * @return array<int, int>
  */
 function tporapdi_db_get_pending_counts_by_import_id(): array {
-	global $wpdb;
-
-	$temp_table = tporapdi_db_temp_table();
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT import_id, COUNT(id) AS pending_count
-			FROM %i
-			WHERE is_processed = 0
-			GROUP BY import_id',
-			$temp_table
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return array();
-	}
-
-	$counts = array();
-	foreach ( $rows as $row ) {
-		$import_id = isset( $row['import_id'] ) ? absint( $row['import_id'] ) : 0;
-		if ( $import_id > 0 ) {
-			$counts[ $import_id ] = isset( $row['pending_count'] ) ? (int) $row['pending_count'] : 0;
-		}
-	}
-
-	return $counts;
+	return Tporapdi_Queue_Repository::pending_counts_by_import();
 }

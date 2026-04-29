@@ -62,24 +62,7 @@ add_action( 'init', 'tporapdi_register_imported_item_cpt' );
  * @return bool
  */
 function tporapdi_is_managed_imported_item( $post_id ) {
-	$import_id = get_post_meta( $post_id, '_tporapdi_import_id', true );
-
-	if ( '' === (string) $import_id ) {
-		return false;
-	}
-
-	$import_id = (int) $import_id;
-	if ( $import_id <= 0 ) {
-		return false;
-	}
-
-	$config = tporapdi_db_get_import_config( $import_id );
-	if ( ! is_array( $config ) ) {
-		// Import configuration deleted — treat post as unlocked.
-		return false;
-	}
-
-	return ! empty( $config['lock_editing'] );
+	return Tporapdi_Lock_Policy::is_locked( absint( $post_id ) );
 }
 
 /**

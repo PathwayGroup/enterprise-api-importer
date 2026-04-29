@@ -56,6 +56,21 @@ class TPORAPDI_Reporting_Aggregator {
 	}
 
 	/**
+	 * Static façade for self-registration.
+	 *
+	 * Reporter files call this at load time so the aggregator remains
+	 * agnostic — new reporters just drop a file into reporters/ with
+	 * a self-registration call at the bottom; no other file needs editing.
+	 *
+	 * @param TPORAPDI_Reporter_Base $reporter Reporter instance to register.
+	 *
+	 * @return void
+	 */
+	public static function register( TPORAPDI_Reporter_Base $reporter ): void {
+		self::get_instance()->register_reporter( $reporter );
+	}
+
+	/**
 	 * Aggregate data from all reporters, grouped by category.
 	 *
 	 * @return array<string, array<string, array<string, mixed>>>

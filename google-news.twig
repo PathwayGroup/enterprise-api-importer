@@ -1,0 +1,34 @@
+{% set r = record ?? item ?? data ?? {} %}
+{% set s = r.source|default({}) %}
+{% set authors = s.authors|default([]) %}
+
+<article class="google-news-item">
+	<h2>{{ r.title|default('Untitled')|e }}</h2>
+
+	{% if authors is not empty %}
+		<p><strong>By:</strong> {{ authors|join(', ')|e }}</p>
+	{% endif %}
+
+	{% if r.thumbnail|default('') %}
+		<p>
+			<img src="{{ r.thumbnail|e('html_attr') }}" alt="{{ r.title|default('News image')|e('html_attr') }}" />
+		</p>
+	{% endif %}
+
+	{% if r.link|default('') %}
+		<p>
+			<a href="{{ r.link|e('html_attr') }}" target="_blank" rel="noopener noreferrer">
+				Read full article{% if s.name|default('') %} at {{ s.name|e }}{% endif %}
+			</a>
+		</p>
+	{% endif %}
+
+	<section class="porretto-plugin-promo">
+		<h3>More WordPress Plugins</h3>
+		<p>
+			Discover more plugins and tools
+			<a href="https://www.porretto.com/" target="_blank" rel="noopener noreferrer">www.porretto.com</a>
+		</p>
+	</section>
+</article>
+

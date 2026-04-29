@@ -13,6 +13,53 @@ defined( 'ABSPATH' ) || exit;
 class TPORAPDI_Defaults_Resolver {
 
 	/**
+	 * Normalizes raw post-field values against the registered capabilities of a post type.
+	 *
+	 * This is the single seam for all "what are valid field values for this post type" logic.
+	 * Both the REST save path (via Validator) and the import runtime (via import.php) must
+	 * call this method — callers receive clean, ready-to-use values and never need to know
+	 * the allowed lists or per-type compatibility rules themselves.
+	 *
+	 * Normalization rules applied:
+	 *  - post_status  : must be one of draft|publish|pending|private|scheduled|future; falls back to 'draft'
+	 *  - comment_status: forced to 'closed' when the post type does not support comments
+	 *  - ping_status  : forced to 'closed' when the post type does not support trackbacks
+	 *
+	 * @param string $post_type Post type slug. Falls back to 'post' when invalid or 'attachment'.
+	 * @param array  $raw_input Associative array that may contain post_status, comment_status,
+	 *                          and/or ping_status keys with raw/unsanitized values.
+	 *
+	 * @return array{post_status: string, comment_status: string, ping_status: string}
+	 */
+	public static function normalize( string $post_type, array $raw_input ): array {
+		if ( '' === $post_type || 'attachment' === $post_type || ! post_type_exists( $post_type ) ) {
+			$post_type = 'post';
+		}
+
+		$post_type_obj = get_post_type_object( $post_type );
+
+		$post_status    = isset( $raw_input['post_status'] ) ? sanitize_key( (string) $raw_input['post_status'] ) : 'draft';
+		$comment_status = isset( $raw_input['comment_status'] ) ? sanitize_key( (string) $raw_input['comment_status'] ) : 'closed';
+		$ping_status    = isset( $raw_input['ping_status'] ) ? sanitize_key( (string) $raw_input['ping_status'] ) : 'closed';
+
+		$post_status = self::validate_post_status( $post_status );
+
+		if ( $post_type_obj ) {
+			$comment_status = self::validate_comment_status( $comment_status, $post_type_obj );
+			$ping_status    = self::validate_ping_status( $ping_status, $post_type_obj );
+		} else {
+			$comment_status = in_array( $comment_status, array( 'open', 'closed' ), true ) ? $comment_status : 'closed';
+			$ping_status    = in_array( $ping_status, array( 'open', 'closed' ), true ) ? $ping_status : 'closed';
+		}
+
+		return array(
+			'post_status'    => $post_status,
+			'comment_status' => $comment_status,
+			'ping_status'    => $ping_status,
+		);
+	}
+
+	/**
 	 * Get defaults for a given post type.
 	 *
 	 * Returns a full post object with defaults that are compatible with the post type's

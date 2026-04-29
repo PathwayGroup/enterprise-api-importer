@@ -3,7 +3,7 @@
  * Plugin Name: tporret API Data Importer
  * Plugin URI:  https://github.com/tporret/enterprise-api-importer
  * Description: Highly secure enterprise ETL importer for WordPress.
- * Version:     1.2.6
+ * Version:     1.3.0
  * Author:      tporret
  * License:     GPL-2.0-or-later
  * Donate link: https://porretto.com/donate
@@ -28,7 +28,7 @@ if ( ! defined( 'TPORAPDI_PLUGIN_FILE' ) ) {
 }
 
 if ( ! defined( 'TPORAPDI_PLUGIN_VERSION' ) ) {
-	define( 'TPORAPDI_PLUGIN_VERSION', '1.2.6' );
+	define( 'TPORAPDI_PLUGIN_VERSION', '1.3.0' );
 }
 
 if ( ! defined( 'TPORAPDI_ADMIN_REST_NAMESPACE' ) ) {
@@ -209,11 +209,21 @@ if ( tporapdi_enforce_supported_multisite_activation_mode() ) {
 
 // Load plugin modules in dependency order.
 require_once __DIR__ . '/includes/core.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-job-repository.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-queue-repository.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-log-repository.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/class-tporapdi-imports-list-table.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-lock-policy.php';
 require_once __DIR__ . '/includes/content.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-media-ingestor.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-cleanup-service.php';
 require_once __DIR__ . '/includes/class-tporapdi-import-processor.php';
 require_once __DIR__ . '/includes/class-tporapdi-defaults-resolver.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-import-runner.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-validator.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-template-engine.php';
+require_once __DIR__ . '/includes/modules/class-tporapdi-security-guard.php';
 require_once __DIR__ . '/includes/import.php';
 require_once __DIR__ . '/includes/admin.php';
 require_once __DIR__ . '/includes/rest.php';

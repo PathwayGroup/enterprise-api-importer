@@ -103,3 +103,5 @@ class TPORAPDI_Reporter_Daily_Success_Rate extends TPORAPDI_Reporter_Base {
 		);
 	}
 }
+
+TPORAPDI_Reporting_Aggregator::register( new TPORAPDI_Reporter_Daily_Success_Rate() );

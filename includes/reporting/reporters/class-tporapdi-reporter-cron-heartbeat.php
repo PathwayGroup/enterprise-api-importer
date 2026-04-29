@@ -126,3 +126,5 @@ class TPORAPDI_Reporter_Cron_Heartbeat extends TPORAPDI_Reporter_Base {
 		return 0;
 	}
 }
+
+TPORAPDI_Reporting_Aggregator::register( new TPORAPDI_Reporter_Cron_Heartbeat() );
